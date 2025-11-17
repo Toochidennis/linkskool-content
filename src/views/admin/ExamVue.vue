@@ -1,9 +1,10 @@
 <template>
-  <section>
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Content Management</h2>
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Exams</h2>
       <p class="text-gray-600 dark:text-gray-400">Upload and manage your educational content</p>
     </div>
+
     <!-- Upload Interface -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
       <div class="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -12,14 +13,14 @@
       <div class="p-6">
         <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
           <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-          <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Drop files here or click to upload
-          </h4>
+          <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Drop files here or click to upload</h4>
           <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Supports CSV, JSON, and WORD formats</p>
           <button
-            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap !rounded-button">
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors cursor-pointer">
             Choose Files
           </button>
         </div>
+
         <!-- Format Templates -->
         <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div v-for="template in uploadTemplates" :key="template.format"
@@ -35,6 +36,7 @@
         </div>
       </div>
     </div>
+
     <!-- Upload History Table -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
       <div class="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -91,13 +93,12 @@
         </table>
       </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
-// Upload templates
 const uploadTemplates = ref([
   {
     format: 'CSV Format',
@@ -114,8 +115,8 @@ const uploadTemplates = ref([
     description: 'Microsoft Word document with formatted questions',
     icon: 'fas fa-file-word'
   }
-]);
-// Upload history
+])
+
 const uploadHistory = ref([
   {
     id: 1,
@@ -141,7 +142,5 @@ const uploadHistory = ref([
     statusColor: 'bg-red-100 text-red-800',
     date: '2025-11-13 12:15'
   }
-]);
-
-
+])
 </script>

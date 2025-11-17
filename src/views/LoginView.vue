@@ -1,14 +1,15 @@
 <template>
-  <section v-if="!isLoggedIn" class="min-h-screen flex items-center justify-center px-4">
+  <section class="min-h-screen flex items-center justify-center px-4 bg-gray-50">
     <div class="max-w-md w-full">
       <!-- Logo/Brand -->
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full mb-4">
-          <i class="fas fa-graduation-cap text-white text-2xl"></i>
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4">
+          <img src="@/assets/logo.png" alt="Logo" class="w-16 h-16 rounded-full" />
         </div>
         <h1 class="text-3xl font-bold text-gray-900">LinkSkool Content Hub</h1>
         <p class="text-gray-600 mt-2">Sign in to your account</p>
       </div>
+
       <!-- Login Form -->
       <div class="bg-white rounded-lg shadow-lg p-8">
         <form @submit.prevent="handleLogin">
@@ -27,6 +28,7 @@
                 required />
             </div>
           </div>
+
           <!-- Password Field -->
           <div class="mb-6">
             <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
@@ -46,6 +48,7 @@
               </button>
             </div>
           </div>
+
           <!-- Error Message -->
           <div v-if="loginError" class="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
             <div class="flex items-center">
@@ -53,14 +56,16 @@
               <p class="text-red-700 text-sm">{{ loginError }}</p>
             </div>
           </div>
+
           <!-- Sign In Button -->
           <button type="submit" :disabled="isLoading"
-            class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors !rounded-button whitespace-nowrap cursor-pointer"
+            class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors cursor-pointer"
             :class="{ 'opacity-50 cursor-not-allowed': isLoading }">
             <i v-if="isLoading" class="fas fa-spinner fa-spin mr-2"></i>
             {{ isLoading ? 'Signing In...' : 'Sign In' }}
           </button>
         </form>
+
         <!-- Forgot Password Link -->
         <div class="text-center mt-6">
           <a href="#" class="text-indigo-600 hover:text-indigo-700 text-sm font-medium cursor-pointer">
@@ -73,35 +78,47 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-// Login state
-const isLoggedIn = ref(false);
-const isLoading = ref(false);
-const showPassword = ref(false);
-const loginError = ref('');
-// Login form
+const router = useRouter()
+const auth = useAuthStore()
+
+const showPassword = ref(false)
+const loginError = ref('')
 const loginForm = ref({
   username: '',
   password: ''
-});
-// Methods
+})
+
+const isLoading = ref(false)
+
 const handleLogin = async () => {
-  loginError.value = '';
+  loginError.value = ''
+
   if (!loginForm.value.username || !loginForm.value.password) {
-    loginError.value = 'Please enter both username and password';
-    return;
+    loginError.value = 'Please enter both username and password'
+    return
   }
-  isLoading.value = true;
-  // Simulate API call
-  setTimeout(() => {
-    if (loginForm.value.username === 'admin' && loginForm.value.password === 'password') {
-      isLoggedIn.value = true;
-      loginError.value = '';
-    } else {
-      loginError.value = 'Invalid username or password. Please try again.';
+
+  try {
+    isLoading.value = true
+    const result = await auth.login(loginForm.value.username, loginForm.value.password)
+
+    if (result.success) {
+      loginError.value = ''
+      // Redirect based on role
+      if (auth.isAdmin) {
+        router.push('/admin')
+      } else {
+        router.push('/user/upload')
+      }
     }
-    isLoading.value = false;
-  }, 1500);
-};
+  } catch {
+    loginError.value = 'Invalid username or password. Please try again.'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
