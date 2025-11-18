@@ -53,8 +53,8 @@ const menuItems = computed(() => {
   const baseItems = [
     { name: 'Dashboard', route: '/admin/dashboard', icon: 'fas fa-home' },
     { name: 'Courses', route: '/admin/courses', icon: 'fas fa-book' },
+    { name: 'Programs', route: '/admin/programs', icon: 'fas fa-sitemap' },
     { name: 'Exams', route: '/admin/exams', icon: 'fas fa-file-alt' },
-    { name: 'Programs', route: '/admin/programs', icon: 'fas fa-sitemap' }
   ]
 
   if (auth.isAdmin) {

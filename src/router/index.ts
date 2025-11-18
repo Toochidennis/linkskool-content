@@ -3,20 +3,21 @@ import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import UserView from '@/views/admin/UserView.vue'
-import ExamVue from '@/views/admin/ExamVue.vue'
+import ExamVue from '@/views/admin/ExamView.vue'
 import ProgramsView from '@/views/admin/ProgramsView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
-import CoursesVue from '@/views/admin/CoursesVue.vue'
+import CoursesVue from '@/views/admin/CoursesView.vue'
 import UploadView from '@/views/user/UploadView.vue'
-import AuthenticatedLayout from '@/views/auth/AuthenticatedVue.vue'
+import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: () => {
       const auth = useAuthStore()
-      return auth.isAuthenticated ? '/admin' : '/login'
+      if(!auth.isAuthenticated) return '/login'
+      return auth.isAuthenticated ? '/admin' : '/user/upload'
     }
   },
   {
@@ -28,7 +29,7 @@ const routes: RouteRecordRaw[] = [
   // Admin Routes
   {
     path: '/admin',
-    component: AuthenticatedLayout,
+    component: AuthenticatedView,
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       {
@@ -76,7 +77,7 @@ const routes: RouteRecordRaw[] = [
   // User Routes
   {
     path: '/user',
-    component: AuthenticatedLayout,
+    component: AuthenticatedView,
     meta: { requiresAuth: true },
     children: [
       {
