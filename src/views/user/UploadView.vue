@@ -1,320 +1,262 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Header with user info -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Upload Content</h1>
-      <p class="text-gray-600 dark:text-gray-400 mt-2">
-        Select a program and course to upload your educational content
-      </p>
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Exams</h2>
+      <p class="text-gray-600 dark:text-gray-400">Upload and manage your educational content</p>
     </div>
 
-    <!-- Upload Form -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
-      <!-- Program Selection -->
-      <div class="mb-6">
-        <label for="program" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Select Program
-        </label>
-        <div class="relative">
-          <button @click="showProgramDropdown = !showProgramDropdown"
-            class="w-full bg-white border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-left focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors cursor-pointer dark:bg-gray-700 text-gray-900 dark:text-white"
-            :class="{ 'border-red-500': uploadError && !selectedProgram }">
-            <span class="text-sm">{{ selectedProgram ? selectedProgram.name : 'Choose a program...' }}</span>
-            <i
-              class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+    <!-- Upload Interface -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Upload Questions</h3>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <!-- Program Selection -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Program</label>
+            <select v-model="selectedProgram"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer">
+              <option value="">-- Choose a program --</option>
+              <option v-for="program in programs" :key="program.id" :value="program.id">
+                {{ program.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Subject Selection (populated based on selected program) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Subject</label>
+            <select v-model="selectedSubject" :disabled="!selectedProgram"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              <option value="">-- Choose a subject --</option>
+              <option v-for="course in availableSubjects" :key="course.id" :value="course.id">
+                {{ course.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+          <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+          <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Drop files here or click to upload</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Supports CSV, JSON, and WORD formats</p>
+          <button
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors cursor-pointer">
+            Choose Files
           </button>
-          <div v-if="showProgramDropdown"
-            class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
-            <div v-for="program in programs" :key="program.id" @click="selectProgram(program)"
-              class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-sm border-b border-gray-100 dark:border-gray-600 last:border-b-0 text-gray-900 dark:text-white">
-              {{ program.name }}
+        </div>
+
+        <!-- Format Templates -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div v-for="template in uploadTemplates" :key="template.format"
+            class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-medium text-gray-900 dark:text-white">{{ template.format }}</span>
+              <i :class="template.icon" class="text-blue-600"></i>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ template.description }}</p>
+            <button class="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer">Download
+              Template</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload History Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Upload History</h3>
+          <div class="flex items-center space-x-3">
+            <div class="relative">
+              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+              <input type="text" placeholder="Search uploads..."
+                class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Course Selection -->
-      <div class="mb-6">
-        <label for="course" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Select Course
-        </label>
-        <div class="relative">
-          <button @click="selectedProgram && (showCourseDropdown = !showCourseDropdown)" :disabled="!selectedProgram"
-            class="w-full bg-white border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-left focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors cursor-pointer dark:bg-gray-700 text-gray-900 dark:text-white"
-            :class="{
-              'border-red-500': uploadError && !selectedCourse,
-              'opacity-50 cursor-not-allowed': !selectedProgram
-            }">
-            <span class="text-sm">{{ selectedCourse ? selectedCourse.name : 'Choose a course...' }}</span>
-            <i
-              class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-          </button>
-          <div v-if="showCourseDropdown && selectedProgram"
-            class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
-            <div v-for="course in availableCourses" :key="course.id" @click="selectCourse(course)"
-              class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-sm border-b border-gray-100 dark:border-gray-600 last:border-b-0 text-gray-900 dark:text-white">
-              {{ course.name }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- File Upload Area -->
-      <div v-if="selectedProgram && selectedCourse" class="mb-6">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Upload Document
-        </label>
-        <div @drop="handleDrop" @dragover.prevent @dragenter.prevent
-          class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-indigo-400 dark:hover:border-indigo-400 transition-colors"
-          :class="{ 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900': isDragging }">
-          <div v-if="!selectedFile">
-            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-            <p class="text-lg font-medium text-gray-900 dark:text-white mb-2">Drop your file here</p>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">or click to browse</p>
-            <input ref="fileInput" type="file" @change="handleFileSelect" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
-              class="hidden" />
-            <button @click="fileInput?.click()"
-              class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors cursor-pointer">
-              Choose File
-            </button>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-              Supported formats: PDF, DOC, DOCX, PPT, PPTX, TXT (Max 10MB)
-            </p>
-          </div>
-          <div v-else class="space-y-4">
-            <div class="flex items-center justify-center space-x-3">
-              <i class="fas fa-file-alt text-2xl text-indigo-600"></i>
-              <div class="text-left">
-                <p class="font-medium text-gray-900 dark:text-white">{{ selectedFile.name }}</p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ formatFileSize(selectedFile.size) }}</p>
-              </div>
-            </div>
-            <div v-if="uploadProgress > 0" class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-              <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                :style="{ width: uploadProgress + '%' }"></div>
-            </div>
-            <button @click="removeFile" class="text-red-600 hover:text-red-700 text-sm font-medium cursor-pointer">
-              <i class="fas fa-times mr-1"></i>
-              Remove file
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Error Message -->
-      <div v-if="uploadError"
-        class="mb-6 p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg">
-        <div class="flex items-center">
-          <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
-          <p class="text-red-700 dark:text-red-200 text-sm">{{ uploadError }}</p>
-        </div>
-      </div>
-
-      <!-- Success Message -->
-      <div v-if="uploadSuccess"
-        class="mb-6 p-4 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg">
-        <div class="flex items-center">
-          <i class="fas fa-check-circle text-green-500 mr-2"></i>
-          <p class="text-green-700 dark:text-green-200 text-sm">{{ uploadSuccess }}</p>
-        </div>
-      </div>
-
-      <!-- Upload Button -->
-      <div class="flex justify-end">
-        <button @click="handleUpload" :disabled="!canUpload || isUploading"
-          class="bg-indigo-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors cursor-pointer"
-          :class="{ 'opacity-50 cursor-not-allowed': !canUpload || isUploading }">
-          <i v-if="isUploading" class="fas fa-spinner fa-spin mr-2"></i>
-          {{ isUploading ? 'Uploading...' : 'Upload Content' }}
-        </button>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                File Name</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Format</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Upload Date</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr v-for="upload in uploadHistory" :key="upload.id">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
+                upload.fileName }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.format }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span :class="upload.statusColor" class="px-2 py-1 text-xs font-medium rounded-full">{{
+                  upload.status }}</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.date }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
+                <button class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
-
-interface Program {
-  id: number
-  name: string
-  courses: Course[]
-}
+import { ref, computed, watch } from 'vue'
 
 interface Course {
-  id: number
-  name: string
+  id: number;
+  name: string;
+  description: string;
 }
 
-// Upload state
-const selectedProgram = ref<Program | null>(null)
-const selectedCourse = ref<Course | null>(null)
-const selectedFile = ref<File | null>(null)
-const fileInput = ref<HTMLInputElement>()
-const showProgramDropdown = ref(false)
-const showCourseDropdown = ref(false)
-const isDragging = ref(false)
-const uploadProgress = ref(0)
-const uploadError = ref('')
-const uploadSuccess = ref('')
-const isUploading = ref(false)
+interface Program {
+  id: number;
+  name: string;
+  expanded?: boolean;
+  courses: Course[];
+}
 
-// Programs and courses data
+// Program data
 const programs = ref<Program[]>([
   {
     id: 1,
-    name: 'Computer Science',
+    name: 'Computer Science Program',
+    expanded: true,
     courses: [
-      { id: 101, name: 'Introduction to Programming' },
-      { id: 102, name: 'Data Structures and Algorithms' },
-      { id: 103, name: 'Database Management Systems' },
-      { id: 104, name: 'Software Engineering' }
+      {
+        id: 1,
+        name: 'Data Structures & Algorithms',
+        description: 'Master data structures and algorithmic problem solving'
+      },
+      {
+        id: 2,
+        name: 'Database Management Systems',
+        description: 'Learn database design and SQL'
+      },
+      {
+        id: 4,
+        name: 'Introduction to Web Development',
+        description: 'Learn the fundamentals of web development with HTML, CSS, and JavaScript'
+      }
     ]
   },
   {
     id: 2,
-    name: 'Business Administration',
+    name: 'Mathematics Program',
+    expanded: false,
     courses: [
-      { id: 201, name: 'Principles of Management' },
-      { id: 202, name: 'Marketing Fundamentals' },
-      { id: 203, name: 'Financial Accounting' },
-      { id: 204, name: 'Business Strategy' }
+      {
+        id: 6,
+        name: 'Calculus I',
+        description: 'Introduction to differential and integral calculus'
+      },
+      {
+        id: 7,
+        name: 'Linear Algebra',
+        description: 'Matrices, vectors, and linear transformations'
+      }
     ]
   },
   {
     id: 3,
-    name: 'Digital Marketing',
+    name: 'Marketing Program',
+    expanded: false,
     courses: [
-      { id: 301, name: 'Social Media Marketing' },
-      { id: 302, name: 'Search Engine Optimization' },
-      { id: 303, name: 'Content Marketing Strategy' },
-      { id: 304, name: 'Email Marketing Campaigns' }
+      {
+        id: 3,
+        name: 'Digital Marketing Strategy',
+        description: 'Comprehensive guide to modern digital marketing techniques'
+      },
+      {
+        id: 8,
+        name: 'Social Media Marketing',
+        description: 'Master social media platforms and campaigns'
+      }
     ]
   }
 ])
 
-// Computed properties
-const availableCourses = computed(() => {
-  return selectedProgram.value ? selectedProgram.value.courses : []
+const selectedProgram = ref('')
+const selectedSubject = ref('')
+
+// Computed property to get available subjects based on selected program
+const availableSubjects = computed(() => {
+  if (!selectedProgram.value) {
+    return []
+  }
+  const program = programs.value.find(p => p.id === parseInt(selectedProgram.value))
+  return program ? program.courses : []
 })
 
-const canUpload = computed(() => {
-  return selectedProgram.value && selectedCourse.value && selectedFile.value && !isUploading.value
+// Watch for program changes and reset subject
+watch(selectedProgram, () => {
+  selectedSubject.value = ''
 })
 
-const selectProgram = (program: Program) => {
-  selectedProgram.value = program
-  selectedCourse.value = null
-  showProgramDropdown.value = false
-  uploadError.value = ''
-}
-
-const selectCourse = (course: Course) => {
-  selectedCourse.value = course
-  showCourseDropdown.value = false
-  uploadError.value = ''
-}
-
-const handleFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    validateAndSetFile(target.files[0])
+const uploadTemplates = ref([
+  {
+    format: 'CSV Format',
+    description: 'Comma-separated values with question data',
+    icon: 'fas fa-file-csv'
+  },
+  {
+    format: 'JSON Format',
+    description: 'Structured JSON format for complex questions',
+    icon: 'fas fa-file-code'
+  },
+  {
+    format: 'WORD Format',
+    description: 'Microsoft Word document with formatted questions',
+    icon: 'fas fa-file-word'
   }
-}
+])
 
-const handleDrop = (event: DragEvent) => {
-  event.preventDefault()
-  isDragging.value = false
-  if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
-    validateAndSetFile(event.dataTransfer.files[0])
+const uploadHistory = ref([
+  {
+    id: 1,
+    fileName: 'math_questions_batch_1.csv',
+    format: 'CSV',
+    status: 'Completed',
+    statusColor: 'bg-green-100 text-green-800',
+    date: '2025-11-13 14:30'
+  },
+  {
+    id: 2,
+    fileName: 'physics_exam_questions.json',
+    format: 'JSON',
+    status: 'Processing',
+    statusColor: 'bg-yellow-100 text-yellow-800',
+    date: '2025-11-13 13:45'
+  },
+  {
+    id: 3,
+    fileName: 'chemistry_quiz_set.docx',
+    format: 'WORD',
+    status: 'Failed',
+    statusColor: 'bg-red-100 text-red-800',
+    date: '2025-11-13 12:15'
   }
-}
-
-const validateAndSetFile = (file: File) => {
-  const maxSize = 10 * 1024 * 1024 // 10MB
-  const allowedTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'text/plain'
-  ]
-
-  if (file.size > maxSize) {
-    uploadError.value = 'File size must be less than 10MB'
-    return
-  }
-
-  if (!allowedTypes.includes(file.type)) {
-    uploadError.value = 'Please select a valid file format (PDF, DOC, DOCX, PPT, PPTX, TXT)'
-    return
-  }
-
-  selectedFile.value = file
-  uploadError.value = ''
-  uploadSuccess.value = ''
-}
-
-const removeFile = () => {
-  selectedFile.value = null
-  uploadProgress.value = 0
-  uploadError.value = ''
-  uploadSuccess.value = ''
-}
-
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-const handleUpload = async () => {
-  if (!canUpload.value) return
-
-  uploadError.value = ''
-  uploadSuccess.value = ''
-  isUploading.value = true
-  uploadProgress.value = 0
-
-  // Simulate file upload with progress
-  const uploadInterval = setInterval(() => {
-    uploadProgress.value += 10
-    if (uploadProgress.value >= 100) {
-      clearInterval(uploadInterval)
-      isUploading.value = false
-      if (selectedFile.value && selectedCourse.value) {
-        uploadSuccess.value = `Successfully uploaded "${selectedFile.value.name}" to ${selectedCourse.value.name}`
-      }
-      // Reset form after successful upload
-      setTimeout(() => {
-        resetUploadForm()
-      }, 3000)
-    }
-  }, 200)
-}
-
-const resetUploadForm = () => {
-  selectedProgram.value = null
-  selectedCourse.value = null
-  selectedFile.value = null
-  uploadProgress.value = 0
-  uploadError.value = ''
-  uploadSuccess.value = ''
-  showProgramDropdown.value = false
-  showCourseDropdown.value = false
-}
-
-// Close dropdowns when clicking outside
-onMounted(() => {
-  document.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement
-    if (!target.closest('.relative')) {
-      showProgramDropdown.value = false
-      showCourseDropdown.value = false
-    }
-  })
-})
+])
 </script>

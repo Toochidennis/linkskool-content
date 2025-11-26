@@ -10,6 +10,10 @@ import SettingsView from '@/views/admin/SettingsView.vue'
 import CoursesVue from '@/views/admin/CoursesView.vue'
 import UploadView from '@/views/user/UploadView.vue'
 import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
+import TopicsView from '@/views/admin/TopicsView.vue'
+import SyllabusView from '@/views/admin/SyllabusView.vue'
+import NewsView from '@/views/admin/NewsView.vue'
+import AdmissionsView from '@/views/admin/AdmissionsView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -46,6 +50,26 @@ const routes: RouteRecordRaw[] = [
         path: 'courses',
         name: 'Courses',
         component: CoursesVue
+      },
+      {
+        path: 'topics',
+        name: 'Topics',
+        component: TopicsView
+      },
+      {
+        path: 'syllabus',
+        name: 'Syllabus',
+        component: SyllabusView
+      },
+      {
+        path: 'news',
+        name: 'News',
+        component: NewsView
+      },
+      {
+        path: 'admissions',
+        name: 'Admissions',
+        component: AdmissionsView
       },
       {
         path: 'exams',

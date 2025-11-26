@@ -11,6 +11,32 @@
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Upload Questions</h3>
       </div>
       <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <!-- Program Selection -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Program</label>
+            <select v-model="selectedProgram"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer">
+              <option value="">-- Choose a program --</option>
+              <option v-for="program in programs" :key="program.id" :value="program.id">
+                {{ program.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Subject Selection (populated based on selected program) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Subject</label>
+            <select v-model="selectedSubject" :disabled="!selectedProgram"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              <option value="">-- Choose a subject --</option>
+              <option v-for="course in availableSubjects" :key="course.id" :value="course.id">
+                {{ course.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+
         <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
           <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
           <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Drop files here or click to upload</h4>
@@ -97,7 +123,97 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
+
+interface Course {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface Program {
+  id: number;
+  name: string;
+  expanded?: boolean;
+  courses: Course[];
+}
+
+// Program data
+const programs = ref<Program[]>([
+  {
+    id: 1,
+    name: 'Computer Science Program',
+    expanded: true,
+    courses: [
+      {
+        id: 1,
+        name: 'Data Structures & Algorithms',
+        description: 'Master data structures and algorithmic problem solving'
+      },
+      {
+        id: 2,
+        name: 'Database Management Systems',
+        description: 'Learn database design and SQL'
+      },
+      {
+        id: 4,
+        name: 'Introduction to Web Development',
+        description: 'Learn the fundamentals of web development with HTML, CSS, and JavaScript'
+      }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Mathematics Program',
+    expanded: false,
+    courses: [
+      {
+        id: 6,
+        name: 'Calculus I',
+        description: 'Introduction to differential and integral calculus'
+      },
+      {
+        id: 7,
+        name: 'Linear Algebra',
+        description: 'Matrices, vectors, and linear transformations'
+      }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Marketing Program',
+    expanded: false,
+    courses: [
+      {
+        id: 3,
+        name: 'Digital Marketing Strategy',
+        description: 'Comprehensive guide to modern digital marketing techniques'
+      },
+      {
+        id: 8,
+        name: 'Social Media Marketing',
+        description: 'Master social media platforms and campaigns'
+      }
+    ]
+  }
+])
+
+const selectedProgram = ref('')
+const selectedSubject = ref('')
+
+// Computed property to get available subjects based on selected program
+const availableSubjects = computed(() => {
+  if (!selectedProgram.value) {
+    return []
+  }
+  const program = programs.value.find(p => p.id === parseInt(selectedProgram.value))
+  return program ? program.courses : []
+})
+
+// Watch for program changes and reset subject
+watch(selectedProgram, () => {
+  selectedSubject.value = ''
+})
 
 const uploadTemplates = ref([
   {

@@ -2,10 +2,10 @@
   <div class="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
     <HeaderComponent />
     <div class="flex flex-1 overflow-hidden">
-      <SidebarComponent v-if="isAdmin" @navigate="handleNavigation" />
+      <SidebarComponent v-if="isAdmin" @sidebarStateChange="handleSidebarChange" />
       <main :class="{
-        'ml-48': isAdmin && sidebarOpen,
-        'ml-16': isAdmin && !sidebarOpen,
+        'ml-54': isAdmin && sidebarOpen,
+        'ml-22': isAdmin && !sidebarOpen,
         'ml-0': !isAdmin
       }" class="flex-1 overflow-y-auto pt-16 transition-all duration-300">
         <div class="p-6">
@@ -27,7 +27,7 @@ const isAdmin = auth.isAdmin;
 
 const sidebarOpen = ref(true)
 
-const handleNavigation = (isOpen: boolean) => {
+const handleSidebarChange = (isOpen: boolean) => {
   sidebarOpen.value = isOpen
 }
 </script>
