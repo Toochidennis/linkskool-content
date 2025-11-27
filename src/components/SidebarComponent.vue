@@ -30,9 +30,9 @@
 
             <!-- Submenu items -->
             <div v-if="expandedMenus[item.name]" class="ml-4 mt-2 space-y-1">
-              <router-link v-for="child in item.children" :key="child.name" :to="child.route" :class="{
+              <router-link v-for="child in item.children" :key="child.name" :to="child.route || ''" :class="{
                 'border-l-4 border-indigo-600 text-indigo-600 dark:text-indigo-400':
-                  isActiveRoute(child.route)
+                  isActiveRoute(child.route || '')
               }"
                 class="w-full flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer whitespace-nowrap text-gray-700 dark:text-gray-300">
                 <i :class="child.icon" class="text-lg"></i>
@@ -44,9 +44,9 @@
           </template>
 
           <!-- Regular menu item without submenu -->
-          <router-link v-else :to="item.route" :class="{
+          <router-link v-else :to="item.route || ''" :class="{
             'border-l-4 border-indigo-600 text-indigo-600 dark:text-indigo-400':
-              isActiveRoute(item.route)
+              isActiveRoute(item.route || '')
           }"
             class="w-full flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer whitespace-nowrap text-gray-700 dark:text-gray-300">
             <i :class="item.icon" class="text-lg"></i>
@@ -68,6 +68,13 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+
+interface MenuItem {
+  name: string
+  route?: string
+  icon: string
+  children?: MenuItem[] | null
+}
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -102,17 +109,17 @@ const toggleSubmenu = (menuName: string) => {
   expandedMenus.value[menuName] = !expandedMenus.value[menuName]
 }
 
-const isActiveRoute = (routePath: string) => {
+const isActiveRoute = (routePath: string): boolean => {
   return route.path.startsWith(routePath)
 }
 
-const isSubmenuActive = (item: any) => {
+const isSubmenuActive = (item: MenuItem): boolean => {
   if (!item.children) return false
-  return item.children.some((child: any) => isActiveRoute(child.route))
+  return item.children.some((child: MenuItem) => isActiveRoute(child.route || ''))
 }
 
-const menuItems = computed(() => {
-  const baseItems = [
+const menuItems = computed((): MenuItem[] => {
+  const baseItems: MenuItem[] = [
     {
       name: 'Dashboard',
       route: '/admin/dashboard',
