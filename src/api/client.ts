@@ -1,12 +1,50 @@
 import axios from "axios";
+import { toCamel, toSnake } from "./util/transform";
 
 export const client = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost/api3/v3/public/',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
-  headers: { "Content-Type": "application/json" }
+  headers: {
+    "Content-Type": "application/json",
+    "X-API-KEY": import.meta.env.VITE_API_KEY
+  }
 });
 
-client.interceptors.response.use(
-  res => res,
+client.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    if (config.data) {
+      config.data = toSnake(config.data);
+    }
+
+    console.log(`${config.method?.toUpperCase()} ${config.url}`, {
+      data: config.data,
+      params: config.params
+    });
+    return config;
+  },
   err => Promise.reject(err)
+);
+
+client.interceptors.response.use(
+  res => {
+    if (res.data) {
+      res.data = toCamel(res.data);
+    }
+    return res;
+  },
+  err => {
+    console.error('API Error:', {
+      status: err.response?.status,
+      data: err.response?.data,
+      message: err.message,
+      url: err.config?.url,
+      method: err.config?.method
+    });
+    return Promise.reject(err);
+  }
 );

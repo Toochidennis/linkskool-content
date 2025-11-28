@@ -102,23 +102,20 @@ const handleLogin = async () => {
     return
   }
 
-  try {
-    isLoading.value = true
-    const result = await auth.login(loginForm.value.username, loginForm.value.password)
+  isLoading.value = true
+  const result = await auth.login(loginForm.value.username, loginForm.value.password)
 
-    if (result.success) {
-      loginError.value = ''
-      // Redirect based on role
-      if (auth.isAdmin) {
-        router.push('/admin')
-      } else {
-        router.push('/user/upload')
-      }
+  if (result?.success) {
+    loginError.value = ''
+    // Redirect based on role
+    if (auth.isAdmin) {
+      router.push('/admin')
+    } else {
+      router.push('/user/upload')
     }
-  } catch {
-    loginError.value = 'Invalid username or password. Please try again.'
-  } finally {
-    isLoading.value = false
+  } else {
+    loginError.value = "Invalid username or password. Please try again."
   }
+  isLoading.value = false
 }
 </script>

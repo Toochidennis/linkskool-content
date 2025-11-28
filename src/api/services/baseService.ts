@@ -1,36 +1,50 @@
-import {
-  create,
-  getAll,
-  getById,
-  getWithParams,
-  updateById,
-  deleteById
-} from "../methods";
+import { client } from "../client";
+import type { ApiResponse } from "../models";
 
 export class BaseService<T, D = any> {
-  constructor(private endpoint: string) {}
+  constructor(private endpoint: string) { }
 
-  create(payload: D) {
-    return create<T, D>(this.endpoint, payload);
+  private buildUrl(path?: string) {
+    return path ? `${this.endpoint}/${path}` : this.endpoint;
   }
 
-  getAll() {
-    return getAll<T>(this.endpoint);
+  async get<R = T[]>(path?: string, params?: any): Promise<ApiResponse<R>> {
+    const r = await client.get<ApiResponse<R>>(this.buildUrl(path), { params });
+    return r.data;
   }
 
-  getById(id: string | number) {
-    return getById<T>(this.endpoint, id);
+  async post<R = T>(path?: string, data?: D): Promise<ApiResponse<R>> {
+    console.log('POST to', this.buildUrl(path), 'with data', data);
+    const r = await client.post<ApiResponse<R>>(this.buildUrl(path), data);
+    return r.data;
   }
 
-  getWithParams(params: object) {
-    return getWithParams<T>(this.endpoint, params);
+  async put<R = T>(path?: string, data?: D): Promise<ApiResponse<R>> {
+    const r = await client.put<ApiResponse<R>>(this.buildUrl(path), data);
+    return r.data;
   }
 
-  update(id: string | number, payload: D) {
-    return updateById<T, D>(this.endpoint, id, payload);
+  async delete<R = any>(path?: string): Promise<ApiResponse<R>> {
+    const r = await client.delete<ApiResponse<R>>(this.buildUrl(path), {
+      data: {}
+    });
+    return r.data;
   }
 
-  delete(id: string | number) {
-    return deleteById<T>(this.endpoint, id);
+  // For custom action endpoints like users/login
+  action(path: string) {
+    return {
+      get: <R = any>(params?: any) =>
+        client.get<ApiResponse<R>>(`${this.endpoint}/${path}`, { params }).then(r => r.data),
+
+      post: <R = any>(data?: any) =>
+        client.post<ApiResponse<R>>(`${this.endpoint}/${path}`, data).then(r => r.data),
+
+      put: <R = any>(data?: any) =>
+        client.put<ApiResponse<R>>(`${this.endpoint}/${path}`, data).then(r => r.data),
+
+      delete: <R = any>() =>
+        client.delete<ApiResponse<R>>(`${this.endpoint}/${path}`).then(r => r.data),
+    };
   }
 }

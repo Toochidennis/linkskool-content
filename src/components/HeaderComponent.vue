@@ -22,10 +22,10 @@
         <div class="relative">
           <button @click="showUserMenu = !showUserMenu"
             class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-            <img :src="auth.user?.avatar" :alt="auth.user?.name" class="w-8 h-8 rounded-full object-cover" />
+            <img :src="auth.user?.picture_ref" :alt="auth.user?.username" class="w-8 h-8 rounded-full object-cover" />
             <div class="text-left hidden sm:block">
               <div class="text-sm font-medium text-gray-900 dark:text-white">
-                {{ auth.user?.name }}
+                {{ auth.user?.username || '' }}
               </div>
               <div class="text-xs text-blue-600 dark:text-blue-400 capitalize">
                 {{ auth.user?.role }}

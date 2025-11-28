@@ -1,5 +1,5 @@
 import { BaseService } from "./baseService";
-import  * as type from "@/types";
+import * as type from "@/api/models";
 
 const serviceFactory = <T, D = any>(endpoint: string) =>
   new BaseService<T, D>(endpoint);
