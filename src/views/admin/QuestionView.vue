@@ -444,6 +444,8 @@ const extractImagesFromZip = async (zipFile: File) => {
     // Store extracted images
     extractedImages.value = images;
 
+    console.log('extractedImages.value:', extractedImages.value);
+
     // Show results
     console.log(`Extracted ${images.length} images from ZIP file`);
 
