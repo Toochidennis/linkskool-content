@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import UserView from '@/views/admin/UserView.vue'
-import ExamVue from '@/views/admin/ExamView.vue'
+import QuestionView from '@/views/admin/QuestionView.vue'
 import ProgramsView from '@/views/admin/ProgramView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
@@ -20,7 +20,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     redirect: () => {
       const auth = useAuthStore()
-      if(!auth.isAuthenticated) return '/login'
+      if (!auth.isAuthenticated) return '/login'
       return auth.isAuthenticated ? '/admin' : '/user/upload'
     }
   },
@@ -72,9 +72,9 @@ const routes: RouteRecordRaw[] = [
         component: AdmissionsView
       },
       {
-        path: 'exams',
-        name: 'Exams',
-        component: ExamVue
+        path: 'questions',
+        name: 'Questions',
+        component: QuestionView
       },
       {
         path: 'programs',

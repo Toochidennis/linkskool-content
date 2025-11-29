@@ -42,7 +42,7 @@
                 <div class="flex items-center">
                   <i class="fas fa-book text-green-600 mr-2 text-sm"></i>
                   <span class="text-sm font-medium text-gray-900 dark:text-white">{{ capitalize(course.courseName)
-                    }}</span>
+                  }}</span>
                 </div>
                 <div class="flex items-center space-x-2">
                   <button class="text-gray-400 hover:text-blue-600 cursor-pointer">
@@ -158,7 +158,7 @@
                 ]"></span>
               </button>
               <span class="text-sm text-gray-600 dark:text-gray-300">{{ editingProgram.isActive ? 'Active' : 'Inactive'
-                }}</span>
+              }}</span>
             </div>
           </div>
 

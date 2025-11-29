@@ -134,7 +134,7 @@ const menuItems = computed((): MenuItem[] => {
         { name: 'Programs', route: '/admin/programs', icon: 'fas fa-sitemap' },
         { name: 'Topics', route: '/admin/topics', icon: 'fas fa-list' },
         { name: 'Syllabus', route: '/admin/syllabus', icon: 'fas fa-graduation-cap' },
-        { name: 'Questions', route: '/admin/exams', icon: 'fas fa-question-circle' },
+        { name: 'Questions', route: '/admin/questions', icon: 'fas fa-question-circle' },
       ]
     },
     {
