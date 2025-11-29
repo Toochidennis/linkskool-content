@@ -84,8 +84,8 @@ export const useQuestionUpload = () => {
       const base64Image = getImageByName(questionImageName, extractedImages);
       if (base64Image) {
         files.push({
-          file_name: questionImageName.split('.')[0] || 'question_image',
-          old_file_name: questionImageName,
+          file_name: questionImageName,
+          old_file_name: '',
           type: 'image',
           file: base64Image
         });

@@ -207,6 +207,7 @@ import type { Program, QuestionPayload } from '@/api/models'
 import { programService, questionService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
 import { useQuestionUpload } from '@/composables/useQuestionUpload';
+import { getFileFormat, readCSVFile, extractImagesFromZip } from '@/composables/useFileUpload';
 
 const $toast = useToast();
 const { formatQuestionsData } = useQuestionUpload();
@@ -340,7 +341,15 @@ const handleFileUpload = (event: Event) => {
 
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext === 'csv') {
-      readCSVFile(file);
+      readCSVFile(file)
+        .then(data => {
+          csvData.value = data;
+          $toast.success(`CSV file loaded: ${data.length} records`);
+        })
+        .catch((error) => {
+          console.error('Error parsing CSV file:', error);
+          $toast.error((error as Error).message || 'Failed to parse CSV file');
+        });
     }
   }
 
@@ -352,7 +361,7 @@ const triggerZipFileInput = () => {
   zipFileInput.value?.click();
 };
 
-const handleZipFileUpload = (event: Event) => {
+const handleZipFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const files = target.files;
 
@@ -368,185 +377,22 @@ const handleZipFileUpload = (event: Event) => {
   const zipFile = files[0];
   if (!zipFile) return;
 
-  // Store selected ZIP file
-  selectedZipFile.value = zipFile;
+  try {
+    // Store selected ZIP file
+    selectedZipFile.value = zipFile;
 
-  // Extract images from ZIP file
-  extractImagesFromZip(zipFile);
+    // Extract images from ZIP file
+    const images = await extractImagesFromZip(zipFile);
+    extractedImages.value = images;
+
+    $toast.success(`Extracted ${images.length} images from ZIP file`);
+  } catch (error) {
+    console.error('Error extracting ZIP:', error);
+    $toast.error('Failed to extract images from ZIP file');
+  }
 
   // Reset the input
   target.value = '';
-};
-
-// Extract images from ZIP file
-const extractImagesFromZip = async (zipFile: File) => {
-  try {
-    // Import JSZip dynamically
-    const JSZip = (await import('jszip')).default;
-    const zip = new JSZip();
-    const content = await zip.loadAsync(zipFile);
-
-    const images: Array<{ name: string; data: string; type: string }> = [];
-    const allowedExtensions = ['jpg', 'jpeg', 'png'];
-    const rejectedFiles: string[] = [];
-    const fileReaderPromises: Promise<void>[] = [];
-
-    // Iterate through all files in the ZIP
-    for (const [fileName, file] of Object.entries(content.files)) {
-      if (!file.dir) {
-        const ext = fileName.split('.').pop()?.toLowerCase() || '';
-
-        // Check if it's an allowed image file
-        if (allowedExtensions.includes(ext)) {
-          try {
-            const fileReaderPromise = new Promise<void>(async (resolve, reject) => {
-              try {
-                const fileData = await file.async('arraybuffer');
-                const blob = new Blob([fileData], { type: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
-                const reader = new FileReader();
-
-                reader.onload = (e) => {
-                  const dataUrl = e.target?.result as string;
-                  images.push({
-                    name: fileName,
-                    data: dataUrl,
-                    type: `image/${ext === 'jpg' ? 'jpeg' : ext}`
-                  });
-                  resolve();
-                };
-
-                reader.onerror = () => {
-                  console.error(`Error reading image ${fileName}`);
-                  reject(new Error(`Failed to read ${fileName}`));
-                };
-
-                reader.readAsDataURL(blob);
-              } catch (error) {
-                console.error(`Error extracting image ${fileName}:`, error);
-                reject(error);
-              }
-            });
-
-            fileReaderPromises.push(fileReaderPromise);
-          } catch (error) {
-            console.error(`Error extracting image ${fileName}:`, error);
-          }
-        } else {
-          // Track rejected files
-          rejectedFiles.push(fileName);
-        }
-      }
-    }
-
-    // Wait for all FileReader operations to complete
-    await Promise.all(fileReaderPromises);
-
-    // Store extracted images
-    extractedImages.value = images;
-
-    console.log('extractedImages.value:', extractedImages.value);
-
-    // Show results
-    console.log(`Extracted ${images.length} images from ZIP file`);
-
-    if (rejectedFiles.length > 0) {
-      console.warn(`Rejected ${rejectedFiles.length} non-image files:`, rejectedFiles);
-      $toast.warning(`Extracted ${images.length} images. Rejected ${rejectedFiles.length} files (only JPG, JPEG, PNG allowed)`);
-    } else {
-      $toast.success(`Extracted ${images.length} images from ZIP file`);
-    }
-  } catch (error) {
-    console.error('Error extracting ZIP file:', error);
-    $toast.error('Failed to extract images from ZIP file');
-  }
-};
-
-// Read and parse CSV file
-const readCSVFile = (file: File) => {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const content = e.target?.result as string;
-      const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-
-      if (lines.length < 2) {
-        $toast.warning('CSV file must have headers and at least one data row');
-        return;
-      }
-
-      // Parse CSV headers (first row)
-      const headers = parseCSVLine(lines[0] || '');
-
-      // Parse CSV data rows
-      const data: Array<Record<string, string>> = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i] || '');
-        const row: Record<string, string> = {};
-
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-
-        data.push(row);
-      }
-
-      // Store CSV data
-      csvData.value = data;
-
-      console.log(`CSV file parsed: ${data.length} rows, ${headers.length} columns`);
-      console.log('CSV Headers:', headers);
-      console.log('CSV Data:', data);
-
-      $toast.success(`CSV file loaded: ${data.length} records`);
-    } catch (error) {
-      console.error('Error parsing CSV file:', error);
-      $toast.error('Failed to parse CSV file');
-    }
-  };
-  reader.readAsText(file);
-};
-
-// Helper function to parse CSV line (handles quoted values and commas)
-const parseCSVLine = (line: string): string[] => {
-  const result: string[] = [];
-  let current = '';
-  let insideQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (char === '"') {
-      if (insideQuotes && nextChar === '"') {
-        // Handle escaped quotes
-        current += '"';
-        i++;
-      } else {
-        // Toggle quote state
-        insideQuotes = !insideQuotes;
-      }
-    } else if (char === ',' && !insideQuotes) {
-      // End of field
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-
-  // Add the last field
-  result.push(current.trim());
-
-  return result;
-};
-
-// Helper function to get file format from filename
-const getFileFormat = (fileName: string): string => {
-  const extension = fileName.split('.').pop()?.toUpperCase() || '';
-  if (extension === 'CSV') return 'CSV';
-  if (extension === 'JSON') return 'JSON';
-  if (extension === 'DOC' || extension === 'DOCX') return 'WORD';
-  return extension;
 };
 
 // Format file size display
@@ -709,7 +555,10 @@ const submitUpload = async () => {
       try {
         const response = await questionService.post(undefined, questionPayload as unknown as Record<string, unknown>);
         console.log('Server Response:', response);
-        $toast.success('Questions uploaded to server successfully');
+        if (response.success) {
+          $toast.success('Questions uploaded to server successfully');
+          clearAllFiles();
+        }
       } catch (error) {
         console.error('Server upload error:', error);
         $toast.error('Failed to upload questions to server');
@@ -720,7 +569,6 @@ const submitUpload = async () => {
       return;
     }
 
-    clearAllFiles();
   } catch (error) {
     console.error('Upload error:', error);
     $toast.error('Failed to upload files');
