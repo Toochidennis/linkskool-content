@@ -23,9 +23,10 @@ client.interceptors.request.use(
 
     console.log(`${config.method?.toUpperCase()} ${config.url}`, {
       data: config.data,
-      params: config.params
+      params: config.params,
+      headers: config.headers
     });
-    return config;
+    return config;      
   },
   err => Promise.reject(err)
 );

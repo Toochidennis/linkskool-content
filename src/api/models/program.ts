@@ -1,9 +1,10 @@
 import type { Course } from "./course";
 
 export interface Program {
-  id?: number;
+  id: number;
   name: string;
-  description?: string;
+  shortname: string;
+  expanded?: boolean ;
   courses: Course[];
-
+  isActive: number;
 }

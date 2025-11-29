@@ -6,4 +6,4 @@ const serviceFactory = <T, D = any>(endpoint: string) =>
 
 export const userService = serviceFactory<type.User>("users");
 export const courseService = serviceFactory<type.Course>("courses");
-export const programService = serviceFactory<type.Program>("programs");
+export const programService = serviceFactory<type.Program>("exam-types");
