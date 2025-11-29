@@ -23,7 +23,7 @@
                   class="text-gray-400 text-sm"></i>
               </button>
               <i class="fas fa-folder text-blue-600 mr-2"></i>
-              <span class="font-medium text-gray-900 dark:text-white">{{ program.name }}</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ capitalize(program.name) }}</span>
             </div>
             <div class="flex items-center space-x-4">
               <div class="flex items-center space-x-2">
@@ -41,7 +41,8 @@
               <div class="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-600 rounded-lg">
                 <div class="flex items-center">
                   <i class="fas fa-book text-green-600 mr-2 text-sm"></i>
-                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ course.courseName }}</span>
+                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ capitalize(course.courseName)
+                    }}</span>
                 </div>
                 <div class="flex items-center space-x-2">
                   <button class="text-gray-400 hover:text-blue-600 cursor-pointer">
@@ -157,7 +158,7 @@
                 ]"></span>
               </button>
               <span class="text-sm text-gray-600 dark:text-gray-300">{{ editingProgram.isActive ? 'Active' : 'Inactive'
-              }}</span>
+                }}</span>
             </div>
           </div>
 
@@ -311,6 +312,15 @@ const toggleEditCourse = (courseId: number) => {
   }
 };
 
+const capitalize = (str: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const addProgram = async () => {
   if (!newProgram.value.name.trim()) {
     $toast.warning('Please enter a program name');
@@ -324,7 +334,7 @@ const addProgram = async () => {
 
   try {
     const response = await programService.post(undefined, {
-      name: newProgram.value.name,
+      name: capitalize(newProgram.value.name),
       shortname: newProgram.value.shortname,
       courseIds: newProgram.value.courseIds,
       isActive: newProgram.value.isActive
@@ -365,7 +375,7 @@ const updateProgram = async () => {
 
   try {
     const response = await programService.put(`${editingProgram.value.id}`, {
-      name: editingProgram.value.name,
+      name: capitalize(editingProgram.value.name),
       shortname: editingProgram.value.shortname,
       courseIds: editingProgram.value.courseIds,
       isActive: editingProgram.value.isActive
