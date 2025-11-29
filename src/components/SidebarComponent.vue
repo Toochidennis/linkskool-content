@@ -122,7 +122,7 @@ const menuItems = computed((): MenuItem[] => {
   const baseItems: MenuItem[] = [
     {
       name: 'Dashboard',
-      route: '/admin/dashboard',
+      route: '/dashboard',
       icon: 'fas fa-home',
       children: null
     },
@@ -130,31 +130,31 @@ const menuItems = computed((): MenuItem[] => {
       name: 'CBT',
       icon: 'fas fa-layer-group',
       children: [
-        { name: 'Courses', route: '/admin/courses', icon: 'fas fa-book' },
-        { name: 'Programs', route: '/admin/programs', icon: 'fas fa-sitemap' },
-        { name: 'Topics', route: '/admin/topics', icon: 'fas fa-list' },
-        { name: 'Syllabus', route: '/admin/syllabus', icon: 'fas fa-graduation-cap' },
-        { name: 'Questions', route: '/admin/questions', icon: 'fas fa-question-circle' },
+        { name: 'Courses', route: '/dashboard/courses', icon: 'fas fa-book' },
+        { name: 'Programs', route: '/dashboard/programs', icon: 'fas fa-sitemap' },
+        { name: 'Topics', route: '/dashboard/topics', icon: 'fas fa-list' },
+        { name: 'Syllabus', route: '/dashboard/syllabus', icon: 'fas fa-graduation-cap' },
+        { name: 'Assessments', route: '/dashboard/assessments', icon: 'fas fa-question-circle' },
       ]
     },
     {
       name: 'Updates',
       icon: 'fas fa-bell',
       children: [
-        { name: 'News', route: '/admin/news', icon: 'fas fa-newspaper' },
-        { name: 'Admissions', route: '/admin/admissions', icon: 'fas fa-user-plus' },
+        { name: 'Announcements', route: '/dashboard/announcements', icon: 'fas fa-newspaper' },
+        { name: 'Admissions', route: '/dashboard/admissions', icon: 'fas fa-user-plus' },
       ]
     },
   ]
 
   if (auth.isAdmin) {
     baseItems.push(
-      { name: 'Users', route: '/admin/users', icon: 'fas fa-users', children: null },
-      { name: 'Activities', route: '/admin/activities', icon: 'fas fa-clipboard-list', children: null }
+      { name: 'Team', route: '/dashboard/team', icon: 'fas fa-users', children: null },
+      { name: 'Logs', route: '/dashboard/logs', icon: 'fas fa-clipboard-list', children: null }
     )
   }
 
-  baseItems.push({ name: 'Settings', route: '/admin/settings', icon: 'fas fa-cog', children: null })
+  baseItems.push({ name: 'Settings', route: '/dashboard/config', icon: 'fas fa-cog', children: null })
 
   return baseItems
 })

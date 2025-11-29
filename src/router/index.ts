@@ -21,7 +21,7 @@ const routes: RouteRecordRaw[] = [
     redirect: () => {
       const auth = useAuthStore()
       if (!auth.isAuthenticated) return '/login'
-      return auth.isAuthenticated ? '/admin' : '/user/upload'
+      return auth.isAuthenticated ? '/dashboard' : '/library'
     }
   },
   {
@@ -30,9 +30,9 @@ const routes: RouteRecordRaw[] = [
     component: LoginView,
     meta: { requiresAuth: false, layout: 'blank' }
   },
-  // Admin Routes
+  // Admin Routes (hidden paths)
   {
-    path: '/admin',
+    path: '/dashboard',
     component: AuthenticatedView,
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
@@ -42,7 +42,7 @@ const routes: RouteRecordRaw[] = [
         component: DashboardView
       },
       {
-        path: 'dashboard',
+        path: 'analytics',
         name: 'Dashboard',
         component: DashboardView
       },
@@ -62,7 +62,7 @@ const routes: RouteRecordRaw[] = [
         component: SyllabusView
       },
       {
-        path: 'news',
+        path: 'announcements',
         name: 'News',
         component: NewsView
       },
@@ -72,7 +72,7 @@ const routes: RouteRecordRaw[] = [
         component: AdmissionsView
       },
       {
-        path: 'questions',
+        path: 'assessments',
         name: 'Questions',
         component: QuestionView
       },
@@ -82,31 +82,31 @@ const routes: RouteRecordRaw[] = [
         component: ProgramsView
       },
       {
-        path: 'users',
+        path: 'team',
         name: 'Users',
         component: UserView
       },
       {
-        path: 'activities',
+        path: 'logs',
         name: 'Activities',
         component: RecentActivitiesView
       },
       {
-        path: 'settings',
+        path: 'config',
         name: 'Settings',
         component: SettingsView
       }
     ]
   },
-  // User Routes
+  // User Routes (hidden paths)
   {
-    path: '/user',
+    path: '/library',
     component: AuthenticatedView,
     meta: { requiresAuth: true },
     children: [
       {
         path: '',
-        redirect: '/user/upload'
+        redirect: '/library/upload'
       },
       {
         path: 'upload',
@@ -135,12 +135,12 @@ router.beforeEach((to, from, next) => {
   }
 
   if (requiresAdmin && !auth.isAdmin) {
-    next('/user/upload')
+    next('/library/upload')
     return
   }
 
   if (to.path === '/login' && auth.isAuthenticated) {
-    next(auth.isAdmin ? '/admin' : '/user/upload')
+    next(auth.isAdmin ? '/dashboard' : '/library/upload')
     return
   }
 

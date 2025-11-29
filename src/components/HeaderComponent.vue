@@ -19,7 +19,7 @@
         </button>
 
         <!-- User Profile Dropdown -->
-        <div class="relative">
+        <div class="relative user-menu-container">
           <button @click="showUserMenu = !showUserMenu"
             class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
             <img :src="auth.user?.picture_ref" :alt="auth.user?.username" class="w-8 h-8 rounded-full object-cover" />
@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -83,11 +83,31 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+const closeUserMenu = () => {
+  showUserMenu.value = false
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  // Check if click is outside the dropdown menu
+  if (!target.closest('.user-menu-container')) {
+    closeUserMenu()
+  }
+}
+
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme === 'dark') {
     isDark.value = true
     document.documentElement.classList.add('dark')
   }
+
+  // Add click-outside listener
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  // Remove click-outside listener
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>

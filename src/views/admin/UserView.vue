@@ -82,8 +82,10 @@
     </div>
 
     <!-- Add User Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div v-if="showModal" @click="closeModal"
+      class="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50">
+      <div @click.stop
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New User</h3>
           <button @click="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
