@@ -1,14 +1,12 @@
 <template>
-  <div class="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
     <HeaderComponent />
     <div class="flex flex-1 overflow-hidden">
       <SidebarComponent v-if="isAdmin" @sidebarStateChange="handleSidebarChange" />
-      <main :class="{
-        'ml-54': isAdmin && sidebarOpen,
-        'ml-22': isAdmin && !sidebarOpen,
-        'ml-0': !isAdmin
+      <main :style="{
+        marginLeft: isAdmin ? (sidebarOpen ? '13.5rem' : '5.5rem') : '0',
       }" class="flex-1 overflow-y-auto pt-16 transition-all duration-300">
-        <div class="p-6">
+        <div class="p-4 md:p-6">
           <router-view />
         </div>
       </main>

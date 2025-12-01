@@ -14,7 +14,6 @@ export class BaseService<T, D = any> {
   }
 
   async post<R = T>(path?: string, data?: D): Promise<ApiResponse<R>> {
-    console.log('POST to', this.buildUrl(path), 'with data', data);
     const r = await client.post<ApiResponse<R>>(this.buildUrl(path), data);
     return r.data;
   }

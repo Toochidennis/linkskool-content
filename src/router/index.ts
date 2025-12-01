@@ -2,7 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
-import UserView from '@/views/admin/UserView.vue'
+import UserView from '@/views/admin/TeamView.vue'
 import QuestionView from '@/views/admin/QuestionView.vue'
 import ProgramsView from '@/views/admin/ProgramView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
@@ -29,6 +29,16 @@ const routes: RouteRecordRaw[] = [
     name: 'Login',
     component: LoginView,
     meta: { requiresAuth: false, layout: 'blank' }
+  },
+  // Redirect old /admin path to new /dashboard
+  {
+    path: '/admin/:pathMatch(.*)*',
+    redirect: '/dashboard'
+  },
+  // Redirect old /user path to new /library
+  {
+    path: '/user/:pathMatch(.*)*',
+    redirect: '/library'
   },
   // Admin Routes (hidden paths)
   {

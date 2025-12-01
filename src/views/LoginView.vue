@@ -109,9 +109,9 @@ const handleLogin = async () => {
     loginError.value = ''
     // Redirect based on role
     if (auth.isAdmin) {
-      router.push('/admin')
+      router.push('/dashboard')
     } else {
-      router.push('/user/upload')
+      router.push('/library/upload')
     }
   } else {
     loginError.value = "Invalid username or password. Please try again."
