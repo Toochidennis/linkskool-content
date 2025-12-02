@@ -152,6 +152,15 @@ const newCourse = ref({
   description: ''
 })
 
+const capitalize = (str: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const fetchCourses = async () => {
   try {
     const response = await courseService.get()
@@ -159,7 +168,7 @@ const fetchCourses = async () => {
     if (response && response.data && Array.isArray(response.data)) {
       courseList.value = response.data.map((courseData: Course) => ({
         id: courseData.id,
-        courseName: courseData.courseName,
+        courseName: capitalize(courseData.courseName),
         description: courseData.description || ''
       }))
     }

@@ -22,7 +22,14 @@
         <div class="relative user-menu-container">
           <button @click="showUserMenu = !showUserMenu"
             class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-            <img :src="auth.user?.picture_ref" :alt="auth.user?.username" class="w-8 h-8 rounded-full object-cover" />
+            <div v-if="auth.user?.picture_ref && isValidImageUrl(auth.user.picture_ref)"
+              class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+              <img :src="auth.user.picture_ref" :alt="auth.user?.username" class="w-full h-full object-cover" />
+            </div>
+            <div v-else :class="getAvatarColor(auth.user?.username)"
+              class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-white text-xs flex-shrink-0">
+              {{ getInitials(auth.user?.username) }}
+            </div>
             <div class="text-left hidden sm:block">
               <div class="text-sm font-medium text-gray-900 dark:text-white">
                 {{ auth.user?.username || '' }}
@@ -56,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -65,6 +72,11 @@ const auth = useAuthStore()
 
 const isDark = ref(false)
 const showUserMenu = ref(false)
+
+const initializeTheme = () => {
+  const isDarkMode = document.documentElement.classList.contains('dark')
+  isDark.value = isDarkMode
+}
 
 const toggleTheme = () => {
   isDark.value = !isDark.value
@@ -76,6 +88,14 @@ const toggleTheme = () => {
     localStorage.setItem('theme', 'light')
   }
 }
+
+// Watch for external theme changes
+watch(
+  () => document.documentElement.classList.contains('dark'),
+  (newValue) => {
+    isDark.value = newValue
+  }
+)
 
 const handleLogout = () => {
   auth.logout()
@@ -95,12 +115,42 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-onMounted(() => {
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme === 'dark') {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
+const getInitials = (name: string | undefined): string => {
+  if (!name) return '?'
+  const parts = name.trim().split(' ').filter(p => p.length > 0)
+  if (parts.length === 0) return '?'
+  if (parts.length >= 2) {
+    return ((parts[0]?.[0] || '?') + (parts[parts.length - 1]?.[0] || '?')).toUpperCase()
   }
+  return (parts[0]?.substring(0, 1) || '?').toUpperCase()
+}
+
+const getAvatarColor = (name: string | undefined): string => {
+  if (!name) return 'bg-gray-500'
+  const colors = [
+    'bg-blue-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-green-500',
+    'bg-yellow-500',
+    'bg-red-500',
+    'bg-indigo-500',
+    'bg-teal-500'
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colors[Math.abs(hash) % colors.length] || 'bg-gray-500'
+}
+
+const isValidImageUrl = (url: string | undefined): boolean => {
+  if (!url) return false
+  return url.trim() !== '' && !url.includes('via.placeholder.com') && !url.includes('null')
+}
+
+onMounted(() => {
+  initializeTheme()
 
   // Add click-outside listener
   document.addEventListener('click', handleClickOutside)

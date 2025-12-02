@@ -573,7 +573,7 @@ const openEditModal = (user: User & { firstName: string }) => {
     id: user.id,
     fullName: user.firstName,
     username: user.username,
-    email: user.email,
+    email: user.email || '',
     role: user.role,
     password: ''
   }

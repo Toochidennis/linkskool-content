@@ -8,3 +8,4 @@ export const userService = serviceFactory<type.User>("users");
 export const courseService = serviceFactory<type.Course>("courses");
 export const programService = serviceFactory<type.Program>("exam-types");
 export const questionService = serviceFactory<type.QuestionPayload>("questions");
+export const examService = serviceFactory<type.PaginatedResponse<type.Exam>>("exams");

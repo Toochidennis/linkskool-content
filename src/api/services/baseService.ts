@@ -8,7 +8,7 @@ export class BaseService<T, D = any> {
     return path ? `${this.endpoint}/${path}` : this.endpoint;
   }
 
-  async get<R = T[]>(path?: string, params?: any): Promise<ApiResponse<R>> {
+  async get<R = T>(path?: string, params?: any): Promise<ApiResponse<R>> {
     const r = await client.get<ApiResponse<R>>(this.buildUrl(path), { params });
     return r.data;
   }

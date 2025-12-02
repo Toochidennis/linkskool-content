@@ -162,16 +162,13 @@
             <tr>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                File Name</th>
+                Course Name</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Format</th>
+                Year</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status</th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Upload Date</th>
+                Date Uploaded</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Actions</th>
@@ -180,22 +177,43 @@
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="upload in uploadHistory" :key="upload.id">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
-                upload.fileName }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.format }}
+                upload.courseName }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="upload.statusColor" class="px-2 py-1 text-xs font-medium rounded-full">{{
-                  upload.status }}</span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.date }}
-              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
-                <button class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
+                <button @click="deleteUpload(upload.id)"
+                  class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <!-- Pagination Controls -->
+      <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          Showing {{ (currentPage - 1) * paginationMeta.perPage + 1 }} to {{ Math.min(currentPage *
+            paginationMeta.perPage, paginationMeta.total) }} of {{ paginationMeta.total }} results
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="fetchUploadHistory(currentPage - 1)" :disabled="!paginationMeta.hasPrev"
+            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Previous
+          </button>
+          <div class="flex items-center space-x-1">
+            <button v-for="page in visiblePages" :key="page" @click="fetchUploadHistory(page)"
+              :class="currentPage === page ? 'bg-blue-600 text-white' : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              class="px-2 py-1 rounded-lg text-sm font-medium transition-colors">
+              {{ page }}
+            </button>
+          </div>
+          <button @click="fetchUploadHistory(currentPage + 1)" :disabled="!paginationMeta.hasNext"
+            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Next
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -203,8 +221,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import type { Program, QuestionPayload } from '@/api/models'
-import { programService, questionService } from '@/api/services/serviceFactory';
+import type { Program, QuestionPayload, Exam } from '@/api/models'
+import { programService, questionService, examService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
 import { useQuestionUpload } from '@/composables/useQuestionUpload';
 import { getFileFormat, readCSVFile, extractImagesFromZip } from '@/composables/useFileUpload';
@@ -248,6 +266,7 @@ const fetchPrograms = async () => {
 
 onMounted(() => {
   fetchPrograms();
+  fetchUploadHistory();
 });
 
 
@@ -286,32 +305,72 @@ const uploadTemplates = ref([
   }
 ])
 
-const uploadHistory = ref([
-  {
-    id: 1,
-    fileName: 'math_questions_batch_1.csv',
-    format: 'CSV',
-    status: 'Completed',
-    statusColor: 'bg-green-100 text-green-800',
-    date: '2025-11-13 14:30'
-  },
-  {
-    id: 2,
-    fileName: 'physics_exam_questions.json',
-    format: 'JSON',
-    status: 'Processing',
-    statusColor: 'bg-yellow-100 text-yellow-800',
-    date: '2025-11-13 13:45'
-  },
-  {
-    id: 3,
-    fileName: 'chemistry_quiz_set.docx',
-    format: 'WORD',
-    status: 'Failed',
-    statusColor: 'bg-red-100 text-red-800',
-    date: '2025-11-13 12:15'
+const uploadHistory = ref<Exam[]>([])
+const currentPage = ref(1)
+const paginationMeta = ref<{
+  total: number;
+  perPage: number;
+  currentPage: number;
+  lastPage: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}>({
+  total: 0,
+  perPage: 10,
+  currentPage: 1,
+  lastPage: 1,
+  hasNext: false,
+  hasPrev: false
+})
+
+// Computed property to show page numbers around current page
+const visiblePages = computed(() => {
+  const maxPagesToShow = 7;
+  const lastPage = paginationMeta.value.lastPage;
+  const current = currentPage.value;
+
+  let startPage = Math.max(1, current - Math.floor(maxPagesToShow / 2));
+  const endPage = Math.min(lastPage, startPage + maxPagesToShow - 1);
+
+  // Adjust start if end is at the boundary
+  if (endPage - startPage + 1 < maxPagesToShow) {
+    startPage = Math.max(1, endPage - maxPagesToShow + 1);
   }
-])
+
+  const pages = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+  return pages;
+})
+
+const fetchUploadHistory = async (page: number = 1) => {
+  try {
+    const response = await examService.get(undefined, { page });
+    if (response.success && response.data) {
+      uploadHistory.value = response.data.data.map((exam: Exam) => ({
+        id: exam.id,
+        courseName: exam.courseName,
+        year: exam.year,
+        uploadDate: exam.uploadDate ? new Date(exam.uploadDate).toLocaleString() : 'N/A'
+      }));
+
+      // Update pagination metadata
+      paginationMeta.value = {
+        total: response.data.meta.total,
+        perPage: response.data.meta.perPage,
+        currentPage: response.data.meta.currentPage,
+        lastPage: response.data.meta.lastPage,
+        hasNext: response.data.meta.hasNext,
+        hasPrev: response.data.meta.hasPrev
+      };
+      currentPage.value = page;
+    }
+  } catch (error) {
+    console.error('Error fetching upload history:', error);
+    $toast.error('Failed to load upload history');
+  }
+}
 
 // File upload handlers
 const triggerFileInput = () => {
@@ -558,6 +617,8 @@ const submitUpload = async () => {
         if (response.success) {
           $toast.success('Questions uploaded to server successfully');
           clearAllFiles();
+          // Refresh upload history after successful upload
+          await fetchUploadHistory();
         }
       } catch (error) {
         console.error('Server upload error:', error);
@@ -582,5 +643,17 @@ const clearAllFiles = () => {
   selectedFiles.value = [];
   selectedZipFile.value = null;
   $toast.info('All files cleared');
+};
+
+// Delete upload from history
+const deleteUpload = async (uploadId: number) => {
+  try {
+    // Remove from local list
+    uploadHistory.value = uploadHistory.value.filter(upload => upload.id !== uploadId);
+    $toast.success('Upload deleted successfully');
+  } catch (error) {
+    console.error('Error deleting upload:', error);
+    $toast.error('Failed to delete upload');
+  }
 };
 </script>
