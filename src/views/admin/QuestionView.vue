@@ -183,7 +183,8 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
                 }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
+                <button @click="viewUpload(upload.id)"
+                  class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
                 <button @click="deleteUpload(upload.id)"
                   class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
               </td>
@@ -221,6 +222,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import type { Program, QuestionPayload, Exam } from '@/api/models'
 import { programService, questionService, examService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
@@ -228,6 +230,7 @@ import { useQuestionUpload } from '@/composables/useQuestionUpload';
 import { getFileFormat, readCSVFile, extractImagesFromZip } from '@/composables/useFileUpload';
 
 const $toast = useToast();
+const router = useRouter();
 const { formatQuestionsData } = useQuestionUpload();
 
 // File upload references
@@ -632,5 +635,13 @@ const deleteUpload = async (uploadId: number) => {
     console.error('Error deleting upload:', error);
     $toast.error('Failed to delete upload');
   }
+};
+
+// View upload in assessment viewer
+const viewUpload = (uploadId: number) => {
+  router.push({
+    name: 'Exam Viewer',
+    query: { examId: uploadId }
+  });
 };
 </script>

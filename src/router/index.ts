@@ -4,6 +4,7 @@ import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import UserView from '@/views/admin/TeamView.vue'
 import QuestionView from '@/views/admin/QuestionView.vue'
+import AssessmentView from '@/views/admin/AssessmentView.vue'
 import ProgramsView from '@/views/admin/ProgramView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
@@ -85,6 +86,11 @@ const routes: RouteRecordRaw[] = [
         path: 'assessments',
         name: 'Questions',
         component: QuestionView
+      },
+      {
+        path: 'exam-viewer',
+        name: 'Exam Viewer',
+        component: AssessmentView
       },
       {
         path: 'programs',

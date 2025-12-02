@@ -43,6 +43,7 @@ export interface Question {
     order: number;
     text: string;
   };
+  year?: number;
 }
 
 export interface YearQuestion {
