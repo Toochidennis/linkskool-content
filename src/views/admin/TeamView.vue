@@ -491,7 +491,7 @@ const formatLastActive = (timestamp: string): string => {
     return '-'
   }
 }
-
+  
 const fetchUsers = async () => {
   try {
     isLoadingUser.value = true
