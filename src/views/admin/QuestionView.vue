@@ -40,15 +40,21 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <!-- Individual Files Upload -->
           <div>
-            <div class="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg p-4 text-center">
-              <i class="fas fa-cloud-upload-alt text-2xl text-blue-400 mb-2"></i>
-              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Upload Questions</h4>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">CSV, JSON, WORD</p>
+            <div
+              class="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg p-4 text-center transition-colors cursor-pointer"
+              @dragover.prevent="isDraggingFiles = true" @dragleave.prevent="isDraggingFiles = false"
+              @drop.prevent="handleDragDropFiles"
+              :class="isDraggingFiles ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-400' : 'hover:bg-blue-50/50 dark:hover:bg-blue-900/10'">
+              <i class="fas fa-cloud-upload-alt text-2xl transition-colors"
+                :class="isDraggingFiles ? 'text-blue-500' : 'text-blue-400' + ' mb-2'"></i>
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">{{ isDraggingFiles ? 'Drop files here'
+                : 'Drag & Drop Questions' }}</h4>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">or click to choose - CSV, JSON, WORD, HTML</p>
               <button @click="triggerFileInput"
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors cursor-pointer">
                 Choose Files
               </button>
-              <input ref="fileInput" type="file" accept=".csv,.json,.doc,.docx" style="display: none"
+              <input ref="fileInput" type="file" accept=".csv,.json,.doc,.docx,.html" style="display: none"
                 @change="handleFileUpload" multiple />
             </div>
             <!-- Selected Files Display -->
@@ -78,10 +84,16 @@
 
           <!-- Zipped Files Upload -->
           <div>
-            <div class="border-2 border-dashed border-green-300 dark:border-green-600 rounded-lg p-4 text-center">
-              <i class="fas fa-file-archive text-2xl text-green-400 mb-2"></i>
-              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Upload ZIP</h4>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">ZIP with images</p>
+            <div
+              class="border-2 border-dashed border-green-300 dark:border-green-600 rounded-lg p-4 text-center transition-colors cursor-pointer"
+              @dragover.prevent="isDraggingZip = true" @dragleave.prevent="isDraggingZip = false"
+              @drop.prevent="handleDragDropZip"
+              :class="isDraggingZip ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-400' : 'hover:bg-green-50/50 dark:hover:bg-green-900/10'">
+              <i class="fas fa-file-archive text-2xl transition-colors"
+                :class="isDraggingZip ? 'text-green-500' : 'text-green-400' + ' mb-2'"></i>
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">{{ isDraggingZip ? 'Drop ZIP here' :
+                'Drag & Drop ZIP' }}</h4>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">or click to choose - ZIP with images</p>
               <button @click="triggerZipFileInput"
                 class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors cursor-pointer">
                 Choose Zip File
@@ -227,7 +239,7 @@ import type { Program, QuestionPayload, Exam } from '@/api/models'
 import { programService, questionService, examService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
 import { useQuestionUpload } from '@/composables/useQuestionUpload';
-import { getFileFormat, readCSVFile, extractImagesFromZip } from '@/composables/useFileUpload';
+import { getFileFormat, readCSVFile, readHTMLFile, extractImagesFromZip } from '@/composables/useFileUpload';
 
 const $toast = useToast();
 const router = useRouter();
@@ -237,12 +249,17 @@ const { formatQuestionsData } = useQuestionUpload();
 const fileInput = ref<HTMLInputElement>();
 const zipFileInput = ref<HTMLInputElement>();
 
+// Drag and drop states
+const isDraggingFiles = ref(false);
+const isDraggingZip = ref(false);
+
 // Selected files state
 const selectedFiles = ref<File[]>([]);
 const selectedZipFile = ref<File | null>(null);
 const isUploading = ref(false);
 const extractedImages = ref<Array<{ name: string; data: string; type: string }>>([]);
 const csvData = ref<Array<Record<string, string>>>([]);
+const htmlData = ref<Array<Record<string, string>>>([]);
 
 // Program data
 const programs = ref<Program[]>([])
@@ -301,10 +318,15 @@ const uploadTemplates = ref([
     description: 'Structured JSON format for complex questions',
     icon: 'fas fa-file-code'
   },
+  // {
+  //   format: 'WORD Format',
+  //   description: 'Microsoft Word document with formatted questions',
+  //   icon: 'fas fa-file-word'
+  // },
   {
-    format: 'WORD Format',
-    description: 'Microsoft Word document with formatted questions',
-    icon: 'fas fa-file-word'
+    format: 'HTML Format',
+    description: 'HTML file with formatted questions and content',
+    icon: 'fas fa-file-code'
   }
 ])
 
@@ -380,10 +402,7 @@ const triggerFileInput = () => {
   fileInput.value?.click();
 };
 
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const files = target.files;
-
+const processFiles = (files: FileList) => {
   if (!files || files.length === 0) {
     return;
   }
@@ -412,21 +431,38 @@ const handleFileUpload = (event: Event) => {
           console.error('Error parsing CSV file:', error);
           $toast.error((error as Error).message || 'Failed to parse CSV file');
         });
+    } else if (ext === 'html' || ext === 'htm') {
+      readHTMLFile(file)
+        .then(data => {
+          htmlData.value = data;
+          $toast.success(`HTML file loaded successfully`);
+        })
+        .catch((error) => {
+          console.error('Error reading HTML file:', error);
+          $toast.error((error as Error).message || 'Failed to read HTML file');
+        });
     }
   }
+};
 
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  processFiles(target.files || new FileList());
   // Reset the input
   target.value = '';
+};
+
+const handleDragDropFiles = (event: DragEvent) => {
+  isDraggingFiles.value = false;
+  const files = event.dataTransfer?.files;
+  processFiles(files || new FileList());
 };
 
 const triggerZipFileInput = () => {
   zipFileInput.value?.click();
 };
 
-const handleZipFileUpload = async (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const files = target.files;
-
+const processZipFile = async (files: FileList) => {
   if (!files || files.length === 0) {
     return;
   }
@@ -452,9 +488,19 @@ const handleZipFileUpload = async (event: Event) => {
     console.error('Error extracting ZIP:', error);
     $toast.error('Failed to extract images from ZIP file');
   }
+};
 
+const handleZipFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  await processZipFile(target.files || new FileList());
   // Reset the input
   target.value = '';
+};
+
+const handleDragDropZip = async (event: DragEvent) => {
+  isDraggingZip.value = false;
+  const files = event.dataTransfer?.files;
+  await processZipFile(files || new FileList());
 };
 
 // Format file size display
@@ -584,6 +630,9 @@ const submitUpload = async () => {
         case 'WORD':
           console.log(`Processing WORD file: ${file.name}`);
           break;
+        case 'HTML':
+          console.log(`Processing HTML file: ${file.name}`);
+          break;
         default:
           console.warn(`Unsupported file format for file: ${file.name}`);
       }
@@ -622,6 +671,8 @@ const submitUpload = async () => {
 const clearAllFiles = () => {
   selectedFiles.value = [];
   selectedZipFile.value = null;
+  csvData.value = [];
+  htmlData.value = [];
   $toast.info('All files cleared');
 };
 

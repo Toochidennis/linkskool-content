@@ -491,7 +491,7 @@ const formatLastActive = (timestamp: string): string => {
     return '-'
   }
 }
-  
+
 const fetchUsers = async () => {
   try {
     isLoadingUser.value = true
@@ -544,6 +544,7 @@ const addUser = async () => {
     const userObj = localStorage.getItem('user')
     const user = {
       creatorId: JSON.parse(userObj ? userObj : '{}').id || 0,
+      createdBy: JSON.parse(userObj ? userObj : '{}').firstName || 'System',
       firstName: newUser.value.fullName,
       email: newUser.value.email,
       role: newUser.value.role,

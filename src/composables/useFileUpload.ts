@@ -1,56 +1,16 @@
-/**
- * Composable for handling file upload operations
- * Includes CSV parsing, ZIP extraction, and file format detection
- */
-
-/**
- * Parse a CSV line handling quoted values and escaped quotes
- * @param line - CSV line to parse
- * @returns Array of parsed values
- */
-export const parseCSVLine = (line: string): string[] => {
-  const result: string[] = [];
-  let current = '';
-  let insideQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (char === '"') {
-      if (insideQuotes && nextChar === '"') {
-        // Handle escaped quotes
-        current += '"';
-        i++;
-      } else {
-        // Toggle quote state
-        insideQuotes = !insideQuotes;
-      }
-    } else if (char === ',' && !insideQuotes) {
-      // End of field
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-
-  // Add the last field
-  result.push(current.trim());
-
-  return result;
-};
+import Papa from 'papaparse';
 
 /**
  * Get file format from filename extension
  * @param fileName - Name of the file
- * @returns File format (CSV, JSON, WORD, or raw extension)
+ * @returns File format (CSV, JSON, WORD, HTML, or raw extension)
  */
 export const getFileFormat = (fileName: string): string => {
   const extension = fileName.split('.').pop()?.toUpperCase() || '';
   if (extension === 'CSV') return 'CSV';
   if (extension === 'JSON') return 'JSON';
   if (extension === 'DOC' || extension === 'DOCX') return 'WORD';
+  if (extension === 'HTML' || extension === 'HTM') return 'HTML';
   return extension;
 };
 
@@ -61,55 +21,85 @@ export const getFileFormat = (fileName: string): string => {
  */
 export const readCSVFile = (file: File): Promise<Array<Record<string, string>>> => {
   return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false,
+      encoding: 'utf-8',
+      complete: (results) => {
+        console.log('CSV Data:', results.data);
+        resolve(results.data as Array<Record<string, string>>);
+      },
+      error: (error) => {
+        reject(error);
+      }
+    });
+  });
+};
+
+/**
+ * Read HTML file
+ * @param file - HTML File object
+ * @returns Promise resolving to HTML content string
+ */
+export const readHTMLFile = (file: File): Promise<Array<Record<string, string>>> => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const lines = content
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0);
+      const html = e.target?.result as string;
 
-        if (lines.length < 2) {
-          reject(new Error('CSV file must have headers and at least one data row'));
-          return;
-        }
-
-        // Parse CSV headers (first row)
-        const headers = parseCSVLine(lines[0] || '');
-
-        // Parse CSV data rows
-        const data: Array<Record<string, string>> = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i] || '');
-          const row: Record<string, string> = {};
-
-          headers.forEach((header, index) => {
-            row[header] = values[index] || '';
-          });
-
-          data.push(row);
-        }
-
-        console.log(`CSV file parsed: ${data.length} rows, ${headers.length} columns`);
-        console.log('CSV Headers:', headers);
-        console.log('CSV Data:', data);
-
-        resolve(data);
-      } catch (error) {
-        console.error('Error parsing CSV file:', error);
-        reject(error);
+      if (!html) {
+        reject(new Error("HTML file is empty"));
+        return;
       }
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      const tables = Array.from(doc.querySelectorAll("table"));
+      const results: Array<Record<string, string>> = [];
+
+      for (const table of tables) {
+        const obj: Record<string, string> = {};
+        const rows = Array.from(table.querySelectorAll("tr"));
+
+        for (const tr of rows) {
+          const cells = tr.querySelectorAll("td");
+          if (cells.length !== 2) continue;
+
+          const key = cells[0]?.textContent?.trim() || "";
+          const valueCell = cells[1];
+          const rawValue = valueCell?.textContent?.trim() || "";
+
+          if (!key) continue;
+
+          // Check for image explicitly
+          const img = valueCell?.querySelector("img");
+          if (img) {
+            const src = img.getAttribute("src")?.split("/").pop() || "";
+            obj[key] = src; // Strict mapping to the correct key
+            continue;
+          }
+
+          obj[key] = rawValue;
+        }
+
+        if (Object.keys(obj).length > 0) {
+          results.push(obj);
+        }
+      }
+
+      console.log("Extracted HTML Data:", results);
+      resolve(results);
     };
 
-    reader.onerror = () => {
-      reject(new Error('Failed to read CSV file'));
-    };
+    reader.onerror = () => reject(new Error("Failed to read HTML file"));
 
-    reader.readAsText(file);
+    reader.readAsText(file, "utf-8");
   });
 };
+
 
 /**
  * Extract images from ZIP file
