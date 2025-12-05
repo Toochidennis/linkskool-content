@@ -40,10 +40,16 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <!-- Individual Files Upload -->
           <div>
-            <div class="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg p-4 text-center">
-              <i class="fas fa-cloud-upload-alt text-2xl text-blue-400 mb-2"></i>
-              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Upload Questions</h4>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">CSV, JSON, WORD</p>
+            <div
+              class="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg p-6 text-center transition-colors cursor-pointer min-h-64 flex flex-col items-center justify-center"
+              @dragover.prevent="isDraggingFiles = true" @dragleave.prevent="isDraggingFiles = false"
+              @drop.prevent="handleDragDropFiles"
+              :class="isDraggingFiles ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-400' : 'hover:bg-blue-50/50 dark:hover:bg-blue-900/10'">
+              <i class="fas fa-cloud-upload-alt text-2xl transition-colors"
+                :class="isDraggingFiles ? 'text-blue-500' : 'text-blue-400' + ' mb-2'"></i>
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">{{ isDraggingFiles ? 'Drop files here'
+                : 'Drag & Drop Questions' }}</h4>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">or click to choose - CSV, JSON, WORD</p>
               <button @click="triggerFileInput"
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors cursor-pointer">
                 Choose Files
@@ -78,10 +84,16 @@
 
           <!-- Zipped Files Upload -->
           <div>
-            <div class="border-2 border-dashed border-green-300 dark:border-green-600 rounded-lg p-4 text-center">
-              <i class="fas fa-file-archive text-2xl text-green-400 mb-2"></i>
-              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Upload ZIP</h4>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">ZIP with images</p>
+            <div
+              class="border-2 border-dashed border-green-300 dark:border-green-600 rounded-lg p-6 text-center transition-colors cursor-pointer min-h-64 flex flex-col items-center justify-center"
+              @dragover.prevent="isDraggingZip = true" @dragleave.prevent="isDraggingZip = false"
+              @drop.prevent="handleDragDropZip"
+              :class="isDraggingZip ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-400' : 'hover:bg-green-50/50 dark:hover:bg-green-900/10'">
+              <i class="fas fa-file-archive text-2xl transition-colors"
+                :class="isDraggingZip ? 'text-green-500' : 'text-green-400' + ' mb-2'"></i>
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">{{ isDraggingZip ? 'Drop ZIP here' :
+                'Drag & Drop ZIP' }}</h4>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">or click to choose - ZIP with images</p>
               <button @click="triggerZipFileInput"
                 class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors cursor-pointer">
                 Choose Zip File
@@ -155,16 +167,13 @@
             <tr>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                File Name</th>
+                Course Name</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Format</th>
+                Year</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status</th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Upload Date</th>
+                Date Uploaded</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Actions</th>
@@ -173,27 +182,42 @@
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="upload in uploadHistory" :key="upload.id">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
-                upload.fileName }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.format }}
+                upload.courseName }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="upload.statusColor" class="px-2 py-1 text-xs font-medium rounded-full">{{
-                  upload.status }}</span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.date }}
-              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
                 <button class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
               </td>
             </tr>
-            <tr v-if="uploadHistory.length === 0">
-              <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                No uploads yet
-              </td>
-            </tr>
           </tbody>
         </table>
+      </div>
+      <!-- Pagination Controls -->
+      <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          Showing {{ (currentPage - 1) * paginationMeta.perPage + 1 }} to {{ Math.min(currentPage *
+            paginationMeta.perPage, paginationMeta.total) }} of {{ paginationMeta.total }} results
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="fetchUploadHistory(currentPage - 1)" :disabled="!paginationMeta.hasPrev"
+            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Previous
+          </button>
+          <div class="flex items-center space-x-1">
+            <button v-for="page in visiblePages" :key="page" @click="fetchUploadHistory(page)"
+              :class="currentPage === page ? 'bg-blue-600 text-white' : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              class="px-2 py-1 rounded-lg text-sm font-medium transition-colors">
+              {{ page }}
+            </button>
+          </div>
+          <button @click="fetchUploadHistory(currentPage + 1)" :disabled="!paginationMeta.hasNext"
+            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Next
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -201,8 +225,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import type { Program, QuestionPayload } from '@/api/models'
-import { programService, questionService } from '@/api/services/serviceFactory';
+import type { Program, QuestionPayload, Exam } from '@/api/models'
+import { programService, questionService, examService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
 import { useQuestionUpload } from '@/composables/useQuestionUpload';
 import { getFileFormat, readCSVFile, extractImagesFromZip } from '@/composables/useFileUpload';
@@ -220,6 +244,10 @@ const selectedZipFile = ref<File | null>(null);
 const isUploading = ref(false);
 const extractedImages = ref<Array<{ name: string; data: string; type: string }>>([]);
 const csvData = ref<Array<Record<string, string>>>([]);
+
+// Drag and drop states
+const isDraggingFiles = ref(false);
+const isDraggingZip = ref(false);
 
 // Program data
 const programs = ref<Program[]>([])
@@ -246,6 +274,7 @@ const fetchPrograms = async () => {
 
 onMounted(() => {
   fetchPrograms();
+  fetchUploadHistory();
 });
 
 const selectedProgram = ref('')
@@ -263,6 +292,73 @@ const availableSubjects = computed(() => {
 // Watch for program changes and reset subject
 watch(selectedProgram, () => {
   selectedSubject.value = ''
+})
+
+const fetchUploadHistory = async (page: number = 1) => {
+  try {
+    const response = await examService.get(undefined, { page });
+    if (response.success && response.data) {
+      uploadHistory.value = response.data.data.map((exam: Exam) => ({
+        id: exam.id,
+        courseName: exam.courseName,
+        year: exam.year,
+        uploadDate: exam.uploadDate ? new Date(exam.uploadDate).toLocaleString() : 'N/A'
+      }));
+
+      // Update pagination metadata
+      paginationMeta.value = {
+        total: response.data.meta.total,
+        perPage: response.data.meta.perPage,
+        currentPage: response.data.meta.currentPage,
+        lastPage: response.data.meta.lastPage,
+        hasNext: response.data.meta.hasNext,
+        hasPrev: response.data.meta.hasPrev
+      };
+      currentPage.value = page;
+    }
+  } catch (error) {
+    console.error('Error fetching upload history:', error);
+    $toast.error('Failed to load upload history');
+  }
+}
+
+const uploadHistory = ref<Exam[]>([])
+const currentPage = ref(1)
+const paginationMeta = ref<{
+  total: number;
+  perPage: number;
+  currentPage: number;
+  lastPage: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}>({
+  total: 0,
+  perPage: 10,
+  currentPage: 1,
+  lastPage: 1,
+  hasNext: false,
+  hasPrev: false
+})
+
+// Computed property to show page numbers around current page
+const visiblePages = computed(() => {
+  const maxPagesToShow = 7;
+  const lastPage = paginationMeta.value.lastPage;
+  const current = currentPage.value;
+
+  let startPage = Math.max(1, current - Math.floor(maxPagesToShow / 2));
+  const endPage = Math.min(lastPage, startPage + maxPagesToShow - 1);
+
+  // Adjust start if end is at the boundary
+  if (endPage - startPage + 1 < maxPagesToShow) {
+    startPage = Math.max(1, endPage - maxPagesToShow + 1);
+  }
+
+  const pages = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+  return pages;
 })
 
 const uploadTemplates = ref([
@@ -283,24 +379,12 @@ const uploadTemplates = ref([
   }
 ])
 
-const uploadHistory = ref<Array<{
-  id: number;
-  fileName: string;
-  format: string;
-  status: string;
-  statusColor: string;
-  date: string;
-}>>([])
-
 // File upload handlers
 const triggerFileInput = () => {
   fileInput.value?.click();
 };
 
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const files = target.files;
-
+const processFiles = (files: FileList) => {
   if (!files || files.length === 0) {
     return;
   }
@@ -331,19 +415,26 @@ const handleFileUpload = (event: Event) => {
         });
     }
   }
+};
 
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  processFiles(target.files || new FileList());
   // Reset the input
   target.value = '';
+};
+
+const handleDragDropFiles = (event: DragEvent) => {
+  isDraggingFiles.value = false;
+  const files = event.dataTransfer?.files;
+  processFiles(files || new FileList());
 };
 
 const triggerZipFileInput = () => {
   zipFileInput.value?.click();
 };
 
-const handleZipFileUpload = async (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const files = target.files;
-
+const processZipFile = async (files: FileList) => {
   if (!files || files.length === 0) {
     return;
   }
@@ -369,9 +460,19 @@ const handleZipFileUpload = async (event: Event) => {
     console.error('Error extracting ZIP:', error);
     $toast.error('Failed to extract images from ZIP file');
   }
+};
 
+const handleZipFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  await processZipFile(target.files || new FileList());
   // Reset the input
   target.value = '';
+};
+
+const handleDragDropZip = async (event: DragEvent) => {
+  isDraggingZip.value = false;
+  const files = event.dataTransfer?.files;
+  await processZipFile(files || new FileList());
 };
 
 // Format file size display
@@ -447,15 +548,6 @@ const submitUpload = async () => {
   isUploading.value = true;
 
   try {
-    // Log upload info
-    console.log('Uploading files...');
-    console.log('Program ID:', selectedProgram.value);
-    console.log('Subject ID:', selectedSubject.value);
-    console.log('Selected Files:', selectedFiles.value.map(f => f.name));
-    console.log('ZIP File:', selectedZipFile.value?.name);
-    console.log('Extracted Images:', extractedImages.value.length > 0 ? extractedImages.value.map(img => img.name) : 'None');
-    console.log('CSV Data Rows:', csvData.value.length);
-
     const user = localStorage.getItem('user');
     const userObj = user ? JSON.parse(user) : null;
 
@@ -473,19 +565,31 @@ const submitUpload = async () => {
       data: []
     };
 
+    let validationErrors: Array<{ year: number; questionIndex: number; error: string }> = [];
+
     selectedFiles.value.forEach(file => {
       const format = getFileFormat(file.name);
 
       switch (format) {
         case 'CSV':
           if (csvData.value.length > 0) {
-            const questionsData = formatQuestionsData(
+            const result = formatQuestionsData(
               csvData.value,
               extractedImages.value,
               !!selectedZipFile.value,
             );
 
-            questionPayload.data = questionsData;
+            questionPayload.data = result.data;
+            validationErrors = result.errors;
+
+            // Show validation errors if any
+            if (result.errors.length > 0) {
+              result.errors.forEach(error => {
+                $toast.warning(
+                  `Year ${error.year}, Question #${error.questionIndex}: ${error.error}`
+                );
+              });
+            }
 
             console.log('Question Payload:', questionPayload);
           }
@@ -502,35 +606,22 @@ const submitUpload = async () => {
       }
     });
 
-    // Add files to upload history
-    for (const file of selectedFiles.value) {
-      uploadHistory.value.unshift({
-        id: Date.now() + Math.random(),
-        fileName: file.name,
-        format: getFileFormat(file.name),
-        status: 'Completed',
-        statusColor: 'bg-green-100 text-green-800',
-        date: new Date().toLocaleString()
-      });
-    }
-
-    if (selectedZipFile.value) {
-      uploadHistory.value.unshift({
-        id: Date.now(),
-        fileName: selectedZipFile.value.name,
-        format: 'ZIP',
-        status: 'Completed',
-        statusColor: 'bg-green-100 text-green-800',
-        date: new Date().toLocaleString()
-      });
+    // Check if there are validation errors - if so, prevent upload
+    if (validationErrors.length > 0) {
+      $toast.error('Please fix the validation errors above before uploading');
+      return;
     }
 
     // Post to server
     if (questionPayload.data.length > 0) {
       try {
         const response = await questionService.post(undefined, questionPayload as unknown as Record<string, unknown>);
-        console.log('Server Response:', response);
-        $toast.success('Questions uploaded to server successfully');
+        if (response.success) {
+          $toast.success('Questions uploaded to server successfully');
+          clearAllFiles();
+          // Refresh upload history
+          await fetchUploadHistory();
+        }
       } catch (error) {
         console.error('Server upload error:', error);
         $toast.error('Failed to upload questions to server');
@@ -540,8 +631,6 @@ const submitUpload = async () => {
       $toast.warning('No question data to upload');
       return;
     }
-
-    clearAllFiles();
   } catch (error) {
     console.error('Upload error:', error);
     $toast.error('Failed to upload files');

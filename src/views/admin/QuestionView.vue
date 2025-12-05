@@ -41,7 +41,7 @@
           <!-- Individual Files Upload -->
           <div>
             <div
-              class="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg p-4 text-center transition-colors cursor-pointer"
+              class="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg p-6 text-center transition-colors cursor-pointer min-h-64 flex flex-col items-center justify-center"
               @dragover.prevent="isDraggingFiles = true" @dragleave.prevent="isDraggingFiles = false"
               @drop.prevent="handleDragDropFiles"
               :class="isDraggingFiles ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-400' : 'hover:bg-blue-50/50 dark:hover:bg-blue-900/10'">
@@ -85,7 +85,7 @@
           <!-- Zipped Files Upload -->
           <div>
             <div
-              class="border-2 border-dashed border-green-300 dark:border-green-600 rounded-lg p-4 text-center transition-colors cursor-pointer"
+              class="border-2 border-dashed border-green-300 dark:border-green-600 rounded-lg p-6 text-center transition-colors cursor-pointer min-h-64 flex flex-col items-center justify-center"
               @dragover.prevent="isDraggingZip = true" @dragleave.prevent="isDraggingZip = false"
               @drop.prevent="handleDragDropZip"
               :class="isDraggingZip ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-400' : 'hover:bg-green-50/50 dark:hover:bg-green-900/10'">
@@ -193,7 +193,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
-                }}</td>
+              }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button @click="viewUpload(upload.id)"
                   class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
@@ -606,19 +606,31 @@ const submitUpload = async () => {
       data: []
     };
 
+    let validationErrors: Array<{ year: number; questionIndex: number; error: string }> = [];
+
     selectedFiles.value.forEach(file => {
       const format = getFileFormat(file.name);
 
       switch (format) {
         case 'CSV':
           if (csvData.value.length > 0) {
-            const questionsData = formatQuestionsData(
+            const result = formatQuestionsData(
               csvData.value,
               extractedImages.value,
               !!selectedZipFile.value,
             );
 
-            questionPayload.data = questionsData;
+            questionPayload.data = result.data;
+            validationErrors = result.errors;
+
+            // Show validation errors if any
+            if (result.errors.length > 0) {
+              result.errors.forEach(error => {
+                $toast.error(
+                  `Year ${error.year}, Question #${error.questionIndex}: ${error.error}`
+                );
+              });
+            }
 
             console.log('Question Payload:', questionPayload);
           }
@@ -637,6 +649,12 @@ const submitUpload = async () => {
           console.warn(`Unsupported file format for file: ${file.name}`);
       }
     });
+
+    // Check if there are validation errors - if so, prevent upload
+    if (validationErrors.length > 0) {
+      $toast.error('Please fix the validation errors above before uploading');
+      return;
+    }
 
     // Post to server
     if (questionPayload.data.length > 0) {

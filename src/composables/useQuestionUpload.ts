@@ -51,6 +51,13 @@ export interface YearQuestion {
   questions: Question[];
 }
 
+export interface ValidationError {
+  year: number;
+  questionIndex: number;
+  questionText: string;
+  error: string;
+}
+
 export const useQuestionUpload = () => {
   /**
    * Get image from extracted images by name and convert to pure base64
@@ -129,9 +136,10 @@ export const useQuestionUpload = () => {
     csvData: Array<Record<string, string>>,
     extractedImages: ExtractedImage[],
     hasZipFile: boolean
-  ): YearQuestion[] => {
+  ): { data: YearQuestion[]; errors: ValidationError[] } => {
     // Group questions by year
     const yearMap = new Map<string, Array<Record<string, string>>>();
+    const validationErrors: ValidationError[] = [];
 
     csvData.forEach((row) => {
       const year = row['year'] || '';
@@ -145,10 +153,21 @@ export const useQuestionUpload = () => {
     // Convert to desired format
     const data = Array.from(yearMap.entries()).map(([year, questions]) => ({
       year: parseInt(year),
-      questions: questions.map((row) => {
+      questions: questions.map((row, questionIndex) => {
         // Determine question type - default to multiple_choice
         const questionType = (row['question_type'] || 'multiple_choice').toLowerCase();
         const isShortAnswer = questionType === 'short_answer';
+        const questionText = row['question_text'] || '';
+
+        // Validate question text is not empty
+        if (!questionText.trim()) {
+          validationErrors.push({
+            year: parseInt(year),
+            questionIndex: questionIndex + 1,
+            questionText: 'N/A',
+            error: `Question text is empty`
+          });
+        }
 
         let options: Option[] = [];
         let correct: { order: number; text: string };
@@ -156,9 +175,20 @@ export const useQuestionUpload = () => {
         if (isShortAnswer) {
           // For short answer questions
           options = [];
+          const answerText = row['answer'] || '';
+
+          if (!answerText.trim()) {
+            validationErrors.push({
+              year: parseInt(year),
+              questionIndex: questionIndex + 1,
+              questionText,
+              error: `Short answer question has no answer provided`
+            });
+          }
+
           correct = {
             order: 0,
-            text: row['answer'] || ''
+            text: answerText
           };
         } else {
           // For multiple choice questions
@@ -179,14 +209,25 @@ export const useQuestionUpload = () => {
 
           // Get correct answer - the answer key holds 1-based index (A=1, B=2, etc.)
           const answerIndex = parseInt(row['answer'] || '0') || 0;
+          const answerText = answerIndex > 0 ? (row[`option_${answerIndex}_text`] || '') : '';
+
+          if (!answerText.trim()) {
+            validationErrors.push({
+              year: parseInt(year),
+              questionIndex: questionIndex + 1,
+              questionText,
+              error: `Multiple choice question has no valid answer selected or answer text is empty`
+            });
+          }
+
           correct = {
             order: answerIndex,
-            text: answerIndex > 0 ? (row[`option_${answerIndex}_text`] || '') : ''
+            text: answerText
           };
         }
 
         return {
-          questionText: row['question_text'] || '',
+          questionText,
           passage: row['passage'] || '',
           passageId: row['passage_id'] ? parseInt(row['passage_id']) : 0,
           questionType: questionType === 'short_answer' ? 'short_answer' : 'multiple_choice',
@@ -202,7 +243,7 @@ export const useQuestionUpload = () => {
       })
     })).sort((a, b) => b.year - a.year); // Sort by year descending
 
-    return data;
+    return { data, errors: validationErrors };
   };
 
   return {
