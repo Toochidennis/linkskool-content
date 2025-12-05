@@ -189,7 +189,8 @@
                 }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
-                <button class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
+                <button @click="deleteUpload(upload.id)"
+                  class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
               </td>
             </tr>
           </tbody>
@@ -536,6 +537,28 @@ const clearAllFiles = () => {
   csvData.value = [];
   extractedImages.value = [];
   $toast.info('All files cleared');
+};
+
+// Delete upload from history
+const deleteUpload = async (uploadId: number) => {
+  try {
+    const user = localStorage.getItem('user');
+    const userObj = user ? JSON.parse(user) : null;
+    const response = await examService.delete(undefined, {
+      examId: uploadId,
+      userId: userObj?.id,
+      username: userObj?.username
+    });
+
+    if (response.success) {
+      $toast.success('Exam deleted successfully');
+      // Refresh upload history
+      await fetchUploadHistory(currentPage.value);
+    }
+  } catch (error) {
+    console.error('Error deleting upload:', error);
+    $toast.error('Failed to delete exam');
+  }
 };
 
 // Submit upload to server

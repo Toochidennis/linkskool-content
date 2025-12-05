@@ -23,9 +23,9 @@ export class BaseService<T, D = any> {
     return r.data;
   }
 
-  async delete<R = any>(path?: string): Promise<ApiResponse<R>> {
+  async delete<R = any>(path?: string, data?: D): Promise<ApiResponse<R>> {
     const r = await client.delete<ApiResponse<R>>(this.buildUrl(path), {
-      data: {}
+      data: !data ? {} : data
     });
     return r.data;
   }
