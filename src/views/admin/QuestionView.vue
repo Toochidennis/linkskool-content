@@ -658,20 +658,7 @@ const submitUpload = async () => {
 
     // Post to server
     if (questionPayload.data.length > 0) {
-      try {
-        const response = await questionService.post(undefined, questionPayload as unknown as Record<string, unknown>);
-        console.log('Server Response:', response);
-        if (response.success) {
-          $toast.success('Questions uploaded to server successfully');
-          clearAllFiles();
-          // Refresh upload history after successful upload
-          await fetchUploadHistory();
-        }
-      } catch (error) {
-        console.error('Server upload error:', error);
-        $toast.error('Failed to upload questions to server');
-        return;
-      }
+      await uploadInYears(questionPayload);
     } else {
       $toast.warning('No question data to upload');
       return;
@@ -684,6 +671,36 @@ const submitUpload = async () => {
     isUploading.value = false;
   }
 };
+
+async function uploadInYears(questions: QuestionPayload) {
+  let count = 0;
+  for (const yearGroup of questions.data) {
+    const questionPayload: QuestionPayload = {
+      settings: questions.settings,
+      data: [yearGroup]
+    };
+
+    try {
+      const response = await questionService.post(undefined, questionPayload as unknown as Record<string, unknown>);
+      if (response.success) {
+        count++;
+        $toast.success(`Year group ${yearGroup.year} uploaded successfully (${count}/${questions.data.length})`);
+      }
+
+      if (count === questions.data.length) {
+        $toast.success('Questions uploaded successfully');
+        clearAllFiles();
+
+        // Refresh upload history after successful upload
+        await fetchUploadHistory();
+      }
+    } catch (error) {
+      console.error('Error uploading year group:', error);
+      $toast.error('Failed to upload questions to server');
+      return;
+    }
+  }
+}
 
 // Clear all files
 const clearAllFiles = () => {
