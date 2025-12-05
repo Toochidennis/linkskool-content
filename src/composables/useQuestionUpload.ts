@@ -67,9 +67,11 @@ export const useQuestionUpload = () => {
     extractedImages: ExtractedImage[]
   ): string => {
     if (!imageName || extractedImages.length === 0) return '';
-    const image = extractedImages.find(
-      img => img.name.toLowerCase() === imageName.toLowerCase()
-    );
+    const image = extractedImages.find(img => {
+      const imgClean = img.name.split('/')?.pop()?.toLowerCase() || '';
+      return imgClean === imageName.toLowerCase();
+    });
+
     if (!image) return '';
 
     // Extract pure base64 from Data URL (removes "data:image/...;base64," prefix)
@@ -113,9 +115,9 @@ export const useQuestionUpload = () => {
   ): QuestionFile[] => {
     const files: QuestionFile[] = [];
     const optionImageKey = `option_${optionNumber}_image`;
-    const optionImageName = row[optionImageKey];
+    const optionImageName = row[optionImageKey]?.trim() || '';
 
-    if (hasZipFile && optionImageName && optionImageName.trim()) {
+    if (hasZipFile && optionImageName) {
       const base64Image = getImageByName(optionImageName, extractedImages);
       if (base64Image) {
         files.push({
@@ -195,10 +197,16 @@ export const useQuestionUpload = () => {
           // Dynamically build options array - only include non-empty options
           for (let i = 1; i <= 6; i++) {
             const optionTextKey = `option_${i}_text`;
-            const optionText = row[optionTextKey];
+            const optionImageKey = `option_${i}_image`;
 
-            // Only add option if text is not empty
-            if (optionText && optionText.trim()) {
+            const optionText = row[optionTextKey]?.trim() || '';
+            const optionImage = row[optionImageKey]?.trim() || '';
+
+            const hasText = optionText.length > 0;
+            const hasImage = optionImage.length > 0;
+
+            // Only accept options that have text or image
+            if (hasText || hasImage) {
               options.push({
                 order: i,
                 text: optionText,
@@ -209,20 +217,22 @@ export const useQuestionUpload = () => {
 
           // Get correct answer - the answer key holds 1-based index (A=1, B=2, etc.)
           const answerIndex = parseInt(row['answer'] || '0') || 0;
-          const answerText = answerIndex > 0 ? (row[`option_${answerIndex}_text`] || '') : '';
 
-          if (!answerText.trim()) {
+          const answerText = answerIndex > 0 ? (row[`option_${answerIndex}_text`] || '') : '';
+          const answerImage = answerIndex > 0 ? (row[`option_${answerIndex}_image`] || '') : '';
+
+          if (!answerText.trim() && !answerImage.trim()) {
             validationErrors.push({
               year: parseInt(year),
               questionIndex: questionIndex + 1,
               questionText,
-              error: `Multiple choice question has no valid answer selected or answer text is empty`
+              error: `Correct answer option has neither text nor image`
             });
           }
 
           correct = {
             order: answerIndex,
-            text: answerText
+            text: answerText || answerImage
           };
         }
 
