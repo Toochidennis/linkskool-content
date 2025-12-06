@@ -239,7 +239,7 @@ import type { Program, QuestionPayload, Exam } from '@/api/models'
 import { programService, questionService, examService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
 import { useQuestionUpload } from '@/composables/useQuestionUpload';
-import { getFileFormat, readCSVFile, readHTMLFile, extractImagesFromZip } from '@/composables/useFileUpload';
+import { getFileFormat, readCSVFile, readHTMLFile, readJSONFile, extractImagesFromZip } from '@/composables/useFileUpload';
 
 const $toast = useToast();
 const router = useRouter();
@@ -260,6 +260,7 @@ const isUploading = ref(false);
 const extractedImages = ref<Array<{ name: string; data: string; type: string }>>([]);
 const csvData = ref<Array<Record<string, string>>>([]);
 const htmlData = ref<Array<Record<string, string>>>([]);
+const jsonData = ref<Array<Record<string, string>>>([]);
 
 // Program data
 const programs = ref<Program[]>([])
@@ -402,6 +403,7 @@ const triggerFileInput = () => {
   fileInput.value?.click();
 };
 
+
 const processFiles = (files: FileList) => {
   if (!files || files.length === 0) {
     return;
@@ -430,6 +432,16 @@ const processFiles = (files: FileList) => {
         .catch((error) => {
           console.error('Error parsing CSV file:', error);
           $toast.error((error as Error).message || 'Failed to parse CSV file');
+        });
+    } else if (ext === 'json') {
+      readJSONFile(file)
+        .then(data => {
+          jsonData.value = data;
+          $toast.success(`JSON file loaded: ${data.length} records`);
+        })
+        .catch((error) => {
+          console.error('Error reading JSON file:', error);
+          $toast.error((error as Error).message || 'Failed to read JSON file');
         });
     } else if (ext === 'html' || ext === 'htm') {
       readHTMLFile(file)
@@ -608,36 +620,42 @@ const submitUpload = async () => {
 
     let validationErrors: Array<{ year: number; questionIndex: number; error: string }> = [];
 
+    const processParsedRows = (rows: Array<Record<string, string>>) => {
+      const result = formatQuestionsData(
+        rows,
+        extractedImages.value,
+        !!selectedZipFile.value,
+      );
+
+      questionPayload.data = result.data;
+      validationErrors = result.errors;
+
+      if (result.errors.length > 0) {
+        result.errors.forEach(error => {
+          $toast.error(
+            `Year ${error.year}, Question #${error.questionIndex}: ${error.error}`
+          );
+        });
+      }
+      console.log('Question Payload:', questionPayload);
+    };
+
     selectedFiles.value.forEach(file => {
       const format = getFileFormat(file.name);
 
       switch (format) {
         case 'CSV':
           if (csvData.value.length > 0) {
-            const result = formatQuestionsData(
-              csvData.value,
-              extractedImages.value,
-              !!selectedZipFile.value,
-            );
-
-            questionPayload.data = result.data;
-            validationErrors = result.errors;
-
-            // Show validation errors if any
-            if (result.errors.length > 0) {
-              result.errors.forEach(error => {
-                $toast.error(
-                  `Year ${error.year}, Question #${error.questionIndex}: ${error.error}`
-                );
-              });
-            }
-
-            console.log('Question Payload:', questionPayload);
+            processParsedRows(csvData.value);
           }
 
           break;
         case 'JSON':
-          console.log(`Processing JSON file: ${file.name}`);
+          if (jsonData.value.length > 0) {
+            processParsedRows(jsonData.value);
+          } else {
+            $toast.warning('JSON file data is not ready for upload');
+          }
           break;
         case 'WORD':
           console.log(`Processing WORD file: ${file.name}`);
@@ -708,6 +726,7 @@ const clearAllFiles = () => {
   selectedZipFile.value = null;
   csvData.value = [];
   htmlData.value = [];
+  jsonData.value = [];
   $toast.info('All files cleared');
 };
 

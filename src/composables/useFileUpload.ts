@@ -100,6 +100,50 @@ export const readHTMLFile = (file: File): Promise<Array<Record<string, string>>>
   });
 };
 
+/**
+ * Read and parse JSON file
+ * @param file - JSON File object
+ * @returns Promise resolving to parsed JSON data
+ */
+export const readJSONFile = (file: File): Promise<Array<Record<string, string>>> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const parsed = JSON.parse(content);
+        if (!Array.isArray(parsed)) {
+          reject(new Error('JSON file must contain an array of records'));
+          return;
+        }
+
+        const normalized = parsed.map((entry) => {
+          if (typeof entry !== 'object' || entry === null) {
+            throw new Error('JSON array contains invalid entries');
+          }
+
+          const record: Record<string, string> = {};
+          Object.entries(entry).forEach(([key, value]) => {
+            record[key] = value !== undefined && value !== null ? String(value) : '';
+          });
+          return record;
+        });
+        console.log('Normalized JSON Data:', normalized);
+
+        resolve(normalized);
+      } catch (error) {
+        console.error('JSON parse error:', error);
+        reject(error instanceof Error ? error : new Error('Invalid JSON file'));
+      }
+    };
+
+    reader.onerror = () => reject(new Error('Failed to read JSON file'));
+
+    reader.readAsText(file, 'utf-8');
+  });
+};
+
 
 /**
  * Extract images from ZIP file

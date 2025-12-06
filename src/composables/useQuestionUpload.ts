@@ -121,8 +121,8 @@ export const useQuestionUpload = () => {
       const base64Image = getImageByName(optionImageName, extractedImages);
       if (base64Image) {
         files.push({
-          file_name: optionImageName.split('.')[0] || `option_${optionNumber}`,
-          old_file_name: optionImageName,
+          file_name: optionImageName,
+          old_file_name: '',
           type: 'image',
           file: base64Image
         });
@@ -159,15 +159,16 @@ export const useQuestionUpload = () => {
         // Determine question type - default to multiple_choice
         const questionType = (row['question_type'] || 'multiple_choice').toLowerCase();
         const isShortAnswer = questionType === 'short_answer';
-        const questionText = row['question_text'] || '';
+        const questionText = row['question_text'] || row['question'] || '';
+        const questionImage = row['question_image'] || '';
 
         // Validate question text is not empty
-        if (!questionText.trim()) {
+        if (!questionText.trim() && !questionImage.trim()) {
           validationErrors.push({
             year: parseInt(year),
             questionIndex: questionIndex + 1,
             questionText: 'N/A',
-            error: `Question text is empty`
+            error: `Both question text and question image are empty`
           });
         }
 
