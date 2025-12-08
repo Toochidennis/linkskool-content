@@ -1,5 +1,4 @@
 import Papa from 'papaparse';
-
 /**
  * Get file format from filename extension
  * @param fileName - Name of the file
@@ -215,7 +214,108 @@ export const extractImagesFromZip = async (
     console.log(`Extracted ${images.length} images from ZIP file`);
     return images;
   } catch (error) {
-    console.error('Error extracting ZIP file:', error);
+    console.error('Error extracting ZIP file:', error); 
     throw error;
+  }
+};
+
+
+export const readDocxFile = async (
+  file: File
+): Promise<{
+  data: Array<Record<string, string>>;
+  images: { filename: string; data: string; type: string }[];
+}> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const zip = await (await import("jszip")).default.loadAsync(arrayBuffer);
+  const images: { filename: string; data: string; type: string }[] = [];
+
+  // Extract all image binaries as Base64 data URLs
+  const imageFiles = Object.keys(zip.files).filter(path => path.startsWith("word/media/"));
+  for (const path of imageFiles) {
+    const fileName = path.replace("word/media/", "");
+    const blob = await zip.file(path)!.async("blob");
+    const dataUrl = await blobToDataURL(blob);
+    const ext = fileName.split(".").pop()?.toLowerCase() || "png";
+    images.push({
+      filename: fileName,
+      data: dataUrl,
+      type: `image/${ext === "jpg" ? "jpeg" : ext}`,
+    });
+  }
+
+  // Parse document.xml
+  const documentXml = await zip.file("word/document.xml")!.async("text");
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(documentXml, "application/xml");
+
+  // Load relationships
+  const relsXml = await zip.file("word/_rels/document.xml.rels")!.async("text");
+  const relsDoc = parser.parseFromString(relsXml, "application/xml");
+
+  const tables = Array.from(xml.getElementsByTagName("w:tbl"));
+  const data: Array<Record<string, string>> = [];
+
+  for (const tbl of tables) {
+    const obj: Record<string, string> = {};
+    const rows = Array.from(tbl.getElementsByTagName("w:tr"));
+
+    for (const row of rows) {
+      const cells = Array.from(row.getElementsByTagName("w:tc"));
+      if (cells.length !== 2) continue;
+
+      const keyCell = cells[0];
+      const valueCell = cells[1];
+      if (!keyCell || !valueCell) continue;
+
+      const key = extractTextOrFormula(keyCell);
+      let value = extractTextOrFormula(valueCell);
+
+      // Check if value cell contains an image
+      const drawing = valueCell.querySelector("w\\:drawing a\\:blip");
+      if (drawing) {
+        const embed = drawing.getAttribute("r:embed");
+        if (embed) {
+          const rel = relsDoc.querySelector(`Relationship[Id="${embed}"]`);
+          const target = rel?.getAttribute("Target");
+          if (target) {
+            const imageName = target.split("/").pop() || "";
+            value = imageName; // store image filename
+          }
+        }
+      }
+
+      if (key) obj[key] = value;
+    }
+
+    if (Object.keys(obj).length > 0) data.push(obj);
+  }
+
+  return { data, images };
+
+function extractTextOrFormula(cell: Element): string {
+  const omml = cell.getElementsByTagName("m:oMath")[0];
+  if (omml) {
+    try {
+      //const mathML = convert(omml.outerHTML); // OMML → MathML
+      //const latex = toLatex.convert(mathML);           // MathML → LaTeX
+      return omml.outerHTML.trim();
+    } catch {
+      // Fallback to plain text if conversion fails
+      const texts = Array.from(omml.getElementsByTagName("m:t"));
+      return texts.map(t => t.textContent?.trim() || "").join(" ");
+    }
+  }
+  // Regular text
+  const texts = Array.from(cell.getElementsByTagName("w:t"));
+  return texts.map(t => t.textContent?.trim() || "").join(" ");
+}
+
+  function blobToDataURL(blob: Blob): Promise<string> {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
   }
 };

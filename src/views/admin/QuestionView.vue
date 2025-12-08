@@ -174,6 +174,9 @@
             <tr>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Description</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Course Name</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -189,20 +192,50 @@
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="upload in uploadHistory" :key="upload.id">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
+                upload.description }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
                 upload.courseName }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button @click="viewUpload(upload.id)"
                   class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
-                <button @click="deleteUpload(upload.id)"
+                <button @click="openDeleteModal(upload)"
                   class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <!-- Delete Confirmation Modal -->
+      <div v-if="showDeleteModal" @click="closeDeleteModal"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div @click.stop class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm">
+          <div class="p-8">
+            <div
+              class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 mb-4 mx-auto">
+              <i class="fas fa-trash text-red-600 dark:text-red-400 text-lg"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 text-center">Delete Upload</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-4 text-center">
+              Are you sure you want to delete <strong>{{ deletingUpload?.description }}</strong>? This action cannot be
+              undone.
+            </p>
+            <div class="flex gap-3">
+              <button @click="closeDeleteModal"
+                class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition-colors cursor-pointer">
+                Cancel
+              </button>
+              <button @click="confirmDelete" :disabled="isDeleting"
+                class="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors cursor-pointer shadow-md hover:shadow-lg disabled:shadow-none">
+                <i :class="isDeleting ? 'fas fa-spinner fa-spin mr-2' : 'fas fa-trash mr-2'"></i>{{ isDeleting ?
+                  'Deleting...' : 'Delete' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- Pagination Controls -->
       <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -376,6 +409,7 @@ const fetchUploadHistory = async (page: number = 1) => {
     if (response.success && response.data) {
       uploadHistory.value = response.data.data.map((exam: Exam) => ({
         id: exam.id,
+        description: exam.description,
         courseName: exam.courseName,
         year: exam.year,
         uploadDate: exam.uploadDate ? new Date(exam.uploadDate).toLocaleString() : 'N/A'
@@ -395,6 +429,47 @@ const fetchUploadHistory = async (page: number = 1) => {
   } catch (error) {
     console.error('Error fetching upload history:', error);
     $toast.error('Failed to load upload history');
+  }
+}
+
+// Deletion modal state & handlers
+const showDeleteModal = ref(false)
+const deletingUpload = ref<Exam | null>(null)
+const isDeleting = ref(false)
+
+const openDeleteModal = (upload: Exam) => {
+  deletingUpload.value = upload
+  showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  deletingUpload.value = null
+}
+
+const confirmDelete = async () => {
+  if (!deletingUpload.value) return
+  try {
+    isDeleting.value = true
+    const user = localStorage.getItem('user')
+    const userObj = user ? JSON.parse(user) : null
+    const response = await examService.delete(undefined, {
+      examId: deletingUpload.value.id,
+      userId: userObj?.id,
+      username: userObj?.username
+    })
+    if (response.success) {
+      $toast.success('Upload deleted successfully')
+      await fetchUploadHistory(currentPage.value)
+      closeDeleteModal()
+    } else {
+      $toast.error(response.message || 'Failed to delete upload')
+    }
+  } catch (error) {
+    console.error('Error deleting upload:', error)
+    $toast.error('Failed to delete upload')
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -730,27 +805,7 @@ const clearAllFiles = () => {
   $toast.info('All files cleared');
 };
 
-// Delete upload from history
-const deleteUpload = async (uploadId: number) => {
-  try {
-    const user = localStorage.getItem('user');
-    const userObj = user ? JSON.parse(user) : null;
-    const response = await examService.delete(undefined, {
-      examId: uploadId,
-      userId: userObj?.id,
-      username: userObj?.username
-    });
-
-    if (response.success) {
-      $toast.success('Exam deleted successfully');
-      // Refresh upload history
-      await fetchUploadHistory(currentPage.value);
-    }
-  } catch (error) {
-    console.error('Error deleting upload:', error);
-    $toast.error('Failed to delete exam');
-  }
-};
+// Delete functionality removed from upload history
 
 // View upload in assessment viewer
 const viewUpload = (uploadId: number) => {

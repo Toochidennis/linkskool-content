@@ -167,6 +167,9 @@
             <tr>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Description</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Course Name</th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -182,6 +185,8 @@
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="upload in uploadHistory" :key="upload.id">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
+                upload.description }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
                 upload.courseName }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
@@ -189,8 +194,7 @@
                 }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
-                <button @click="deleteUpload(upload.id)"
-                  class="text-red-600 hover:text-red-900 cursor-pointer">Delete</button>
+                <!-- Delete removed from history -->
               </td>
             </tr>
           </tbody>
@@ -303,6 +307,7 @@ const fetchUploadHistory = async (page: number = 1) => {
     if (response.success && response.data) {
       uploadHistory.value = response.data.data.map((exam: Exam) => ({
         id: exam.id,
+        description: exam.description,
         courseName: exam.courseName,
         year: exam.year,
         uploadDate: exam.uploadDate ? new Date(exam.uploadDate).toLocaleString() : 'N/A'
@@ -560,27 +565,7 @@ const clearAllFiles = () => {
   $toast.info('All files cleared');
 };
 
-// Delete upload from history
-const deleteUpload = async (uploadId: number) => {
-  try {
-    const user = localStorage.getItem('user');
-    const userObj = user ? JSON.parse(user) : null;
-    const response = await examService.delete(undefined, {
-      examId: uploadId,
-      userId: userObj?.id,
-      username: userObj?.username
-    });
-
-    if (response.success) {
-      $toast.success('Exam deleted successfully');
-      // Refresh upload history
-      await fetchUploadHistory(currentPage.value);
-    }
-  } catch (error) {
-    console.error('Error deleting upload:', error);
-    $toast.error('Failed to delete exam');
-  }
-};
+// Delete functionality removed from upload history
 
 // Submit upload to server
 const submitUpload = async () => {
@@ -708,4 +693,3 @@ async function uploadInYears(questions: QuestionPayload) {
   }
 }
 </script>
- 

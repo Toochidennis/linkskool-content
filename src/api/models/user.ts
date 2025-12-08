@@ -7,6 +7,7 @@ export interface User {
   email?: string;
   picture_ref?: string;
   role: string;
+  status?: 0 | 1;
   roleColor?: string
   permissions?: string
   lastActive?: string

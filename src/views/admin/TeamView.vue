@@ -41,6 +41,10 @@
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Permissions
               </th>
               <th
@@ -70,6 +74,12 @@
                     <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
                   </div>
                 </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span :class="user.status === 1 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                  class="px-2 py-1 text-xs font-medium rounded-full">
+                  {{ user.status === 1 ? 'Active' : 'Disabled' }}
+                </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="user.roleColor" class="px-2 py-1 text-xs font-medium rounded-full">
@@ -211,6 +221,17 @@
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Select the permissions this user should have
                   </p>
                 </div>
+
+                <!-- Status -->
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                  <select v-model="newUser.status"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer transition-all">
+                    <option :value="1">Active</option>
+                    <option :value="0">Disabled</option>
+                  </select>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Set whether the account is active</p>
+                </div>
               </div>
             </div>
           </div>
@@ -325,6 +346,16 @@
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Admin has full access, User has limited
                     access</p>
                 </div>
+                <!-- Status -->
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                  <select v-model="editingUser.status"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent cursor-pointer transition-all">
+                    <option :value="1">Active</option>
+                    <option :value="0">Disabled</option>
+                  </select>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Set whether the account is active</p>
+                </div>
               </div>
             </div>
           </div>
@@ -400,7 +431,8 @@ const editingUser = ref({
   username: '',
   email: '',
   role: '',
-  password: ''
+  password: '',
+  status: 1
 })
 
 const deletingUser = ref<(User & { firstName: string }) | null>(null)
@@ -423,7 +455,8 @@ const newUser = ref({
   email: '',
   password: '',
   role: '',
-  permissions: [] as string[]
+  permissions: [] as string[],
+  status: 1
 })
 
 const getRoleColor = (role: string): string => {
@@ -507,7 +540,8 @@ const fetchUsers = async () => {
         permissions: user.role === 'Admin' ? 'Full Access' : 'View, Create',
         lastActive: formatLastActive(user.lastActive || '-'),
         pictureRef: user.pictureRef || 'https://via.placeholder.com/32',
-        username: user.username || ''
+        username: user.username || '',
+        status: (((user as unknown as { status?: number }).status ?? 1) === 1 ? 1 : 0) as 0 | 1
       }))
     }
   } catch (error) {
@@ -549,7 +583,8 @@ const addUser = async () => {
       email: newUser.value.email,
       role: newUser.value.role,
       username: newUser.value.username,
-      password: newUser.value.password
+      password: newUser.value.password,
+      status: newUser.value.status
     }
 
     const response = await userService.post(undefined, user as unknown as Record<string, unknown>)
@@ -576,7 +611,8 @@ const openEditModal = (user: User & { firstName: string }) => {
     username: user.username,
     email: user.email || '',
     role: user.role,
-    password: ''
+    password: '',
+    status: (user as unknown as { status?: number }).status ?? 1
   }
   showEditPasswordField.value = false
   showEditModal.value = true
@@ -591,7 +627,8 @@ const closeEditModal = () => {
     username: '',
     email: '',
     role: '',
-    password: ''
+    password: '',
+    status: 1
   }
 }
 
@@ -622,6 +659,8 @@ const updateUser = async () => {
     if (editingUser.value.password.trim()) {
       user.password = editingUser.value.password
     }
+    // include status
+    user.status = editingUser.value.status
 
     const response = await userService.put(`${editingUser.value.id}`, user)
 
@@ -681,7 +720,8 @@ const closeModal = () => {
     email: '',
     password: '',
     role: '',
-    permissions: []
+    permissions: [],
+    status: 1
   }
 }
 </script>
