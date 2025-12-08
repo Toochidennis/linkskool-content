@@ -154,7 +154,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button @click="viewUpload(upload.id)"
                   class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
@@ -438,25 +438,23 @@ const processZipFile = async (files?: FileList | null) => {
     $toast.warning('Please select a program and subject before uploading');
     return;
   }
+
   const zipFile = files[0];
   if (!zipFile) return;
 
   try {
     selectedZipFile.value = zipFile;
 
-    // Extract images and data files for validation
     const { images, dataFiles } = await extractZipForValidation(zipFile);
     extractedImages.value = images;
 
-    // Reset parsed holders
+    // reset parsed data holders
     csvData.value = [];
     jsonData.value = [];
     htmlData.value = [];
     docxParsed.value = null;
 
-    // Parse first recognized data file (if any) for validation
     if (dataFiles.length > 0) {
-      // prefer csv/json/html/docx based on extension
       const preferred = dataFiles.sort((a, b) => {
         const aExt = a.name.split('.').pop() || '';
         const bExt = b.name.split('.').pop() || '';
@@ -465,35 +463,41 @@ const processZipFile = async (files?: FileList | null) => {
       });
 
       const fileEntry = preferred[0];
-      const ext = fileEntry.name.split('.').pop()?.toLowerCase();
-      const fileObj = new File([fileEntry.blob], fileEntry.name, { type: fileEntry.blob.type });
+      if (!fileEntry) {
+        $toast.info('No valid data file found inside ZIP');
+      } else {
+        const ext = fileEntry.name.split('.').pop()?.toLowerCase();
+        const fileObj = new File([fileEntry.blob], fileEntry.name, { type: fileEntry.blob.type });
 
-      try {
-        if (ext === 'csv') {
-          const rows = await readCSVFile(fileObj);
-          csvData.value = rows;
-          $toast.success(`CSV loaded from ZIP: ${rows.length} records`);
-        } else if (ext === 'json') {
-          const rows = await readJSONFile(fileObj);
-          jsonData.value = rows;
-          $toast.success(`JSON loaded from ZIP: ${rows.length} records`);
-        } else if (ext === 'html' || ext === 'htm') {
-          const rows = await readHTMLFile(fileObj);
-          htmlData.value = rows;
-          $toast.success('HTML loaded from ZIP');
-        } else if (ext === 'docx') {
-          const parsed = await readDocxFile(fileObj);
-          docxParsed.value = parsed;
-          // merge images from docx into extracted images for lookups
-          if (parsed.images && parsed.images.length > 0) {
-            const extra = parsed.images.map(i => ({ name: i.filename, data: i.data, type: i.type }));
-            extractedImages.value = extractedImages.value.concat(extra);
+        try {
+          if (ext === 'csv') {
+            const rows = await readCSVFile(fileObj);
+            csvData.value = rows;
+            $toast.success(`CSV loaded from ZIP: ${rows.length} records`);
+          } else if (ext === 'json') {
+            const rows = await readJSONFile(fileObj);
+            jsonData.value = rows;
+            $toast.success(`JSON loaded from ZIP: ${rows.length} records`);
+          } else if (ext === 'html' || ext === 'htm') {
+            const rows = await readHTMLFile(fileObj);
+            htmlData.value = rows;
+            $toast.success('HTML loaded from ZIP');
+          } else if (ext === 'docx') {
+            const parsed = await readDocxFile(fileObj);
+            // merge docx images into extracted images for validations
+            if (parsed.images && parsed.images.length > 0) {
+              const extra = parsed.images.map(i => ({ name: i.filename, data: i.data, type: i.type }));
+              extractedImages.value = extractedImages.value.concat(extra);
+            }
+            if (parsed.data && parsed.data.length > 0) {
+              csvData.value = parsed.data as Array<Record<string, string>>;
+              $toast.success(`DOCX loaded from ZIP: ${parsed.data.length} records`);
+            }
           }
-          $toast.success(`DOCX loaded from ZIP: ${parsed.data.length} records`);
+        } catch (err) {
+          console.error('Error parsing data file from ZIP:', err);
+          $toast.error('Failed to parse data file inside ZIP for validation');
         }
-      } catch (err) {
-        console.error('Error parsing data file from ZIP:', err);
-        $toast.error('Failed to parse data file inside ZIP for validation');
       }
     } else {
       $toast.info('No data file found inside ZIP for validation');
