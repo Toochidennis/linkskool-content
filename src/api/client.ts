@@ -5,7 +5,6 @@ export const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
   headers: {
-    "Content-Type": "application/json",
     "X-API-KEY": import.meta.env.VITE_API_KEY
   }
 });
@@ -17,8 +16,19 @@ client.interceptors.request.use(
       config.headers["Authorization"] = `Bearer ${token}`;
     }
 
+    // If payload is FormData (file uploads), allow browser/axios set Content-Type
+    if (config.data instanceof FormData) {
+      // do not transform FormData
+      return config;
+    }
+
     if (config.data) {
       config.data = toSnake(config.data);
+      // ensure JSON content-type for normal payloads
+      if (!config.headers) config.headers = {};
+      if (!config.headers['Content-Type']) {
+        config.headers['Content-Type'] = 'application/json';
+      }
     }
 
     // console.log(`${config.method?.toUpperCase()} ${config.url}`, {
