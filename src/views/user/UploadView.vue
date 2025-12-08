@@ -147,7 +147,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
                 <!-- Delete removed from history -->
@@ -547,24 +547,29 @@ const submitUpload = async () => {
     // Build FormData and send the ZIP file with settings
     const form = new FormData();
     form.append('file', selectedZipFile.value as File);
-    form.append('settings', JSON.stringify(settings));
+    // append settings as array fields so backend validates as array
+    Object.entries(settings).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        form.append(`settings[${key}]`, String(value));
+      }
+    });
 
     try {
       const response = await questionService.post(undefined, form as unknown as Record<string, unknown>);
       if (response.success) {
-        $toast.success('ZIP uploaded successfully');
+        $toast.success('Questions uploaded successfully');
         clearAllFiles();
         await fetchUploadHistory();
       } else {
-        $toast.error(response.message || 'Failed to upload ZIP file');
+        $toast.error(response.message || 'Failed to upload questions');
       }
     } catch (err) {
       console.error('Upload error:', err);
-      $toast.error('Failed to upload ZIP file');
+      $toast.error('Failed to upload questions');
     }
   } catch (error) {
     console.error('Upload error:', error);
-    $toast.error('Failed to upload files');
+    $toast.error('Failed to upload questions');
   } finally {
     isUploading.value = false;
   }

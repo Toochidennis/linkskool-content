@@ -594,7 +594,12 @@ const submitUpload = async () => {
     // Build FormData and send the ZIP file with settings
     const form = new FormData();
     form.append('file', selectedZipFile.value as File);
-    form.append('settings', JSON.stringify(settings));
+    // append settings as array fields so backend validates as array
+    Object.entries(settings).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        form.append(`settings[${key}]`, String(value));
+      }
+    });
 
     try {
       const response = await questionService.post(undefined, form as unknown as Record<string, unknown>);
