@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 import { toCamel, toSnake } from "./util/transform";
 
 export const client = axios.create({
@@ -10,7 +10,7 @@ export const client = axios.create({
 });
 
 client.interceptors.request.use(
-  config => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("auth_token");
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
@@ -23,12 +23,8 @@ client.interceptors.request.use(
     }
 
     if (config.data) {
+      config.headers["Content-Type"] = "application/json";
       config.data = toSnake(config.data);
-      // ensure JSON content-type for normal payloads
-      if (!config.headers) config.headers = {};
-      if (!config.headers['Content-Type']) {
-        config.headers['Content-Type'] = 'application/json';
-      }
     }
 
     // console.log(`${config.method?.toUpperCase()} ${config.url}`, {

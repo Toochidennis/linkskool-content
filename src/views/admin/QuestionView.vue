@@ -37,7 +37,7 @@
         </div>
 
         <!-- Upload Sections Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
           <!-- Zipped Files Upload -->
           <div>
             <div
@@ -429,7 +429,7 @@ const triggerZipFileInput = () => {
   zipFileInput.value?.click();
 };
 
-const processZipFile = async (files: FileList) => {
+const processZipFile = async (files?: FileList | null) => {
   if (!files || files.length === 0) {
     return;
   }
@@ -508,7 +508,7 @@ const processZipFile = async (files: FileList) => {
 
 const handleZipFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
-  await processZipFile(target.files || new FileList());
+  await processZipFile(target.files || undefined);
   // Reset the input
   target.value = '';
 };
@@ -516,7 +516,7 @@ const handleZipFileUpload = async (event: Event) => {
 const handleDragDropZip = async (event: DragEvent) => {
   isDraggingZip.value = false;
   const files = event.dataTransfer?.files;
-  await processZipFile(files || new FileList());
+  await processZipFile(files || undefined);
 };
 
 // Format file size display
@@ -564,11 +564,11 @@ const submitUpload = async () => {
     const userObj = user ? JSON.parse(user) : null;
 
     const settings = {
-      examTypeId: parseInt(selectedProgram.value),
-      courseId: parseInt(selectedSubject.value),
-      courseName: availableSubjects.value.find(c => c.id === parseInt(selectedSubject.value))?.courseName || '',
+      exam_type_id: parseInt(selectedProgram.value),
+      course_id: parseInt(selectedSubject.value),
+      course_name: availableSubjects.value.find(c => c.id === parseInt(selectedSubject.value))?.courseName || '',
       description: programs.value.find(p => p.id === parseInt(selectedProgram.value))?.name || '',
-      userId: userObj ? userObj.id : null,
+      user_id: userObj ? userObj.id : null,
       username: userObj ? userObj.username : ''
     };
 
@@ -599,20 +599,20 @@ const submitUpload = async () => {
     try {
       const response = await questionService.post(undefined, form as unknown as Record<string, unknown>);
       if (response.success) {
-        $toast.success('ZIP uploaded successfully');
+        $toast.success('Questions uploaded successfully');
         clearAllFiles();
         await fetchUploadHistory();
       } else {
-        $toast.error(response.message || 'Failed to upload ZIP file');
+        $toast.error(response.message || 'Failed to upload questions');
       }
     } catch (err) {
       console.error('Upload error:', err);
-      $toast.error('Failed to upload ZIP file');
+      $toast.error('Failed to upload questions');
     }
 
   } catch (error) {
     console.error('Upload error:', error);
-    $toast.error('Failed to upload files');
+    $toast.error('Failed to upload questions');
   } finally {
     isUploading.value = false;
   }
