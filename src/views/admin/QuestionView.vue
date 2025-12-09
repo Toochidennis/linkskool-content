@@ -258,7 +258,8 @@ const fetchPrograms = async () => {
         shortname: program.shortname,
         expanded: false,
         courses: program.courses || [],
-        isActive: program.isActive
+        isActive: program.isActive,
+        displayOrder: program.displayOrder || 0
       }));
     }
   } catch (error) {
@@ -586,6 +587,7 @@ const submitUpload = async () => {
     // If parsedRows exist, validate before sending
     if (parsedRows && parsedRows.length > 0) {
       const result = formatQuestionsData(parsedRows, extractedImages.value, !!selectedZipFile.value);
+      console.log('Data ', result.data);
       if (result.errors.length > 0) {
         result.errors.forEach(error => {
           $toast.error(`Year ${error.year}, Question #${error.questionIndex}: ${error.error}`);

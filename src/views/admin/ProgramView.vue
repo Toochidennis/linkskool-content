@@ -104,6 +104,15 @@
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Abbreviated name for quick reference</p>
                 </div>
+
+                <!-- Program Order -->
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Order</label>
+                  <input v-model.number="newProgram.displayOrder" type="number" min="0" placeholder="e.g., 1"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Numeric order for program listing (lower
+                    first)</p>
+                </div>
               </div>
             </div>
 
@@ -197,6 +206,15 @@
                   <input v-model="editingProgram.shortname" type="text" placeholder="e.g., BSC"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Abbreviated name for quick reference</p>
+                </div>
+
+                <!-- Program Order -->
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Order</label>
+                  <input v-model.number="editingProgram.displayOrder" type="number" min="0" placeholder="e.g., 1"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Numeric order for program listing (lower
+                    first)</p>
                 </div>
               </div>
             </div>
@@ -348,7 +366,8 @@ const fetchPrograms = async () => {
         shortname: program.shortname,
         expanded: false,
         courses: program.courses || [],
-        isActive: program.isActive
+        isActive: program.isActive,
+        displayOrder: program.displayOrder || 0
       }));
     }
   } catch (error) {
@@ -371,7 +390,8 @@ const newProgram = ref({
   name: '',
   shortname: '',
   courseIds: [] as number[],
-  isActive: 1
+  isActive: 1,
+  displayOrder: 0
 });
 
 const editingProgram = ref({
@@ -379,7 +399,8 @@ const editingProgram = ref({
   name: '',
   shortname: '',
   courseIds: [] as number[],
-  isActive: 1
+  isActive: 1,
+  displayOrder: 0
 });
 
 const toggleCourse = (courseId: number) => {
@@ -425,7 +446,8 @@ const addProgram = async () => {
       name: capitalize(newProgram.value.name),
       shortname: newProgram.value.shortname,
       courseIds: newProgram.value.courseIds,
-      isActive: newProgram.value.isActive
+      isActive: newProgram.value.isActive,
+      displayOrder: newProgram.value.displayOrder
     });
 
     if (response.success) {
@@ -445,7 +467,8 @@ const openEditModal = (program: Program & { expanded?: boolean }) => {
     name: program.name,
     shortname: program.shortname || '',
     courseIds: program.courses ? program.courses.map(c => c.id) : [],
-    isActive: program.isActive || 1
+    isActive: program.isActive || 1,
+    displayOrder: program.displayOrder || 0
   };
   showEditModal.value = true;
 };
@@ -466,7 +489,8 @@ const updateProgram = async () => {
       name: capitalize(editingProgram.value.name),
       shortname: editingProgram.value.shortname,
       courseIds: editingProgram.value.courseIds,
-      isActive: editingProgram.value.isActive
+      isActive: editingProgram.value.isActive,
+      displayOrder: Number(editingProgram.value.displayOrder)
     });
 
     if (response.success) {
@@ -482,7 +506,7 @@ const updateProgram = async () => {
 
 const closeModal = () => {
   showModal.value = false;
-  newProgram.value = { name: '', shortname: '', courseIds: [], isActive: 1 };
+  newProgram.value = { name: '', shortname: '', courseIds: [], isActive: 1, displayOrder: 0 };
 };
 
 const openDeleteModal = (program: Program) => {
@@ -516,7 +540,7 @@ const closeDeleteModal = () => {
 
 const closeEditModal = () => {
   showEditModal.value = false;
-  editingProgram.value = { id: 0, name: '', shortname: '', courseIds: [], isActive: 1 };
+  editingProgram.value = { id: 0, name: '', shortname: '', courseIds: [], isActive: 1, displayOrder: 0 };
 };
 
 </script>
