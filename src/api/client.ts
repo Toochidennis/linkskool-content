@@ -3,7 +3,7 @@ import { toCamel, toSnake } from "./util/transform";
 
 export const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     "X-API-KEY": import.meta.env.VITE_API_KEY
   }
@@ -16,9 +16,7 @@ client.interceptors.request.use(
       config.headers["Authorization"] = `Bearer ${token}`;
     }
 
-    // If payload is FormData (file uploads), allow browser/axios set Content-Type
     if (config.data instanceof FormData) {
-      // do not transform FormData
       return config;
     }
 
