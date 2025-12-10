@@ -15,6 +15,9 @@ import TopicsView from '@/views/admin/TopicsView.vue'
 import SyllabusView from '@/views/admin/SyllabusView.vue'
 import NewsView from '@/views/admin/NewsView.vue'
 import AdmissionsView from '@/views/admin/AdmissionsView.vue'
+import ChallengeView from '@/views/admin/ChallengeView.vue'
+import QuestionSpreadsheetView from '@/views/admin/QuestionSpreadsheetView.vue'
+import QuestionFormView from '@/views/admin/QuestionFormView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -88,6 +91,16 @@ const routes: RouteRecordRaw[] = [
         component: QuestionView
       },
       {
+        path: 'question-spreadsheet',
+        name: 'Question Spreadsheet',
+        component: QuestionSpreadsheetView
+      },
+      {
+        path: 'question-form',
+        name: 'Question Form',
+        component: QuestionFormView
+      },
+      {
         path: 'exam-viewer',
         name: 'Exam Viewer',
         component: AssessmentView
@@ -96,6 +109,11 @@ const routes: RouteRecordRaw[] = [
         path: 'programs',
         name: 'Programs',
         component: ProgramsView
+      },
+      {
+        path: 'challenges',
+        name: 'Challenges',
+        component: ChallengeView
       },
       {
         path: 'team',
@@ -111,7 +129,7 @@ const routes: RouteRecordRaw[] = [
         path: 'config',
         name: 'Settings',
         component: SettingsView
-      }
+      },
     ]
   },
   // User Routes (hidden paths)

@@ -147,7 +147,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
-                }}</td>
+              }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
                 <!-- Delete removed from history -->
@@ -509,6 +509,11 @@ const submitUpload = async () => {
     $toast.warning('Please select a program and subject');
     return;
   }
+
+  // Inform user about upload time
+  $toast.info('Large question files may take time to upload. Please wait...', {
+    duration: 5000
+  });
 
   isUploading.value = true;
 

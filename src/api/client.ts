@@ -3,7 +3,7 @@ import { toCamel, toSnake } from "./util/transform";
 
 export const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 60000,
+  timeout: 180000,
   headers: {
     "X-API-KEY": import.meta.env.VITE_API_KEY
   }
