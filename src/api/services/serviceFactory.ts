@@ -1,3 +1,4 @@
+import type { AssessmentFilter } from "@/composables/useFilters";
 import { BaseService } from "./baseService";
 import * as type from "@/api/models";
 
@@ -12,4 +13,5 @@ export const examService = serviceFactory<type.PaginatedResponse<type.Exam>>("ex
 export const settingsService = serviceFactory<type.Settings>("settings");
 export const dashboardService = serviceFactory<type.DashboardMetric>("dashboard");
 export const activityLogService = serviceFactory<type.PaginatedResponse<type.ActivityLog>>("activity-logs");
+export const assessmentService = serviceFactory<AssessmentFilter[]>("cbt/exams");
 
