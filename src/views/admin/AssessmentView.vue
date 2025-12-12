@@ -5,10 +5,13 @@
         <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Assessments</h2>
         <p class="text-gray-600 dark:text-gray-400">Upload and manage your educational content</p>
       </div>
-      <router-link to="/dashboard/assessment-spreadsheet"
+      <router-link to="/dashboard/assessment-form"
         class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer shadow-sm hover:shadow-md">
-        <i class="fas fa-table mr-2"></i>
-        Preview Spreadsheet
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
+          <path
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 f0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        Preview Assessment
       </router-link>
     </div>
 
@@ -161,7 +164,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button @click="viewUpload(upload.id)"
                   class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>

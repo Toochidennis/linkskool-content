@@ -155,14 +155,21 @@
   margin-top: 5em;
 }
 
+.question-container {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  animation: slideIn 0.3s ease-out;
+}
+
 .question-card {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  margin-bottom: 24px;
+  flex: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
-  animation: slideIn 0.3s ease-out;
 }
 
 @keyframes slideIn {
@@ -262,10 +269,49 @@
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.icon-btn.duplicate-btn:hover {
+  color: #10b981;
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
 .icon-btn.delete-btn:hover {
   color: #ef4444;
   border-color: #ef4444;
   background: #fef2f2;
+}
+
+.question-floating-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.floating-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.floating-add-btn:hover {
+  background: #5568d3;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.floating-add-btn:active {
+  transform: scale(0.95);
 }
 
 .question-content {

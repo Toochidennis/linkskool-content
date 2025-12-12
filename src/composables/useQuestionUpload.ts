@@ -27,6 +27,7 @@ export interface Option {
 }
 
 export interface Question {
+  questionId?: number;
   questionText: string;
   questionFiles: QuestionFile[];
   instruction?: string;

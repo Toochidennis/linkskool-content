@@ -48,200 +48,230 @@
             {{ year }}
           </option>
         </select>
+        <div style="color: #666; font-size: 12px; margin-left: 10px;">{{ loadingStatus }}</div>
       </div>
     </div>
 
     <!-- Questions List -->
     <div class="questions-wrapper">
-      <div v-for="(question, index) in filteredQuestions" :key="question.id" class="question-card"
-        :class="{ 'is-edited': editedQuestions.has(question.id), 'is-collapsed': collapsedCards.has(question.id) }"
-        @click="handleCardClick(question.id, $event)">
-        <!-- Question Header -->
-        <div class="question-header">
-          <div class="question-number">Question {{ index + 1 }}</div>
-          <div class="question-meta">
-            <select v-model="question.questionType" class="meta-select" @change="handleEdit(question.id)">
-              <option value="multiple_choice">Multiple Choice</option>
-              <option value="short_answer">Short Answer</option>
-            </select>
-            <input v-model.number="question.year" type="number" class="meta-input small" placeholder="Year"
-              @input="handleEdit(question.id)" />
-            <input v-model="question.topic" type="text" class="meta-input" placeholder="Topic"
-              @input="handleEdit(question.id)" />
-          </div>
-          <div class="question-actions">
-            <button class="icon-btn collapse-btn" @click="toggleCardCollapse(question.id, $event)"
-              :title="collapsedCards.has(question.id) ? 'Expand' : 'Collapse'">
-              <svg v-if="collapsedCards.has(question.id)" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                width="18" height="18">
-                <polyline points="18 15 12 9 6 15"></polyline>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <button class="icon-btn delete-btn" @click="deleteQuestion(question.id)" title="Delete question">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
-                </path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Preview Mode (Collapsed) -->
-        <div v-if="collapsedCards.has(question.id)" class="question-preview">
-          <!-- Question Text Preview -->
-          <div class="preview-question" v-html="question.questionText"></div>
-
-          <!-- Multiple Choice Options Preview -->
-          <div v-if="question.questionType === 'multiple_choice'" class="preview-options">
-            <div v-for="(option, optIndex) in question.options" :key="optIndex" class="preview-option-item">
-              <input type="radio" :name="`preview-${question.id}`" disabled
-                :checked="question.correct.order === option.order" />
-              <span class="preview-option-text" v-html="option.text"></span>
+      <div v-for="(question, index) in filteredQuestions" :key="question.questionId" class="question-container">
+        <div class="question-card"
+          :class="{ 'is-edited': editedQuestions.has(String(question.questionId)), 'is-collapsed': collapsedCards.has(String(question.questionId)) }"
+          @click="handleCardClick(String(question.questionId!), $event)">
+          <!-- Question Header -->
+          <div class="question-header">
+            <div class="question-number">Question {{ index + 1 }}</div>
+            <div class="question-meta">
+              <select v-model="question.questionType" class="meta-select"
+                @change="handleEdit(String(question.questionId!))">
+                <option value="multiple_choice">Multiple Choice</option>
+                <option value="short_answer">Short Answer</option>
+              </select>
+              <input v-model.number="question.year" type="number" class="meta-input small" placeholder="Year"
+                @input="handleEdit(String(question.questionId!))" />
+              <input v-model="question.topic" type="text" class="meta-input" placeholder="Topic"
+                @input="handleEdit(String(question.questionId!))" />
             </div>
-          </div>
-
-          <!-- Short Answer Preview -->
-          <div v-if="question.questionType === 'short_answer'" class="preview-short-answer">
-            <div class="preview-answer-line"></div>
-          </div>
-        </div>
-
-        <!-- Edit Mode (Expanded) -->
-        <div v-else class="question-content">
-          <!-- Passage Section -->
-          <div v-if="question.passage || editMode" class="form-section">
-            <label class="section-label">Passage</label>
-            <div class="editable-content" contenteditable="true"
-              @blur="(e) => handleContentEdit(question, 'passage', e)" @input="handleEdit(question.id)"
-              v-html="question.passage || 'Click to add passage...'"></div>
-          </div>
-
-          <!-- Instruction Section -->
-          <div v-if="question.instruction || editMode" class="form-section">
-            <label class="section-label">Instruction</label>
-            <div class="editable-content" contenteditable="true"
-              @blur="(e) => handleContentEdit(question, 'instruction', e)" @input="handleEdit(question.id)"
-              v-html="question.instruction || 'Click to add instruction...'"></div>
-          </div>
-
-          <!-- Question Text -->
-          <div class="form-section">
-            <label class="section-label">
-              Question <span class="required">*</span>
-            </label>
-            <div class="editable-content question-text" contenteditable="true"
-              @blur="(e) => handleContentEdit(question, 'questionText', e)" @input="handleEdit(question.id)"
-              v-html="question.questionText"></div>
-          </div>
-
-          <!-- Question Image -->
-          <div class="form-section">
-            <label class="section-label">Question Image</label>
-            <div v-if="question.questionImage" class="image-preview-container">
-              <img :src="getImageUrl(question.questionImage)" :alt="'Question ' + (index + 1)" class="uploaded-image" />
-              <button class="delete-image-btn" @click="deleteQuestionImage(question)" title="Delete image">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
+            <div class="question-actions">
+              <button class="icon-btn collapse-btn" @click="toggleCardCollapse(String(question.questionId!), $event)"
+                :title="collapsedCards.has(String(question.questionId)) ? 'Expand' : 'Collapse'">
+                <svg v-if="collapsedCards.has(String(question.questionId))" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" width="18" height="18">
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <button class="icon-btn duplicate-btn" @click="duplicateQuestion(question, $event)"
+                title="Duplicate question">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <button class="icon-btn delete-btn" @click="deleteQuestion(String(question.questionId!))"
+                title="Delete question">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                  </path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
                 </svg>
               </button>
             </div>
-            <div v-else class="image-upload-zone" @dragover.prevent="handleDragOver($event, 'question', question.id)"
-              @dragleave.prevent="handleDragLeave($event, 'question', question.id)"
-              @drop.prevent="handleDrop($event, 'question', question.id)"
-              @click="triggerFileInput('question', question.id)"
-              :class="{ 'dragging': isDragging === `question-${question.id}` }">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="32" height="32" class="upload-icon">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <p class="upload-text">Click or drag image here</p>
-              <p class="upload-hint">PNG, JPG up to 5MB</p>
-            </div>
-            <input type="file" :ref="`questionImageInput-${question.id}`" accept="image/*" style="display: none"
-              @change="handleFileSelect($event, 'question', question.id)" />
           </div>
 
-          <!-- Multiple Choice Options -->
-          <div v-if="question.questionType === 'multiple_choice'" class="form-section">
-            <label class="section-label">Options</label>
-            <div class="options-list">
-              <div v-for="(option, optIndex) in question.options" :key="optIndex" class="option-item">
-                <div class="option-row">
-                  <input type="radio" :name="`correct-${question.id}`"
-                    :checked="question.correct.order === option.order"
-                    @change="setCorrectAnswer(question, option.order)" class="option-radio" />
-                  <div class="editable-content option-text" contenteditable="true"
-                    @blur="(e) => handleOptionEdit(question, optIndex, e)" @input="handleEdit(question.id)"
-                    v-html="option.text"></div>
-                  <button class="icon-btn delete-option-btn" @click="deleteOption(question, optIndex)"
-                    title="Delete option">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                </div>
-                <div class="option-image-section">
-                  <div v-if="option.image" class="image-preview-container small">
-                    <img :src="getImageUrl(option.image)" :alt="`Option ${optIndex + 1}`" class="uploaded-image" />
-                    <button class="delete-image-btn" @click="deleteOptionImage(question, optIndex)"
-                      title="Delete image">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14">
+          <!-- Preview Mode (Collapsed) -->
+          <div v-if="collapsedCards.has(String(question.questionId))" class="question-preview">
+            <!-- Question Text Preview -->
+            <div class="preview-question" v-html="question.questionText"></div>
+
+            <!-- Multiple Choice Options Preview -->
+            <div v-if="question.questionType === 'multiple_choice'" class="preview-options">
+              <div v-for="(option, optIndex) in question.options" :key="optIndex" class="preview-option-item">
+                <input type="radio" :name="`preview-${question.questionId}`" disabled
+                  :checked="question.correct.order === option.order" />
+                <span class="preview-option-text" v-html="option.text"></span>
+              </div>
+            </div>
+
+            <!-- Short Answer Preview -->
+            <div v-if="question.questionType === 'short_answer'" class="preview-short-answer">
+              <div class="preview-answer-line"></div>
+            </div>
+          </div>
+
+          <!-- Edit Mode (Expanded) -->
+          <div v-else class="question-content">
+            <!-- Passage Section -->
+            <div v-if="question.passage || editMode" class="form-section">
+              <label class="section-label">Passage</label>
+              <div class="editable-content" contenteditable="true"
+                @blur="(e) => handleContentEdit(question, 'passage', e)"
+                @input="handleEdit(String(question.questionId!))"
+                v-html="question.passage || 'Click to add passage...'"></div>
+            </div>
+
+            <!-- Instruction Section -->
+            <div v-if="question.instruction || editMode" class="form-section">
+              <label class="section-label">Instruction</label>
+              <div class="editable-content" contenteditable="true"
+                @blur="(e) => handleContentEdit(question, 'instruction', e)"
+                @input="handleEdit(String(question.questionId!))"
+                v-html="question.instruction || 'Click to add instruction...'"></div>
+            </div>
+
+            <!-- Question Text -->
+            <div class="form-section">
+              <label class="section-label">
+                Question <span class="required">*</span>
+              </label>
+              <div class="editable-content question-text" contenteditable="true"
+                @blur="(e) => handleContentEdit(question, 'questionText', e)"
+                @input="handleEdit(String(question.questionId!))" v-html="question.questionText"></div>
+            </div>
+
+            <!-- Question Image -->
+            <div class="form-section">
+              <label class="section-label">Question Image</label>
+              <div v-if="question.questionFiles && question.questionFiles.length > 0" class="image-preview-container">
+                <img :src="getImageUrl(question.questionFiles[0]?.file || '')" :alt="'Question ' + (index + 1)"
+                  class="uploaded-image" />
+                <button class="delete-image-btn" @click="deleteQuestionImage(question)" title="Delete image">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div v-else class="image-upload-zone"
+                @dragover.prevent="handleDragOver($event, 'question', question.questionId!)"
+                @dragleave.prevent="handleDragLeave($event)"
+                @drop.prevent="handleDrop($event, 'question', question.questionId!)"
+                @click="triggerFileInput('question', question.questionId!)"
+                :class="{ 'dragging': isDragging === `question-${question.questionId}` }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="32" height="32" class="upload-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p class="upload-text">Click or drag image here</p>
+                <p class="upload-hint">PNG, JPG up to 5MB</p>
+              </div>
+              <input type="file" :ref="`questionImageInput-${question.questionId}`" accept="image/*"
+                style="display: none" @change="handleFileSelect($event, 'question', question.questionId!)" />
+            </div>
+
+            <!-- Multiple Choice Options -->
+            <div v-if="question.questionType === 'multiple_choice'" class="form-section">
+              <label class="section-label">Options</label>
+              <div class="options-list">
+                <div v-for="(option, optIndex) in question.options" :key="optIndex" class="option-item">
+                  <div class="option-row">
+                    <input type="radio" :name="`correct-${question.questionId}`"
+                      :checked="question.correct.order === option.order"
+                      @change="setCorrectAnswer(question, option.order)" class="option-radio" />
+                    <div class="editable-content option-text" contenteditable="true"
+                      @blur="(e) => handleOptionEdit(question, optIndex, e)"
+                      @input="handleEdit(String(question.questionId!))" v-html="option.text"></div>
+                    <button class="icon-btn delete-option-btn" @click="deleteOption(question, optIndex)"
+                      title="Delete option">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </button>
                   </div>
-                  <div v-else class="image-upload-zone small"
-                    @dragover.prevent="handleDragOver($event, 'option', question.id, optIndex)"
-                    @dragleave.prevent="handleDragLeave($event, 'option', question.id, optIndex)"
-                    @drop.prevent="handleDrop($event, 'option', question.id, optIndex)"
-                    @click="triggerFileInput('option', question.id, optIndex)"
-                    :class="{ 'dragging': isDragging === `option-${question.id}-${optIndex}` }">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"
-                      class="upload-icon">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="17 8 12 3 7 8"></polyline>
-                      <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <p class="upload-text-small">Add image</p>
+                  <div class="option-image-section">
+                    <div v-if="option.optionFiles && option.optionFiles.length > 0"
+                      class="image-preview-container small">
+                      <img :src="getImageUrl(option.optionFiles[0]?.file || '')" :alt="`Option ${optIndex + 1}`"
+                        class="uploaded-image" />
+                      <button class="delete-image-btn" @click="deleteOptionImage(question, optIndex)"
+                        title="Delete image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
+                    <div v-else class="image-upload-zone small"
+                      @dragover.prevent="handleDragOver($event, 'option', question.questionId!, optIndex)"
+                      @dragleave.prevent="handleDragLeave($event)"
+                      @drop.prevent="handleDrop($event, 'option', question.questionId!, optIndex)"
+                      @click="triggerFileInput('option', question.questionId!, optIndex)"
+                      :class="{ 'dragging': isDragging === `option-${question.questionId}-${optIndex}` }">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"
+                        class="upload-icon">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                      <p class="upload-text-small">Add image</p>
+                    </div>
+                    <input type="file" :ref="`optionImageInput-${question.questionId}-${optIndex}`" accept="image/*"
+                      style="display: none"
+                      @change="handleFileSelect($event, 'option', question.questionId!, optIndex)" />
                   </div>
-                  <input type="file" :ref="`optionImageInput-${question.id}-${optIndex}`" accept="image/*"
-                    style="display: none" @change="handleFileSelect($event, 'option', question.id, optIndex)" />
                 </div>
               </div>
+              <button class="add-option-btn" @click="addOption(question)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Option
+              </button>
             </div>
-            <button class="add-option-btn" @click="addOption(question)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Add Option
-            </button>
-          </div>
 
-          <!-- Short Answer -->
-          <div v-if="question.questionType === 'short_answer'" class="form-section">
-            <label class="section-label">Answer</label>
-            <input v-model="question.correct.text" type="text" class="answer-input" placeholder="Expected answer"
-              @input="handleEdit(question.id)" />
-          </div>
+            <!-- Short Answer -->
+            <div v-if="question.questionType === 'short_answer'" class="form-section">
+              <label class="section-label">Answer</label>
+              <input v-model="question.correct.text" type="text" class="answer-input" placeholder="Expected answer"
+                @input="handleEdit(String(question.questionId!))" />
+            </div>
 
-          <!-- Explanation -->
-          <div class="form-section">
-            <label class="section-label">Explanation</label>
-            <div class="editable-content" contenteditable="true"
-              @blur="(e) => handleContentEdit(question, 'explanation', e)" @input="handleEdit(question.id)"
-              v-html="question.explanation || 'Click to add explanation...'"></div>
+            <!-- Explanation -->
+            <div class="form-section">
+              <label class="section-label">Explanation</label>
+              <div class="editable-content" contenteditable="true"
+                @blur="(e) => handleContentEdit(question, 'explanation', e)"
+                @input="handleEdit(String(question.questionId!))"
+                v-html="question.explanation || 'Click to add explanation...'"></div>
+            </div>
           </div>
+        </div>
+
+        <!-- Floating Action Button -->
+        <div class="question-floating-actions">
+          <button class="floating-add-btn" @click="addQuestionAfter(index)" title="Add question">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -252,6 +282,7 @@
           <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
         </svg>
         <h3>No questions found</h3>
+        <p>Loaded: {{ allQuestions.length }} | Filtered: {{ filteredQuestions.length }}</p>
         <p>Try adjusting your filters</p>
       </div>
     </div>
@@ -265,39 +296,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFilters } from '@/composables/useFilters';
-
-interface Option {
-  order: number;
-  text: string;
-  image: string;
-}
-
-interface Question {
-  id: string;
-  year: number;
-  program: string;
-  course: string;
-  questionType: 'multiple_choice' | 'short_answer';
-  questionText: string;
-  questionImage: string;
-  passage: string;
-  instruction: string;
-  options: Option[];
-  correct: {
-    order: number;
-    text: string;
-  };
-  topic: string;
-  explanation: string;
-}
+import { useAssessment } from "@/composables/useAssessment";
+import type { Question, QuestionFile } from '@/composables/useQuestionUpload';
 
 const router = useRouter();
 
 // Filters
 const { filters, fetchFilters } = useFilters();
+const { questions, fetchAssessments } = useAssessment();
 
 const allQuestions = ref<Question[]>([]);
 const editedQuestions = ref(new Set<string>());
@@ -306,6 +315,7 @@ const isSaving = ref(false);
 const editMode = ref(true);
 const collapsedCards = ref(new Set<string>());
 const isDragging = ref<string>('');
+const loadingStatus = ref<string>('initial');
 
 // Filter state
 const searchQuery = ref('');
@@ -342,14 +352,74 @@ const filteredQuestions = computed(() => {
     const matchesSearch =
       !searchQuery.value ||
       q.questionText.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      q.topic.toLowerCase().includes(searchQuery.value.toLowerCase());
+      q.topic?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      q.passage?.toLowerCase().includes(searchQuery.value.toLowerCase());
 
-    const matchesProgram = !selectedProgram.value || q.program === selectedProgram.value;
-    const matchesCourse = !selectedCourse.value || q.course === selectedCourse.value;
-    const matchesYear = !selectedYear.value || q.year.toString() === selectedYear.value;
-
-    return matchesSearch && matchesProgram && matchesCourse && matchesYear;
+    return matchesSearch;
   });
+});
+
+// Watch for filter changes and fetch new assessments
+const loadQuestionsForSelection = async () => {
+  loadingStatus.value = 'Loading...';
+  if (!selectedProgram.value || !selectedCourse.value || !selectedYear.value) {
+    loadingStatus.value = 'Missing filters';
+    return;
+  }
+
+  // Find the exam ID for selected filters
+  const programFilter = filters.value.find(f => f.examShortname === selectedProgram.value);
+  if (!programFilter) {
+    loadingStatus.value = 'Program not found';
+    return;
+  }
+
+  const courseData = programFilter.courses.find(c => c.courseName === selectedCourse.value);
+  if (!courseData) {
+    loadingStatus.value = 'Course not found';
+    return;
+  }
+
+  const yearData = courseData.years.find(y => y.year === selectedYear.value);
+  if (!yearData || !yearData.examId) {
+    loadingStatus.value = 'Year/Exam ID not found';
+    return;
+  }
+
+  loadingStatus.value = `Fetching exam ${yearData.examId}...`;
+  // Fetch questions for the exam
+  try {
+    await fetchAssessments(yearData.examId);
+    allQuestions.value = questions.value;
+    loadingStatus.value = `Loaded ${allQuestions.value.length} questions`;
+  } catch (error) {
+    console.error('Error loading questions:', error);
+    loadingStatus.value = 'Error loading questions';
+  }
+};
+
+// Auto-select the first course and year when program changes
+watch(selectedProgram, (program) => {
+  const programFilter = filters.value.find(f => f.examShortname === program);
+  const firstCourse = programFilter?.courses?.[0];
+
+  selectedCourse.value = firstCourse?.courseName || '';
+
+  const firstYear = firstCourse?.years
+    ? [...firstCourse.years].sort((a, b) => Number(b.year) - Number(a.year))[0]
+    : undefined;
+  selectedYear.value = firstYear?.year || '';
+});
+
+// Auto-select the first year when course changes
+watch(selectedCourse, (course) => {
+  const programFilter = filters.value.find(f => f.examShortname === selectedProgram.value);
+  const courseData = programFilter?.courses.find(c => c.courseName === course);
+
+  const firstYear = courseData?.years
+    ? [...courseData.years].sort((a, b) => Number(b.year) - Number(a.year))[0]
+    : undefined;
+  selectedYear.value = firstYear?.year || '';
 });
 
 // Fetch filters on mount and set initial selections
@@ -382,6 +452,14 @@ onMounted(async () => {
   }
 });
 
+// Watch for filter changes
+watch([selectedProgram, selectedCourse, selectedYear], async (newVals) => {
+  // Only reload if all selections are made
+  if (newVals[0] && newVals[1] && newVals[2]) {
+    await loadQuestionsForSelection();
+  }
+}, { immediate: false });
+
 // Auto-save functionality
 let saveTimeout: ReturnType<typeof setTimeout>;
 
@@ -395,16 +473,139 @@ const handleEdit = (questionId: string) => {
   }, 1000);
 };
 
-const saveChanges = () => {
-  setTimeout(() => {
-    isSaving.value = false;
-    savedIndicator.value = true;
+/**
+ * Package question images according to the specification
+ * Rules:
+ * 1. New image on existing question (no old image): filename, old_file_name (optional), file (base64), type
+ * 2. New image replacing existing: file_name (required), old_file_name (required), type, file (base64)
+ * 3. No new image, old ones exist: return as-is
+ * 4. No images: return []
+ */
+const packageQuestionImages = (questionFiles: QuestionFile[]): QuestionFile[] => {
+  if (!questionFiles || questionFiles.length === 0) {
+    return [];
+  }
+
+  return questionFiles.map(file => {
+    const packaged: QuestionFile = {
+      file_name: file.file_name,
+      old_file_name: file.old_file_name || '',
+      type: file.type,
+      file: file.file
+    };
+    return packaged;
+  });
+};
+
+/**
+ * Package option images according to the specification
+ */
+const packageOptionImages = (optionFiles: QuestionFile[]): QuestionFile[] => {
+  if (!optionFiles || optionFiles.length === 0) {
+    return [];
+  }
+
+  return optionFiles.map(file => {
+    const packaged: QuestionFile = {
+      file_name: file.file_name,
+      old_file_name: file.old_file_name || '',
+      type: file.type,
+      file: file.file
+    };
+    return packaged;
+  });
+};
+
+/**
+ * Package questions for submission
+ * New questions have questionId = 0, existing questions keep their questionId
+ * For multiple choice: correct.order is 0-based index, correct.text is the option text
+ * For short answer: return empty options array
+ */
+const packageQuestionsForSubmission = (): Question[] => {
+  return filteredQuestions.value.map(question => {
+    const isShortAnswer = question.questionType === 'short_answer';
+
+    // For multiple choice, convert order to 0-based index
+    const correctOrder = isShortAnswer ? 0 : (question.correct.order - 1);
+
+    return {
+      questionId: question.questionId && question.questionId > 0 ? question.questionId : 0,
+      questionText: question.questionText,
+      questionFiles: packageQuestionImages(question.questionFiles),
+      passage: question.passage || '',
+      passageId: question.passageId || 0,
+      instruction: question.instruction || '',
+      instructionId: question.instructionId || 0,
+      topic: question.topic || '',
+      topicId: question.topicId || 0,
+      explanation: question.explanation || '',
+      explanationId: question.explanationId || 0,
+      questionType: question.questionType,
+      options: isShortAnswer ? [] : question.options.map(option => ({
+        order: option.order,
+        text: option.text,
+        optionFiles: packageOptionImages(option.optionFiles)
+      })),
+      correct: {
+        order: correctOrder,
+        text: question.correct.text
+      },
+      year: question.year || 0
+    };
+  });
+};
+
+/**
+ * Package settings separately as in AssessmentView
+ */
+const packageSettings = () => {
+  const user = localStorage.getItem('user');
+  const userObj = user ? JSON.parse(user) : null;
+
+  return {
+    examTypeId: parseInt(selectedProgram.value),
+    courseId: parseInt(selectedCourse.value),
+    courseName: filteredCourses.value.find(c => c === selectedCourse.value) || '',
+    description: selectedProgram.value || '',
+    userId: userObj ? userObj.id : null,
+    username: userObj ? userObj.username : ''
+  };
+};
+
+const saveChanges = async () => {
+  try {
+    isSaving.value = true;
+
+    // Package questions and settings
+    const questions = packageQuestionsForSubmission();
+    const settings = packageSettings();
+
+    // Prepare payload
+    const payload = {
+      settings,
+      questions
+    };
+
+    console.log('Saving questions and settings:', payload);
+
+    // TODO: Send to API endpoint
+    // const response = await questionService.put(undefined, payload);
 
     setTimeout(() => {
-      savedIndicator.value = false;
-      editedQuestions.value.clear();
-    }, 2000);
-  }, 500);
+      isSaving.value = false;
+      savedIndicator.value = true;
+
+      setTimeout(() => {
+        savedIndicator.value = false;
+        editedQuestions.value.clear();
+      }, 2000);
+    }, 500);
+  } catch (error) {
+    console.error('Error saving changes:', error);
+    isSaving.value = false;
+    savedIndicator.value = false;
+  }
 };
 
 const handleContentEdit = (question: Question, field: keyof Question, event: Event) => {
@@ -427,7 +628,7 @@ const setCorrectAnswer = (question: Question, order: number) => {
   if (selectedOption) {
     question.correct.text = selectedOption.text;
   }
-  handleEdit(question.id);
+  handleEdit(String(question.questionId!));
 };
 
 const addOption = (question: Question) => {
@@ -435,18 +636,22 @@ const addOption = (question: Question) => {
   question.options.push({
     order: newOrder,
     text: `Option ${String.fromCharCode(64 + newOrder)}: New option`,
-    image: ''
+    optionFiles: []
   });
-  handleEdit(question.id);
+  handleEdit(String(question.questionId!));
 };
 
-const getImageUrl = (url: string): string => {
+const getImageUrl = (base64Data: string): string => {
   // If it's already a full URL, return it
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
+  if (base64Data.startsWith('http://') || base64Data.startsWith('https://')) {
+    return base64Data;
   }
-  // Otherwise, treat it as a filename and return placeholder
-  return `https://via.placeholder.com/400x300?text=${encodeURIComponent(url)}`;
+  // If it's a data URL, return as is
+  if (base64Data.startsWith('data:')) {
+    return base64Data;
+  }
+  // Otherwise, prepend data URL prefix for base64
+  return `data:image/jpeg;base64,${base64Data}`;
 };
 
 const switchToSpreadsheet = () => {
@@ -460,7 +665,7 @@ const toggleCardCollapse = (questionId: string, event?: Event) => {
 
   if (collapsedCards.value.has(questionId)) {
     // Collapse all other cards (accordion behavior)
-    const allQuestionIds = allQuestions.value.map(q => q.id);
+    const allQuestionIds = allQuestions.value.map(q => String(q.questionId));
     allQuestionIds.forEach(id => {
       if (id !== questionId) {
         collapsedCards.value.add(id);
@@ -485,7 +690,7 @@ const handleCardClick = (questionId: string, event: Event) => {
     }
 
     // Collapse all other cards (accordion behavior)
-    const allQuestionIds = allQuestions.value.map(q => q.id);
+    const allQuestionIds = allQuestions.value.map(q => String(q.questionId));
     allQuestionIds.forEach(id => {
       if (id !== questionId) {
         collapsedCards.value.add(id);
@@ -524,12 +729,12 @@ const deleteOption = (question: Question, optionIndex: number) => {
     question.correct.order--;
   }
 
-  handleEdit(question.id);
+  handleEdit(String(question.questionId!));
 };
 
 const deleteQuestion = (questionId: string) => {
   if (confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
-    const index = allQuestions.value.findIndex(q => q.id === questionId);
+    const index = allQuestions.value.findIndex(q => String(q.questionId) === questionId);
     if (index !== -1) {
       allQuestions.value.splice(index, 1);
       editedQuestions.value.delete(questionId);
@@ -538,8 +743,71 @@ const deleteQuestion = (questionId: string) => {
   }
 };
 
+const duplicateQuestion = (question: Question, event?: Event) => {
+  if (event) {
+    event.stopPropagation();
+  }
+
+  // Create a deep copy of the question
+  const duplicatedQuestion: Question = {
+    questionId: Date.now(), // Generate temporary ID
+    questionText: question.questionText,
+    questionFiles: [...question.questionFiles.map(f => ({ ...f }))],
+    instruction: question.instruction,
+    topic: question.topic,
+    passage: question.passage,
+    explanation: question.explanation,
+    questionType: question.questionType,
+    options: question.options.map(opt => ({
+      order: opt.order,
+      text: opt.text,
+      optionFiles: [...opt.optionFiles.map(f => ({ ...f }))]
+    })),
+    correct: {
+      order: question.correct.order,
+      text: question.correct.text
+    },
+    year: question.year
+  };
+
+  // Find the index of the current question and insert after it
+  const currentIndex = allQuestions.value.findIndex(q => q.questionId === question.questionId);
+  if (currentIndex !== -1) {
+    allQuestions.value.splice(currentIndex + 1, 0, duplicatedQuestion);
+    // Mark the duplicated question as edited
+    handleEdit(String(duplicatedQuestion.questionId));
+  }
+};
+
+const addQuestionAfter = (index: number) => {
+  // Create a new blank question
+  const newQuestion: Question = {
+    questionId: Date.now(),
+    questionText: 'New question text',
+    questionFiles: [],
+    passage: '',
+    explanation: '',
+    questionType: 'multiple_choice',
+    options: [
+      { order: 1, text: 'Option A', optionFiles: [] },
+      { order: 2, text: 'Option B', optionFiles: [] },
+      { order: 3, text: 'Option C', optionFiles: [] },
+      { order: 4, text: 'Option D', optionFiles: [] }
+    ],
+    correct: { order: 1, text: 'Option A' },
+    year: selectedYear.value ? Number(selectedYear.value) : undefined
+  };
+
+  // Insert after the current index
+  allQuestions.value.splice(index + 1, 0, newQuestion);
+  // Expand the new question
+  collapsedCards.value.delete(String(newQuestion.questionId));
+  // Mark as edited
+  handleEdit(String(newQuestion.questionId));
+};
+
 // Image upload handlers
-const handleDragOver = (event: DragEvent, type: string, questionId: string, optIndex?: number) => {
+const handleDragOver = (event: DragEvent, type: string, questionId: number, optIndex?: number) => {
   event.preventDefault();
   if (type === 'question') {
     isDragging.value = `question-${questionId}`;
@@ -548,12 +816,12 @@ const handleDragOver = (event: DragEvent, type: string, questionId: string, optI
   }
 };
 
-const handleDragLeave = (event: DragEvent, type: string, questionId: string, optIndex?: number) => {
+const handleDragLeave = (event: DragEvent) => {
   event.preventDefault();
   isDragging.value = '';
 };
 
-const handleDrop = async (event: DragEvent, type: string, questionId: string, optIndex?: number) => {
+const handleDrop = async (event: DragEvent, type: string, questionId: number, optIndex?: number) => {
   event.preventDefault();
   isDragging.value = '';
 
@@ -563,7 +831,7 @@ const handleDrop = async (event: DragEvent, type: string, questionId: string, op
   }
 };
 
-const triggerFileInput = (type: string, questionId: string, optIndex?: number) => {
+const triggerFileInput = (type: string, questionId: number, optIndex?: number) => {
   const refKey = type === 'question'
     ? `questionImageInput-${questionId}`
     : `optionImageInput-${questionId}-${optIndex}`;
@@ -574,7 +842,7 @@ const triggerFileInput = (type: string, questionId: string, optIndex?: number) =
   }
 };
 
-const handleFileSelect = async (event: Event, type: string, questionId: string, optIndex?: number) => {
+const handleFileSelect = async (event: Event, type: string, questionId: number, optIndex?: number) => {
   const target = event.target as HTMLInputElement;
   const files = target.files;
 
@@ -586,7 +854,7 @@ const handleFileSelect = async (event: Event, type: string, questionId: string, 
   target.value = '';
 };
 
-const processImageFile = async (file: File, type: string, questionId: string, optIndex?: number) => {
+const processImageFile = async (file: File, type: string, questionId: number, optIndex?: number) => {
   // Validate file type
   if (!file.type.startsWith('image/')) {
     alert('Please upload an image file');
@@ -604,34 +872,47 @@ const processImageFile = async (file: File, type: string, questionId: string, op
   reader.onload = (e) => {
     const result = e.target?.result as string;
 
-    const question = allQuestions.value.find(q => q.id === questionId);
+    const question = allQuestions.value.find(q => q.questionId === questionId);
     if (!question) return;
 
+    // Extract pure base64 from Data URL (removes "data:image/...;base64," prefix)
+    const base64String = result.split(',')[1] || result;
+
     if (type === 'question') {
-      question.questionImage = result;
+      question.questionFiles = [{
+        file_name: file.name,
+        old_file_name: '',
+        type: 'image',
+        file: base64String
+      }];
     } else if (type === 'option' && optIndex !== undefined) {
       const option = question.options[optIndex];
       if (option) {
-        option.image = result;
+        option.optionFiles = [{
+          file_name: file.name,
+          old_file_name: '',
+          type: 'image',
+          file: base64String
+        }];
       }
     }
 
-    handleEdit(questionId);
+    handleEdit(String(questionId));
   };
 
   reader.readAsDataURL(file);
 };
 
 const deleteQuestionImage = (question: Question) => {
-  question.questionImage = '';
-  handleEdit(question.id);
+  question.questionFiles = [];
+  handleEdit(String(question.questionId!));
 };
 
 const deleteOptionImage = (question: Question, optIndex: number) => {
   const option = question.options[optIndex];
   if (option) {
-    option.image = '';
-    handleEdit(question.id);
+    option.optionFiles = [];
+    handleEdit(String(question.questionId!));
   }
 };
 </script>
