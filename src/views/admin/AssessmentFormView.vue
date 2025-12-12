@@ -54,7 +54,9 @@
 
     <!-- Questions List -->
     <div class="questions-wrapper">
-      <div v-for="(question, index) in filteredQuestions" :key="question.questionId" class="question-container">
+      <div v-for="(question, index) in filteredQuestions"
+        :key="question.questionId && question.questionId > 0 ? question.questionId : question.localId || `new-${index}`"
+        class="question-container">
         <div class="question-card"
           :class="{ 'is-edited': editedQuestions.has(String(question.questionId)), 'is-collapsed': collapsedCards.has(String(question.questionId)) }"
           @click="handleCardClick(String(question.questionId!), $event)">
@@ -308,7 +310,9 @@ const router = useRouter();
 const { filters, fetchFilters } = useFilters();
 const { questions, fetchAssessments } = useAssessment();
 
-const allQuestions = ref<Question[]>([]);
+type LocalQuestion = Question & { localId?: string };
+
+const allQuestions = ref<LocalQuestion[]>([]);
 const editedQuestions = ref(new Set<string>());
 const savedIndicator = ref(false);
 const isSaving = ref(false);
@@ -316,12 +320,14 @@ const editMode = ref(true);
 const collapsedCards = ref(new Set<string>());
 const isDragging = ref<string>('');
 const loadingStatus = ref<string>('initial');
+const tempIdCounter = ref(-1);
 
 // Filter state
 const searchQuery = ref('');
 const selectedProgram = ref('');
 const selectedCourse = ref('');
 const selectedYear = ref<string | ''>('');
+const currentExamId = ref<number | null>(null);
 
 // Computed properties for filters
 const programs = computed(() => {
@@ -387,6 +393,8 @@ const loadQuestionsForSelection = async () => {
   }
 
   loadingStatus.value = `Fetching exam ${yearData.examId}...`;
+  // Store the current exam ID
+  currentExamId.value = yearData.examId;
   // Fetch questions for the exam
   try {
     await fetchAssessments(yearData.examId);
@@ -563,10 +571,21 @@ const packageSettings = () => {
   const user = localStorage.getItem('user');
   const userObj = user ? JSON.parse(user) : null;
 
+  // Search for IDs in the filter object using the selected names
+  const programFilter = filters.value.find(f => f.examShortname === selectedProgram.value);
+  const examTypeId = programFilter?.examTypeId || 0;
+
+  const courseData = programFilter?.courses.find(c => c.courseName === selectedCourse.value);
+  const courseId = courseData?.courseId || 0;
+
+  const year = selectedYear.value ? parseInt(selectedYear.value, 10) : 0;
+
   return {
-    examTypeId: parseInt(selectedProgram.value),
-    courseId: parseInt(selectedCourse.value),
-    courseName: filteredCourses.value.find(c => c === selectedCourse.value) || '',
+    examId: currentExamId.value || 0,
+    examTypeId,
+    courseId,
+    year,
+    courseName: selectedCourse.value || '',
     description: selectedProgram.value || '',
     userId: userObj ? userObj.id : null,
     username: userObj ? userObj.username : ''
@@ -743,14 +762,21 @@ const deleteQuestion = (questionId: string) => {
   }
 };
 
+const nextTempId = (): number => {
+  const id = tempIdCounter.value;
+  tempIdCounter.value -= 1;
+  return id;
+};
+
 const duplicateQuestion = (question: Question, event?: Event) => {
   if (event) {
     event.stopPropagation();
   }
 
   // Create a deep copy of the question
-  const duplicatedQuestion: Question = {
-    questionId: Date.now(), // Generate temporary ID
+  const duplicatedQuestion: LocalQuestion = {
+    questionId: nextTempId(),
+    localId: `temp-${Date.now()}`,
     questionText: question.questionText,
     questionFiles: [...question.questionFiles.map(f => ({ ...f }))],
     instruction: question.instruction,
@@ -781,8 +807,9 @@ const duplicateQuestion = (question: Question, event?: Event) => {
 
 const addQuestionAfter = (index: number) => {
   // Create a new blank question
-  const newQuestion: Question = {
-    questionId: Date.now(),
+  const newQuestion: LocalQuestion = {
+    questionId: nextTempId(),
+    localId: `temp-${Date.now()}`,
     questionText: 'New question text',
     questionFiles: [],
     passage: '',
