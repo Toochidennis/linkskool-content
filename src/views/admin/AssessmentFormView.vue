@@ -182,7 +182,7 @@
                 <p class="upload-text">Click or drag image here</p>
                 <p class="upload-hint">PNG, JPG up to 5MB</p>
               </div>
-              <input type="file" :ref="`questionImageInput-${question.questionId}`" accept="image/*"
+              <input type="file" :data-input-id="`question-${question.questionId}`" accept="image/*"
                 style="display: none" @change="handleFileSelect($event, 'question', question.questionId!)" />
             </div>
 
@@ -231,9 +231,10 @@
                         <polyline points="17 8 12 3 7 8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                       </svg>
-                      <p class="upload-text-small">Add image</p>
+                      <p class="upload-text">Click or drag image here</p>
+                      <p class="upload-hint">PNG, JPG up to 5MB</p>
                     </div>
-                    <input type="file" :ref="`optionImageInput-${question.questionId}-${optIndex}`" accept="image/*"
+                    <input type="file" :data-input-id="`option-${question.questionId}-${optIndex}`" accept="image/*"
                       style="display: none"
                       @change="handleFileSelect($event, 'option', question.questionId!, optIndex)" />
                   </div>
@@ -531,37 +532,50 @@ const packageOptionImages = (optionFiles: QuestionFile[]): QuestionFile[] => {
  * For short answer: return empty options array
  */
 const packageQuestionsForSubmission = (): Question[] => {
-  return filteredQuestions.value.map(question => {
-    const isShortAnswer = question.questionType === 'short_answer';
+  return allQuestions.value
+    .filter(question => {
+      const id = question.questionId || 0;
+      const isNew = id <= 0;
+      const isEdited = editedQuestions.value.has(String(id));
+      return isNew || isEdited;
+    })
+    .map(question => {
+      const isShortAnswer = question.questionType === 'short_answer';
 
-    // For multiple choice, convert order to 0-based index
-    const correctOrder = isShortAnswer ? 0 : (question.correct.order - 1);
+      // Derive correct order strictly from the selected option
+      let correctOrder = 0;
+      if (!isShortAnswer) {
+        const correctOption = question.options.find(opt =>
+          opt.text?.trim().toLowerCase() === question.correct.text?.trim().toLowerCase()
+        );
+        correctOrder = correctOption ? correctOption.order : 0;
+      }
 
-    return {
-      questionId: question.questionId && question.questionId > 0 ? question.questionId : 0,
-      questionText: question.questionText,
-      questionFiles: packageQuestionImages(question.questionFiles),
-      passage: question.passage || '',
-      passageId: question.passageId || 0,
-      instruction: question.instruction || '',
-      instructionId: question.instructionId || 0,
-      topic: question.topic || '',
-      topicId: question.topicId || 0,
-      explanation: question.explanation || '',
-      explanationId: question.explanationId || 0,
-      questionType: question.questionType,
-      options: isShortAnswer ? [] : question.options.map(option => ({
-        order: option.order,
-        text: option.text,
-        optionFiles: packageOptionImages(option.optionFiles)
-      })),
-      correct: {
-        order: correctOrder,
-        text: question.correct.text
-      },
-      year: question.year || 0
-    };
-  });
+      return {
+        questionId: question.questionId && question.questionId > 0 ? question.questionId : 0,
+        questionText: question.questionText,
+        questionFiles: packageQuestionImages(question.questionFiles),
+        passage: question.passage || '',
+        passageId: question.passageId || 0,
+        instruction: question.instruction || '',
+        instructionId: question.instructionId || 0,
+        topic: question.topic || '',
+        topicId: question.topicId || 0,
+        explanation: question.explanation || '',
+        explanationId: question.explanationId || 0,
+        questionType: question.questionType,
+        options: isShortAnswer ? [] : question.options.map((option, idx) => ({
+          order: Number.isFinite(Number(option.order)) ? Number(option.order) : idx + 1,
+          text: option.text,
+          optionFiles: packageOptionImages(option.optionFiles)
+        })),
+        correct: {
+          order: correctOrder,
+          text: question.correct.text
+        },
+        year: question.year || 0
+      };
+    });
 };
 
 /**
@@ -859,11 +873,11 @@ const handleDrop = async (event: DragEvent, type: string, questionId: number, op
 };
 
 const triggerFileInput = (type: string, questionId: number, optIndex?: number) => {
-  const refKey = type === 'question'
-    ? `questionImageInput-${questionId}`
-    : `optionImageInput-${questionId}-${optIndex}`;
+  const selector = type === 'question'
+    ? `input[data-input-id="question-${questionId}"]`
+    : `input[data-input-id="option-${questionId}-${optIndex}"]`;
 
-  const input = document.querySelector(`input[ref="${refKey}"]`) as HTMLInputElement;
+  const input = document.querySelector(selector) as HTMLInputElement;
   if (input) {
     input.click();
   }
@@ -906,21 +920,27 @@ const processImageFile = async (file: File, type: string, questionId: number, op
     const base64String = result.split(',')[1] || result;
 
     if (type === 'question') {
-      question.questionFiles = [{
+      // Apply packaging rules for question images
+      const existingFile = question.questionFiles?.[0];
+      const newFile: QuestionFile = {
         file_name: file.name,
-        old_file_name: '',
+        old_file_name: existingFile?.file_name || '', // Rule 2: old_file_name if replacing, empty if new
         type: 'image',
         file: base64String
-      }];
+      };
+      question.questionFiles = [newFile];
     } else if (type === 'option' && optIndex !== undefined) {
       const option = question.options[optIndex];
       if (option) {
-        option.optionFiles = [{
+        // Apply packaging rules for option images
+        const existingFile = option.optionFiles?.[0];
+        const newFile: QuestionFile = {
           file_name: file.name,
-          old_file_name: '',
+          old_file_name: existingFile?.file_name || '', // Rule 2: old_file_name if replacing, empty if new
           type: 'image',
           file: base64String
-        }];
+        };
+        option.optionFiles = [newFile];
       }
     }
 
