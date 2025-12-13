@@ -266,16 +266,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Floating Action Button -->
-        <div class="question-floating-actions">
-          <button class="floating-add-btn" @click="addQuestionAfter(index)" title="Add question">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        </div>
       </div>
 
       <!-- Empty State -->
@@ -295,14 +285,20 @@
       <div class="spinner"></div>
       <span>Saving changes...</span>
     </div>
+
+    <!-- Floating Action Card -->
+    <FloatingActionCard @duplicate="handleFloatingCardDuplicate" @add="handleFloatingCardAdd"
+      @delete="handleFloatingCardDelete" @close="() => { }" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFilters } from '@/composables/useFilters';
 import { useAssessment } from "@/composables/useAssessment";
+import { useFloatingActionCard } from '@/composables/useFloatingActionCard';
+import FloatingActionCard from '@/components/FloatingActionCard.vue';
 import type { Question, QuestionFile } from '@/composables/useQuestionUpload';
 
 const router = useRouter();
@@ -310,6 +306,7 @@ const router = useRouter();
 // Filters
 const { filters, fetchFilters } = useFilters();
 const { questions, fetchAssessments } = useAssessment();
+const { activeCard } = useFloatingActionCard();
 
 type LocalQuestion = Question & { localId?: string };
 
@@ -429,6 +426,15 @@ watch(selectedCourse, (course) => {
     ? [...courseData.years].sort((a, b) => Number(b.year) - Number(a.year))[0]
     : undefined;
   selectedYear.value = firstYear?.year || '';
+});
+
+// Scroll to top when filters change
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+watch([searchQuery, selectedProgram, selectedCourse, selectedYear], () => {
+  scrollToTop();
 });
 
 // Fetch filters on mount and set initial selections
@@ -960,6 +966,74 @@ const deleteOptionImage = (question: Question, optIndex: number) => {
   if (option) {
     option.optionFiles = [];
     handleEdit(String(question.questionId!));
+  }
+};
+
+/**
+ * Handle floating action card events
+ */
+const handleFloatingCardDuplicate = () => {
+  // Get the active card element directly from the composable
+  if (!activeCard.value.element) return;
+
+  const activeIndex = allQuestions.value.findIndex(() => {
+    const cards = document.querySelectorAll('.question-card');
+    for (const card of cards) {
+      if (card === activeCard.value.element) return true;
+    }
+    return false;
+  });
+
+  if (activeIndex !== -1 && allQuestions.value[activeIndex]) {
+    duplicateQuestion(allQuestions.value[activeIndex]);
+    // Scroll to the duplicated card (inserted right after current)
+    nextTick(() => {
+      const newCard = document.querySelectorAll('.question-card')[activeIndex + 1];
+      if (newCard) {
+        newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+};
+
+const handleFloatingCardAdd = () => {
+  // Get the active card element directly from the composable
+  if (!activeCard.value.element) return;
+
+  const activeIndex = allQuestions.value.findIndex(() => {
+    const cards = document.querySelectorAll('.question-card');
+    for (const card of cards) {
+      if (card === activeCard.value.element) return true;
+    }
+    return false;
+  });
+
+  if (activeIndex !== -1) {
+    addQuestionAfter(activeIndex);
+    // Scroll to the new card (inserted right after current)
+    nextTick(() => {
+      const newCard = document.querySelectorAll('.question-card')[activeIndex + 1];
+      if (newCard) {
+        newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+};
+
+const handleFloatingCardDelete = () => {
+  // Get the active card element directly from the composable
+  if (!activeCard.value.element) return;
+
+  const activeIndex = allQuestions.value.findIndex(() => {
+    const cards = document.querySelectorAll('.question-card');
+    for (const card of cards) {
+      if (card === activeCard.value.element) return true;
+    }
+    return false;
+  });
+
+  if (activeIndex !== -1 && allQuestions.value[activeIndex]) {
+    deleteQuestion(String(allQuestions.value[activeIndex].questionId!));
   }
 };
 </script>

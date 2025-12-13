@@ -956,3 +956,239 @@
     transform: rotate(360deg);
   }
 }
+
+/* Floating Action Card Styles - CSS transforms for performance */
+.floating-action-card {
+  position: fixed;
+  z-index: 100;
+  /* Use CSS variables set by Vue for position */
+  top: var(--card-top, 0);
+  left: var(--card-left, 0);
+  /* Transform-based transitions are more performant than top/left */
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.action-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 280px;
+  padding: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border-radius: 12px;
+  box-shadow:
+    0 10px 40px rgba(102, 126, 234, 0.15),
+    0 0 0 1px rgba(102, 126, 234, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.action-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.action-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #667eea;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #667eea;
+  transform: scale(1.1);
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #374151;
+  width: 100%;
+  justify-content: flex-start;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.action-btn:hover::before {
+  left: 100%;
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.action-btn:hover {
+  background: white;
+  transform: translateX(4px);
+}
+
+.action-btn:active {
+  transform: translateX(2px) scale(0.98);
+}
+
+.action-btn.duplicate {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.action-btn.duplicate:hover {
+  background: #f0fdf4;
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+}
+
+.action-btn.duplicate svg {
+  color: #10b981;
+}
+
+.action-btn.add {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.action-btn.add:hover {
+  background: #f0f4ff;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.action-btn.add svg {
+  color: #667eea;
+}
+
+.action-btn.delete {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.action-btn.delete:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+.action-btn.delete svg {
+  color: #ef4444;
+}
+
+.action-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 4px 0 0 0;
+  text-align: center;
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+
+.action-card-arrow {
+  position: absolute;
+  left: -8px;
+  top: 16px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid white;
+  filter: drop-shadow(-2px 0 2px rgba(102, 126, 234, 0.1));
+  animation: pulse-arrow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-arrow {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .floating-action-card {
+    position: absolute;
+    top: auto !important;
+    left: auto !important;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .action-card-content {
+    width: 240px;
+  }
+
+  .action-card-arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .action-card-content {
+    width: 220px;
+    padding: 12px;
+  }
+
+  .action-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .action-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+}
