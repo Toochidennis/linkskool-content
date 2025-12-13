@@ -1,23 +1,27 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 import { toCamel, toSnake } from "./util/transform";
 
 export const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 10000,
+  timeout: 180000,
   headers: {
-    "Content-Type": "application/json",
     "X-API-KEY": import.meta.env.VITE_API_KEY
   }
 });
 
 client.interceptors.request.use(
-  config => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("auth_token");
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }
 
+    if (config.data instanceof FormData) {
+      return config;
+    }
+
     if (config.data) {
+      config.headers["Content-Type"] = "application/json";
       config.data = toSnake(config.data);
     }
 

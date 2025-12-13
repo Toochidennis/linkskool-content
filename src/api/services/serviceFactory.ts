@@ -8,8 +8,9 @@ export const userService = serviceFactory<type.User[]>("users");
 export const courseService = serviceFactory<type.Course>("courses");
 export const programService = serviceFactory<type.Program>("exam-types");
 export const questionService = serviceFactory<type.QuestionPayload>("questions");
-export const examService = serviceFactory<type.PaginatedResponse<type.Exam>>("exams");
+export const examService = serviceFactory<any>("exams");
 export const settingsService = serviceFactory<type.Settings>("settings");
 export const dashboardService = serviceFactory<type.DashboardMetric>("dashboard");
 export const activityLogService = serviceFactory<type.PaginatedResponse<type.ActivityLog>>("activity-logs");
+export const assessmentService = serviceFactory<any[]>("cbt/exams");
 

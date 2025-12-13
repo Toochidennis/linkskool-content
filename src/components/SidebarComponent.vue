@@ -17,7 +17,7 @@
               <div class="border-t border-gray-300 dark:border-gray-600 mb-2"></div>
               <div class="px-3 py-2">
                 <h3
-                  class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center">
+                  class="text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wide flex items-center">
                   <i :class="item.icon" class="text-sm mr-2"></i>
                   {{ item.name }}
                 </h3>
@@ -111,6 +111,7 @@ const menuItems: MenuItem[] = [
       { name: 'Topics', route: '/dashboard/topics', icon: 'fas fa-list' },
       { name: 'Syllabus', route: '/dashboard/syllabus', icon: 'fas fa-graduation-cap' },
       { name: 'Assessments', route: '/dashboard/assessments', icon: 'fas fa-question-circle' },
+      { name: 'Challenges', route: '/dashboard/challenges', icon: 'fas fa-trophy' },
     ]
   },
   {

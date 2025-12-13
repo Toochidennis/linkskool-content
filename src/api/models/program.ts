@@ -7,4 +7,5 @@ export interface Program {
   expanded?: boolean ;
   courses: Course[];
   isActive: number;
+  displayOrder?: number;
 }

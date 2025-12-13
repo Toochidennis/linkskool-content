@@ -37,51 +37,7 @@
         </div>
 
         <!-- Upload Sections Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <!-- Individual Files Upload -->
-          <div>
-            <div
-              class="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg p-6 text-center transition-colors cursor-pointer min-h-64 flex flex-col items-center justify-center"
-              @dragover.prevent="isDraggingFiles = true" @dragleave.prevent="isDraggingFiles = false"
-              @drop.prevent="handleDragDropFiles"
-              :class="isDraggingFiles ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-400' : 'hover:bg-blue-50/50 dark:hover:bg-blue-900/10'">
-              <i class="fas fa-cloud-upload-alt text-2xl transition-colors"
-                :class="isDraggingFiles ? 'text-blue-500' : 'text-blue-400' + ' mb-2'"></i>
-              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-1">{{ isDraggingFiles ? 'Drop files here'
-                : 'Drag & Drop Questions' }}</h4>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">or click to choose - CSV, JSON, WORD</p>
-              <button @click="triggerFileInput"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors cursor-pointer">
-                Choose Files
-              </button>
-              <input ref="fileInput" type="file" accept=".csv,.json,.doc,.docx" style="display: none"
-                @change="handleFileUpload" multiple />
-            </div>
-            <!-- Selected Files Display -->
-            <div v-if="selectedFiles.length > 0" class="mt-3 space-y-2">
-              <div v-for="(file, index) in selectedFiles" :key="index"
-                class="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div class="flex items-center space-x-2 flex-1 min-w-0">
-                  <i class="fas fa-file text-blue-600"></i>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ file.name }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ formatFileSize(file.size) }}</p>
-                  </div>
-                </div>
-                <div class="flex items-center space-x-2 ml-2">
-                  <button @click="previewFile(file)"
-                    class="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer" title="Preview">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                  <button @click="removeFile(index)"
-                    class="text-red-600 hover:text-red-700 text-sm font-medium cursor-pointer" title="Remove">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
           <!-- Zipped Files Upload -->
           <div>
             <div
@@ -140,13 +96,13 @@
 
         <!-- Upload Button Section -->
         <div class="flex gap-3">
-          <button v-if="selectedFiles.length > 0" @click="submitUpload" :disabled="isUploading"
+          <button v-if="selectedZipFile" @click="submitUpload" :disabled="isUploading"
             class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors cursor-pointer flex items-center justify-center space-x-2">
             <i v-if="!isUploading" class="fas fa-upload"></i>
             <i v-else class="fas fa-spinner animate-spin"></i>
-            <span>{{ isUploading ? 'Uploading...' : 'Upload Files' }}</span>
+            <span>{{ isUploading ? 'Uploading...' : 'Upload ZIP' }}</span>
           </button>
-          <button v-if="selectedFiles.length > 0 || selectedZipFile" @click="clearAllFiles"
+          <button v-if="selectedZipFile" @click="clearAllFiles"
             class="bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-3 rounded-lg font-medium transition-colors cursor-pointer">
             Clear All
           </button>
@@ -191,7 +147,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.year }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ upload.uploadDate
-                }}</td>
+              }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">View</button>
                 <!-- Delete removed from history -->
@@ -230,21 +186,19 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import type { Program, QuestionPayload, Exam } from '@/api/models'
+import type { Program, Exam } from '@/api/models'
 import { programService, questionService, examService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
 import { useQuestionUpload } from '@/composables/useQuestionUpload';
-import { getFileFormat, readCSVFile, extractImagesFromZip, readJSONFile, readHTMLFile } from '@/composables/useFileUpload';
+import { readCSVFile, readHTMLFile, readJSONFile, readDocxFile, extractZipForValidation } from '@/composables/useFileUpload';
 
 const $toast = useToast();
 const { formatQuestionsData } = useQuestionUpload();
 
 // File upload references
-const fileInput = ref<HTMLInputElement>();
 const zipFileInput = ref<HTMLInputElement>();
 
 // Selected files state
-const selectedFiles = ref<File[]>([]);
 const selectedZipFile = ref<File | null>(null);
 const isUploading = ref(false);
 const extractedImages = ref<Array<{ name: string; data: string; type: string }>>([]);
@@ -253,7 +207,6 @@ const jsonData = ref<Array<Record<string, string>>>([]);
 const htmlData = ref<Array<Record<string, string>>>([]);
 
 // Drag and drop states
-const isDraggingFiles = ref(false);
 const isDraggingZip = ref(false);
 
 // Program data
@@ -387,82 +340,17 @@ const uploadTemplates = ref([
   }
 ])
 
-// File upload handlers
-const triggerFileInput = () => {
-  fileInput.value?.click();
-};
+// File upload handlers (individual file upload removed)
 
-const processFiles = (files: FileList) => {
-  if (!files || files.length === 0) {
-    return;
-  }
-
-  if (!selectedProgram.value || !selectedSubject.value) {
-    $toast.warning('Please select a program and subject before uploading');
-    return;
-  }
-
-  // Store selected files
-  selectedFiles.value = Array.from(files);
-
-  // Read CSV files if present
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    if (!file) continue;
-
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext === 'csv') {
-      readCSVFile(file)
-        .then(data => {
-          csvData.value = data;
-          $toast.success(`CSV file loaded: ${data.length} records`);
-        })
-        .catch((error) => {
-          console.error('Error parsing CSV file:', error);
-          $toast.error((error as Error).message || 'Failed to parse CSV file');
-        });
-    } else if (ext === 'json') {
-      readJSONFile(file)
-        .then(data => {
-          jsonData.value = data;
-          $toast.success(`JSON file loaded: ${data.length} records`);
-        })
-        .catch((error) => {
-          console.error('Error reading JSON file:', error);
-          $toast.error((error as Error).message || 'Failed to read JSON file');
-        });
-    } else if (ext === 'html' || ext === 'htm') {
-      readHTMLFile(file)
-        .then(data => {
-          htmlData.value = data;
-          $toast.success(`HTML file loaded successfully`);
-        })
-        .catch((error) => {
-          console.error('Error reading HTML file:', error);
-          $toast.error((error as Error).message || 'Failed to read HTML file');
-        });
-    }
-  }
-};
-
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  processFiles(target.files || new FileList());
-  // Reset the input
-  target.value = '';
-};
-
-const handleDragDropFiles = (event: DragEvent) => {
-  isDraggingFiles.value = false;
-  const files = event.dataTransfer?.files;
-  processFiles(files || new FileList());
-};
+// individual file upload handlers removed
 
 const triggerZipFileInput = () => {
   zipFileInput.value?.click();
 };
 
-const processZipFile = async (files: FileList) => {
+const docxParsed = ref<null | { data: Array<Record<string, string>>; images: { filename: string; data: string; type: string }[] }>(null);
+
+const processZipFile = async (files?: FileList | null) => {
   if (!files || files.length === 0) {
     return;
   }
@@ -476,12 +364,65 @@ const processZipFile = async (files: FileList) => {
   if (!zipFile) return;
 
   try {
-    // Store selected ZIP file
     selectedZipFile.value = zipFile;
 
-    // Extract images from ZIP file
-    const images = await extractImagesFromZip(zipFile);
+    const { images, dataFiles } = await extractZipForValidation(zipFile);
     extractedImages.value = images;
+
+    // reset parsed data holders
+    csvData.value = [];
+    jsonData.value = [];
+    htmlData.value = [];
+    docxParsed.value = null;
+
+    if (dataFiles.length > 0) {
+      const preferred = dataFiles.sort((a, b) => {
+        const aExt = a.name.split('.').pop() || '';
+        const bExt = b.name.split('.').pop() || '';
+        const order = ['csv', 'json', 'html', 'htm', 'docx'];
+        return order.indexOf(aExt) - order.indexOf(bExt);
+      });
+
+      const fileEntry = preferred[0];
+      if (!fileEntry) {
+        $toast.info('No valid data file found inside ZIP');
+      } else {
+        const ext = fileEntry.name.split('.').pop()?.toLowerCase();
+        const fileObj = new File([fileEntry.blob], fileEntry.name, { type: fileEntry.blob.type });
+
+        try {
+          if (ext === 'csv') {
+            const rows = await readCSVFile(fileObj);
+            csvData.value = rows;
+            $toast.success(`CSV loaded from ZIP: ${rows.length} records`);
+          } else if (ext === 'json') {
+            const rows = await readJSONFile(fileObj);
+            jsonData.value = rows;
+            $toast.success(`JSON loaded from ZIP: ${rows.length} records`);
+          } else if (ext === 'html' || ext === 'htm') {
+            const rows = await readHTMLFile(fileObj);
+            htmlData.value = rows;
+            $toast.success('HTML loaded from ZIP');
+          } else if (ext === 'docx') {
+            const parsed = await readDocxFile(fileObj);
+            // merge docx images into extracted images for validations
+            if (parsed.images && parsed.images.length > 0) {
+              const extra = parsed.images.map(i => ({ name: i.filename, data: i.data, type: i.type }));
+              extractedImages.value = extractedImages.value.concat(extra);
+            }
+            if (parsed.data && parsed.data.length > 0) {
+              csvData.value = parsed.data as Array<Record<string, string>>;
+              $toast.success(`DOCX loaded from ZIP: ${parsed.data.length} records`);
+            }
+          }
+        } catch (err) {
+          console.error('Error parsing data file from ZIP:', err);
+          $toast.error('Failed to parse data file inside ZIP for validation');
+        }
+      }
+    } else {
+      $toast.info('No data file found inside ZIP for validation');
+    }
 
     $toast.success(`Extracted ${images.length} images from ZIP file`);
   } catch (error) {
@@ -492,7 +433,7 @@ const processZipFile = async (files: FileList) => {
 
 const handleZipFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
-  await processZipFile(target.files || new FileList());
+  await processZipFile(target.files || undefined);
   // Reset the input
   target.value = '';
 };
@@ -500,7 +441,7 @@ const handleZipFileUpload = async (event: Event) => {
 const handleDragDropZip = async (event: DragEvent) => {
   isDraggingZip.value = false;
   const files = event.dataTransfer?.files;
-  await processZipFile(files || new FileList());
+  await processZipFile(files || undefined);
 };
 
 // Format file size display
@@ -541,13 +482,7 @@ const previewFile = (file: File) => {
   }
 };
 
-// Remove individual file
-const removeFile = (index: number) => {
-  selectedFiles.value.splice(index, 1);
-  if (selectedFiles.value.length === 0) {
-    $toast.info('All files removed');
-  }
-};
+// individual file removal removed
 
 // Remove ZIP file
 const removeZipFile = () => {
@@ -557,10 +492,11 @@ const removeZipFile = () => {
 
 // Clear all files
 const clearAllFiles = () => {
-  selectedFiles.value = [];
   selectedZipFile.value = null;
   csvData.value = [];
+  htmlData.value = [];
   jsonData.value = [];
+  docxParsed.value = null;
   extractedImages.value = [];
   $toast.info('All files cleared');
 };
@@ -574,6 +510,11 @@ const submitUpload = async () => {
     return;
   }
 
+  // Inform user about upload time
+  $toast.info('Large question files may take time to upload. Please wait...', {
+    duration: 5000
+  });
+
   isUploading.value = true;
 
   try {
@@ -581,115 +522,63 @@ const submitUpload = async () => {
     const userObj = user ? JSON.parse(user) : null;
 
     const settings = {
-      examTypeId: parseInt(selectedProgram.value),
-      courseId: parseInt(selectedSubject.value),
-      courseName: availableSubjects.value.find(c => c.id === parseInt(selectedSubject.value))?.courseName || '',
+      exam_type_id: parseInt(selectedProgram.value),
+      course_id: parseInt(selectedSubject.value),
+      course_name: availableSubjects.value.find(c => c.id === parseInt(selectedSubject.value))?.courseName || '',
       description: programs.value.find(p => p.id === parseInt(selectedProgram.value))?.name || '',
-      userId: userObj ? userObj.id : null,
+      user_id: userObj ? userObj.id : null,
       username: userObj ? userObj.username : ''
     };
 
-    const questionPayload: QuestionPayload = {
-      settings,
-      data: []
-    };
+    // Determine parsed rows from ZIP (if available) for validation
+    let parsedRows: Array<Record<string, string>> | null = null;
+    if (csvData.value.length > 0) parsedRows = csvData.value;
+    else if (jsonData.value.length > 0) parsedRows = jsonData.value;
+    else if (htmlData.value.length > 0) parsedRows = htmlData.value;
+    else if (docxParsed.value && Array.isArray(docxParsed.value.data)) parsedRows = docxParsed.value.data as Array<Record<string, string>>;
 
-    let validationErrors: Array<{ year: number; questionIndex: number; error: string }> = [];
-
-    const processParsedRows = (rows: Array<Record<string, string>>) => {
-      const result = formatQuestionsData(
-        rows,
-        extractedImages.value,
-        !!selectedZipFile.value,
-      );
-
-      questionPayload.data = result.data;
-      validationErrors = result.errors;
-
+    // If parsedRows exist, validate before sending
+    if (parsedRows && parsedRows.length > 0) {
+      const result = formatQuestionsData(parsedRows, extractedImages.value, !!selectedZipFile.value);
       if (result.errors.length > 0) {
         result.errors.forEach(error => {
-          $toast.error(
-            `Year ${error.year}, Question #${error.questionIndex}: ${error.error}`
-          );
+          $toast.error(`Year ${error.year}, Question #${error.questionIndex}: ${error.error}`);
         });
+        $toast.error('Please fix the validation errors above before uploading');
+        return;
       }
-      console.log('Question Payload:', questionPayload);
+    }
 
-    };
-
-    selectedFiles.value.forEach(file => {
-      const format = getFileFormat(file.name);
-
-      switch (format) {
-        case 'CSV':
-          if (csvData.value.length > 0) {
-            processParsedRows(csvData.value);
-          }
-
-          break;
-        case 'JSON':
-          if (jsonData.value.length > 0) {
-            processParsedRows(jsonData.value);
-          } else {
-            $toast.warning('JSON file data is not ready for upload');
-          }
-          break;
-        case 'WORD':
-          console.log(`Processing WORD file: ${file.name}`);
-          break;
-        default:
-          console.warn(`Unsupported file format for file: ${file.name}`);
+    // Build FormData and send the ZIP file with settings
+    const form = new FormData();
+    form.append('file', selectedZipFile.value as File);
+    // append settings as array fields so backend validates as array
+    Object.entries(settings).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        form.append(`settings[${key}]`, String(value));
       }
     });
 
-    // Check if there are validation errors - if so, prevent upload
-    if (validationErrors.length > 0) {
-      $toast.error('Please fix the validation errors above before uploading');
-      return;
-    }
-
-    // Post to server
-    if (questionPayload.data.length > 0) {
-      await uploadInYears(questionPayload);
-    } else {
-      $toast.warning('No question data to upload');
-      return;
+    try {
+      const response = await questionService.post(undefined, form as unknown as Record<string, unknown>);
+      if (response.success) {
+        $toast.success('Questions uploaded successfully');
+        clearAllFiles();
+        await fetchUploadHistory();
+      } else {
+        $toast.error(response.message || 'Failed to upload questions');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      $toast.error('Failed to upload questions');
     }
   } catch (error) {
     console.error('Upload error:', error);
-    $toast.error('Failed to upload files');
+    $toast.error('Failed to upload questions');
   } finally {
     isUploading.value = false;
   }
 };
 
-async function uploadInYears(questions: QuestionPayload) {
-  let count = 0;
-  for (const yearGroup of questions.data) {
-    const questionPayload: QuestionPayload = {
-      settings: questions.settings,
-      data: [yearGroup]
-    };
-
-    try {
-      const response = await questionService.post(undefined, questionPayload as unknown as Record<string, unknown>);
-      if (response.success) {
-        count++;
-        $toast.success(`Year group ${yearGroup.year} uploaded successfully (${count}/${questions.data.length})`);
-      }
-
-      if (count === questions.data.length) {
-        $toast.success('Questions uploaded successfully');
-        clearAllFiles();
-
-        // Refresh upload history after successful upload
-        await fetchUploadHistory();
-      }
-    } catch (error) {
-      console.error('Error uploading year group:', error);
-      $toast.error('Failed to upload questions to server');
-      return;
-    }
-  }
-}
+// batch upload removed — server accepts zipped file + settings
 </script>

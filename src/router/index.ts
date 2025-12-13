@@ -3,7 +3,6 @@ import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import UserView from '@/views/admin/TeamView.vue'
-import QuestionView from '@/views/admin/QuestionView.vue'
 import AssessmentView from '@/views/admin/AssessmentView.vue'
 import ProgramsView from '@/views/admin/ProgramView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
@@ -15,6 +14,9 @@ import TopicsView from '@/views/admin/TopicsView.vue'
 import SyllabusView from '@/views/admin/SyllabusView.vue'
 import NewsView from '@/views/admin/NewsView.vue'
 import AdmissionsView from '@/views/admin/AdmissionsView.vue'
+import ChallengeView from '@/views/admin/ChallengeView.vue'
+import AssessmentSpreadsheetView from '@/views/admin/AssessmentSpreadsheetView.vue'
+import AssessmentFormView from '@/views/admin/AssessmentFormView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -84,18 +86,28 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'assessments',
-        name: 'Questions',
-        component: QuestionView
+        name: 'Assessments',
+        component: AssessmentView
       },
       {
-        path: 'exam-viewer',
-        name: 'Exam Viewer',
-        component: AssessmentView
+        path: 'assessment-spreadsheet',
+        name: 'Assessment Spreadsheet',
+        component: AssessmentSpreadsheetView
+      },
+      {
+        path: 'assessment-form',
+        name: 'Assessment Form',
+        component: AssessmentFormView
       },
       {
         path: 'programs',
         name: 'Programs',
         component: ProgramsView
+      },
+      {
+        path: 'challenges',
+        name: 'Challenges',
+        component: ChallengeView
       },
       {
         path: 'team',
@@ -111,7 +123,7 @@ const routes: RouteRecordRaw[] = [
         path: 'config',
         name: 'Settings',
         component: SettingsView
-      }
+      },
     ]
   },
   // User Routes (hidden paths)
