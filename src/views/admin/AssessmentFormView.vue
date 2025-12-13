@@ -56,7 +56,8 @@
     <div class="questions-wrapper">
       <div v-for="(question, index) in filteredQuestions"
         :key="question.questionId && question.questionId > 0 ? question.questionId : question.localId || `new-${index}`"
-        class="question-container">
+        class="question-container"
+        :data-question-index="index">
         <div class="question-card"
           :class="{ 'is-edited': editedQuestions.has(String(question.questionId)), 'is-collapsed': collapsedCards.has(String(question.questionId)) }"
           @click="handleCardClick(String(question.questionId!), $event)">
@@ -266,16 +267,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Floating Action Button -->
-        <div class="question-floating-actions">
-          <button class="floating-add-btn" @click="addQuestionAfter(index)" title="Add question">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        </div>
       </div>
 
       <!-- Empty State -->
@@ -295,11 +286,22 @@
       <div class="spinner"></div>
       <span>Saving changes...</span>
     </div>
+
+    <!-- Floating Action Card -->
+    <div v-if="activeQuestionIndex !== null" class="floating-action-card" :style="floatingCardStyle">
+      <button class="floating-action-btn" @click="addQuestionAfter(activeQuestionIndex)" title="Add question">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span>Add Question</span>
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFilters } from '@/composables/useFilters';
 import { useAssessment } from "@/composables/useAssessment";
@@ -322,6 +324,13 @@ const collapsedCards = ref(new Set<string>());
 const isDragging = ref<string>('');
 const loadingStatus = ref<string>('initial');
 const tempIdCounter = ref(-1);
+
+// Floating action card state
+const activeQuestionIndex = ref<number | null>(null);
+const floatingCardStyle = ref<{ transform: string; transition: string }>({
+  transform: 'translateY(0px)',
+  transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+});
 
 // Filter state
 const searchQuery = ref('');
@@ -459,15 +468,118 @@ onMounted(async () => {
       }
     }
   }
+
+  // Setup IntersectionObserver for floating action card
+  setupIntersectionObserver();
 });
+
+// Setup IntersectionObserver to track active question card
+let currentObserver: IntersectionObserver | null = null;
+let scrollTimeout: ReturnType<typeof setTimeout>;
+
+const setupIntersectionObserver = () => {
+  // Disconnect previous observer if exists
+  if (currentObserver) {
+    currentObserver.disconnect();
+  }
+
+  // Wait for next tick to ensure DOM is rendered
+  setTimeout(() => {
+    const observerOptions = {
+      root: null, // viewport
+      rootMargin: '-45% 0px -45% 0px', // Center of viewport
+      threshold: 0
+    };
+
+    currentObserver = new IntersectionObserver((entries) => {
+      // Find the most visible card in the center of viewport
+      let maxRatio = 0;
+      let mostVisibleIndex: number | null = null;
+
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+          const cardElement = entry.target as HTMLElement;
+          const index = parseInt(cardElement.getAttribute('data-question-index') || '-1');
+          if (index >= 0) {
+            maxRatio = entry.intersectionRatio;
+            mostVisibleIndex = index;
+          }
+        }
+      });
+
+      if (mostVisibleIndex !== null) {
+        activeQuestionIndex.value = mostVisibleIndex;
+        updateFloatingCardPosition(mostVisibleIndex);
+      }
+    }, observerOptions);
+
+    // Observe all question containers
+    const questionContainers = document.querySelectorAll('.question-container');
+    questionContainers.forEach((container) => {
+      currentObserver!.observe(container);
+    });
+
+    // Add scroll listener for smooth following
+    window.addEventListener('scroll', handleScroll);
+  }, 500);
+};
+
+// Handle scroll to update floating card position smoothly
+const handleScroll = () => {
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    if (activeQuestionIndex.value !== null) {
+      updateFloatingCardPosition(activeQuestionIndex.value);
+    }
+  }, 10);
+};
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (currentObserver) {
+    currentObserver.disconnect();
+  }
+  window.removeEventListener('scroll', handleScroll);
+});
+
+// Update floating card position based on active question
+const updateFloatingCardPosition = (index: number) => {
+  const questionContainers = document.querySelectorAll('.question-container');
+  const activeContainer = questionContainers[index] as HTMLElement;
+  
+  if (activeContainer) {
+    const containerRect = activeContainer.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate the center position of the viewport
+    const viewportCenter = viewportHeight / 2;
+    
+    // Calculate offset from top of viewport to center of card
+    const cardCenter = containerRect.top + containerRect.height / 2;
+    const offset = cardCenter - viewportCenter;
+    
+    // Update floating card position
+    floatingCardStyle.value = {
+      transform: `translateY(${offset}px)`,
+      transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    };
+  }
+};
 
 // Watch for filter changes
 watch([selectedProgram, selectedCourse, selectedYear], async (newVals) => {
   // Only reload if all selections are made
   if (newVals[0] && newVals[1] && newVals[2]) {
     await loadQuestionsForSelection();
+    // Re-setup observer after questions are loaded
+    setTimeout(() => setupIntersectionObserver(), 500);
   }
 }, { immediate: false });
+
+// Watch for changes to filteredQuestions to re-setup observer
+watch(filteredQuestions, () => {
+  setTimeout(() => setupIntersectionObserver(), 300);
+}, { flush: 'post' });
 
 // Auto-save functionality
 let saveTimeout: ReturnType<typeof setTimeout>;

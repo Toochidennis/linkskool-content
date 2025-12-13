@@ -281,39 +281,6 @@
   background: #fef2f2;
 }
 
-.question-floating-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-}
-
-.floating-add-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.floating-add-btn:hover {
-  background: #5568d3;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.floating-add-btn:active {
-  transform: scale(0.95);
-}
-
 .question-content {
   animation: expandContent 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top;
@@ -955,4 +922,63 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Floating Action Card */
+.floating-action-card {
+  position: fixed;
+  right: 32px;
+  top: 50%;
+  z-index: 50;
+  pointer-events: none;
+  transform-origin: center;
+  animation: fadeInSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInSlide {
+  0% {
+    opacity: 0;
+    transform: translateX(20px) translateY(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0px) translateY(0px);
+  }
+}
+
+.floating-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: all;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.floating-action-btn:hover {
+  background: #5568d3;
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5), 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.floating-action-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.floating-action-btn svg {
+  flex-shrink: 0;
+}
+
+.floating-action-btn span {
+  font-weight: 600;
 }
