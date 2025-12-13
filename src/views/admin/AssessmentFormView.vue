@@ -301,7 +301,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFilters } from '@/composables/useFilters';
 import { useAssessment } from "@/composables/useAssessment";
@@ -475,69 +475,76 @@ onMounted(async () => {
 
 // Setup IntersectionObserver to track active question card
 let currentObserver: IntersectionObserver | null = null;
-let scrollTimeout: ReturnType<typeof setTimeout>;
+let scrollAnimationFrame: number | null = null;
 
-const setupIntersectionObserver = () => {
+const setupIntersectionObserver = async () => {
   // Disconnect previous observer if exists
   if (currentObserver) {
     currentObserver.disconnect();
   }
 
   // Wait for next tick to ensure DOM is rendered
-  setTimeout(() => {
-    const observerOptions = {
-      root: null, // viewport
-      rootMargin: '-45% 0px -45% 0px', // Center of viewport
-      threshold: 0
-    };
+  await nextTick();
 
-    currentObserver = new IntersectionObserver((entries) => {
-      // Find the most visible card in the center of viewport
-      let maxRatio = 0;
-      let mostVisibleIndex: number | null = null;
+  const observerOptions = {
+    root: null, // viewport
+    rootMargin: '-45% 0px -45% 0px', // Center of viewport
+    threshold: 0
+  };
 
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
-          const cardElement = entry.target as HTMLElement;
-          const index = parseInt(cardElement.getAttribute('data-question-index') || '-1');
-          if (index >= 0) {
-            maxRatio = entry.intersectionRatio;
-            mostVisibleIndex = index;
-          }
+  currentObserver = new IntersectionObserver((entries) => {
+    // Find the most visible card in the center of viewport
+    let maxRatio = 0;
+    let mostVisibleIndex: number | null = null;
+
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+        const cardElement = entry.target as HTMLElement;
+        const index = parseInt(cardElement.getAttribute('data-question-index') || '-1');
+        if (index >= 0) {
+          maxRatio = entry.intersectionRatio;
+          mostVisibleIndex = index;
         }
-      });
-
-      if (mostVisibleIndex !== null) {
-        activeQuestionIndex.value = mostVisibleIndex;
-        updateFloatingCardPosition(mostVisibleIndex);
       }
-    }, observerOptions);
-
-    // Observe all question containers
-    const questionContainers = document.querySelectorAll('.question-container');
-    questionContainers.forEach((container) => {
-      currentObserver!.observe(container);
     });
 
-    // Add scroll listener for smooth following
-    window.addEventListener('scroll', handleScroll);
-  }, 500);
+    if (mostVisibleIndex !== null) {
+      activeQuestionIndex.value = mostVisibleIndex;
+      updateFloatingCardPosition(mostVisibleIndex);
+    }
+  }, observerOptions);
+
+  // Observe all question containers
+  const questionContainers = document.querySelectorAll('.question-container');
+  questionContainers.forEach((container) => {
+    currentObserver!.observe(container);
+  });
+
+  // Add scroll listener for smooth following
+  window.addEventListener('scroll', handleScroll, { passive: true });
 };
 
-// Handle scroll to update floating card position smoothly
+// Handle scroll to update floating card position smoothly using RAF
 const handleScroll = () => {
-  clearTimeout(scrollTimeout);
-  scrollTimeout = setTimeout(() => {
+  if (scrollAnimationFrame !== null) {
+    cancelAnimationFrame(scrollAnimationFrame);
+  }
+  
+  scrollAnimationFrame = requestAnimationFrame(() => {
     if (activeQuestionIndex.value !== null) {
       updateFloatingCardPosition(activeQuestionIndex.value);
     }
-  }, 10);
+    scrollAnimationFrame = null;
+  });
 };
 
 // Cleanup on unmount
 onUnmounted(() => {
   if (currentObserver) {
     currentObserver.disconnect();
+  }
+  if (scrollAnimationFrame !== null) {
+    cancelAnimationFrame(scrollAnimationFrame);
   }
   window.removeEventListener('scroll', handleScroll);
 });
@@ -572,13 +579,13 @@ watch([selectedProgram, selectedCourse, selectedYear], async (newVals) => {
   if (newVals[0] && newVals[1] && newVals[2]) {
     await loadQuestionsForSelection();
     // Re-setup observer after questions are loaded
-    setTimeout(() => setupIntersectionObserver(), 500);
+    await setupIntersectionObserver();
   }
 }, { immediate: false });
 
 // Watch for changes to filteredQuestions to re-setup observer
-watch(filteredQuestions, () => {
-  setTimeout(() => setupIntersectionObserver(), 300);
+watch(filteredQuestions, async () => {
+  await setupIntersectionObserver();
 }, { flush: 'post' });
 
 // Auto-save functionality
