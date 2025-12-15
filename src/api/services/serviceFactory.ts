@@ -7,7 +7,7 @@ const serviceFactory = <T, D = Record<string, unknown>>(endpoint: string) =>
 export const userService = serviceFactory<type.User[]>("users");
 export const courseService = serviceFactory<type.Course>("courses");
 export const programService = serviceFactory<type.Program>("exam-types");
-export const questionService = serviceFactory<type.QuestionPayload>("questions");
+export const questionService = serviceFactory<any>("questions");
 export const examService = serviceFactory<any>("exams");
 export const settingsService = serviceFactory<type.Settings>("settings");
 export const dashboardService = serviceFactory<type.DashboardMetric>("dashboard");

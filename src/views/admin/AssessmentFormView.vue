@@ -131,8 +131,7 @@
             <div v-if="question.passage || editMode" class="form-section">
               <label class="section-label">Passage</label>
               <div class="editable-content" contenteditable="true"
-                @blur="(e) => handleContentEdit(question, 'passage', e)"
-                @input="handleEdit(String(question.questionId!))"
+                @input="(e) => handleContentEdit(question, 'passage', e)"
                 v-html="question.passage || 'Click to add passage...'"></div>
             </div>
 
@@ -140,8 +139,7 @@
             <div v-if="question.instruction || editMode" class="form-section">
               <label class="section-label">Instruction</label>
               <div class="editable-content" contenteditable="true"
-                @blur="(e) => handleContentEdit(question, 'instruction', e)"
-                @input="handleEdit(String(question.questionId!))"
+                @input="(e) => handleContentEdit(question, 'instruction', e)"
                 v-html="question.instruction || 'Click to add instruction...'"></div>
             </div>
 
@@ -151,8 +149,7 @@
                 Question <span class="required">*</span>
               </label>
               <div class="editable-content question-text" contenteditable="true"
-                @blur="(e) => handleContentEdit(question, 'questionText', e)"
-                @input="handleEdit(String(question.questionId!))" v-html="question.questionText"></div>
+                @input="(e) => handleContentEdit(question, 'questionText', e)" v-html="question.questionText"></div>
             </div>
 
             <!-- Question Image -->
@@ -196,8 +193,7 @@
                       :checked="question.correct.order === option.order"
                       @change="setCorrectAnswer(question, option.order)" class="option-radio" />
                     <div class="editable-content option-text" contenteditable="true"
-                      @blur="(e) => handleOptionEdit(question, optIndex, e)"
-                      @input="handleEdit(String(question.questionId!))" v-html="option.text"></div>
+                      @input="(e) => handleOptionEdit(question, optIndex, e)" v-html="option.text"></div>
                     <button class="icon-btn delete-option-btn" @click="deleteOption(question, optIndex)"
                       title="Delete option">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
@@ -260,8 +256,7 @@
             <div class="form-section">
               <label class="section-label">Explanation</label>
               <div class="editable-content" contenteditable="true"
-                @blur="(e) => handleContentEdit(question, 'explanation', e)"
-                @input="handleEdit(String(question.questionId!))"
+                @input="(e) => handleContentEdit(question, 'explanation', e)"
                 v-html="question.explanation || 'Click to add explanation...'"></div>
             </div>
           </div>
@@ -298,8 +293,10 @@ import { useRouter } from 'vue-router';
 import { useFilters } from '@/composables/useFilters';
 import { useAssessment } from "@/composables/useAssessment";
 import { useFloatingActionCard } from '@/composables/useFloatingActionCard';
+import { useQuestionSave } from '@/composables/useQuestionSave';
 import FloatingActionCard from '@/components/FloatingActionCard.vue';
 import type { Question, QuestionFile } from '@/composables/useQuestionUpload';
+import { questionService } from '@/api/services/serviceFactory';
 
 const router = useRouter();
 
@@ -307,6 +304,7 @@ const router = useRouter();
 const { filters, fetchFilters } = useFilters();
 const { questions, fetchAssessments } = useAssessment();
 const { activeCard } = useFloatingActionCard();
+const { saveLocalDraft, initializeFromServer, getQuestionsReadyForServer, loadDraftsFromIndexedDB, isValidForSubmission } = useQuestionSave();
 
 type LocalQuestion = Question & { localId?: string };
 
@@ -396,7 +394,21 @@ const loadQuestionsForSelection = async () => {
   // Fetch questions for the exam
   try {
     await fetchAssessments(yearData.examId);
-    allQuestions.value = questions.value;
+
+    // Transform server data: Convert 0-based correct.order to 1-based for UI
+    allQuestions.value = transformQuestionsFromServer(questions.value);
+
+    // Clear edited questions tracker when loading fresh from server
+    editedQuestions.value.clear();
+
+    // Initialize drafts for all server questions with their correct server IDs
+    // Mark them as NOT dirty since they're just loaded from server
+    allQuestions.value.forEach(question => {
+      if (question.questionId && question.questionId > 0) {
+        initializeFromServer(String(question.questionId), question, question.questionId);
+      }
+    });
+
     loadingStatus.value = `Loaded ${allQuestions.value.length} questions`;
   } catch (error) {
     console.error('Error loading questions:', error);
@@ -439,6 +451,9 @@ watch([searchQuery, selectedProgram, selectedCourse, selectedYear], () => {
 
 // Fetch filters on mount and set initial selections
 onMounted(async () => {
+  // Load any saved drafts from previous sessions
+  loadDraftsFromIndexedDB();
+
   await fetchFilters();
 
   // Set first program
@@ -475,17 +490,52 @@ watch([selectedProgram, selectedCourse, selectedYear], async (newVals) => {
   }
 }, { immediate: false });
 
+/**
+ * Transform questions from server format to UI format
+ * Server uses 0-based correct.order (0=A, 1=B, 2=C, 3=D)
+ * UI uses 1-based option.order (1=A, 2=B, 3=C, 4=D)
+ */
+const transformQuestionsFromServer = (serverQuestions: Question[]): Question[] => {
+  return serverQuestions.map(question => {
+    if (question.questionType === 'multiple_choice' && question.correct) {
+      const serverOrder = Number(question.correct.order);
+      const uiOrder = serverOrder + 1;
+      const matchingOption = question.options.find(opt => opt.order === uiOrder);
+
+      console.log(`Q${question.questionId}: Converting correct answer from server 0-based (${serverOrder}) to UI 1-based (${uiOrder})`);
+
+      return {
+        ...question,
+        correct: {
+          order: uiOrder,
+          text: matchingOption?.text || question.correct.text
+        }
+      };
+    }
+    return question;
+  });
+};
+
 // Auto-save functionality
 let saveTimeout: ReturnType<typeof setTimeout>;
 
 const handleEdit = (questionId: string) => {
   editedQuestions.value.add(questionId);
+  console.log(`Question ${questionId} marked as edited. Total edited: ${editedQuestions.value.size}`);
+
+  // Immediately save to local draft
+  const question = allQuestions.value.find(q => String(q.questionId) === questionId);
+  if (question) {
+    saveLocalDraft(questionId, question);
+  }
+
   clearTimeout(saveTimeout);
   isSaving.value = true;
 
   saveTimeout = setTimeout(() => {
-    saveChanges();
-  }, 1000);
+    console.log(`Auto-saving ${editedQuestions.value.size} edited question(s) to server...`);
+    saveToServer();
+  }, 1500); // Increased debounce time for more changes to batch
 };
 
 /**
@@ -537,52 +587,53 @@ const packageOptionImages = (optionFiles: QuestionFile[]): QuestionFile[] => {
  * For multiple choice: correct.order is 0-based index, correct.text is the option text
  * For short answer: return empty options array
  */
-const packageQuestionsForSubmission = (): Question[] => {
-  return allQuestions.value
-    .filter(question => {
-      const id = question.questionId || 0;
-      const isNew = id <= 0;
-      const isEdited = editedQuestions.value.has(String(id));
-      return isNew || isEdited;
-    })
-    .map(question => {
-      const isShortAnswer = question.questionType === 'short_answer';
+// Legacy function - kept for reference but using saveToServer instead
+// const _packageQuestionsForSubmission = (): Question[] => {
+//   return allQuestions.value
+//     .filter(question => {
+//       const id = question.questionId || 0;
+//       const isNew = id <= 0;
+//       const isEdited = editedQuestions.value.has(String(id));
+//       return isNew || isEdited;
+//     })
+//     .map(question => {
+//       const isShortAnswer = question.questionType === 'short_answer';
 
-      // Derive correct order strictly from the selected option
-      let correctOrder = 0;
-      if (!isShortAnswer) {
-        const correctOption = question.options.find(opt =>
-          opt.text?.trim().toLowerCase() === question.correct.text?.trim().toLowerCase()
-        );
-        correctOrder = correctOption ? correctOption.order : 0;
-      }
+//       // Derive correct order strictly from the selected option
+//       let correctOrder = 0;
+//       if (!isShortAnswer) {
+//         const correctOption = question.options.find(opt =>
+//           opt.text?.trim().toLowerCase() === question.correct.text?.trim().toLowerCase()
+//         );
+//         correctOrder = correctOption ? Number(correctOption.order) - 1 : 0;
+//       }
 
-      return {
-        questionId: question.questionId && question.questionId > 0 ? question.questionId : 0,
-        questionText: question.questionText,
-        questionFiles: packageQuestionImages(question.questionFiles),
-        passage: question.passage || '',
-        passageId: question.passageId || 0,
-        instruction: question.instruction || '',
-        instructionId: question.instructionId || 0,
-        topic: question.topic || '',
-        topicId: question.topicId || 0,
-        explanation: question.explanation || '',
-        explanationId: question.explanationId || 0,
-        questionType: question.questionType,
-        options: isShortAnswer ? [] : question.options.map((option, idx) => ({
-          order: Number.isFinite(Number(option.order)) ? Number(option.order) : idx + 1,
-          text: option.text,
-          optionFiles: packageOptionImages(option.optionFiles)
-        })),
-        correct: {
-          order: correctOrder,
-          text: question.correct.text
-        },
-        year: question.year || 0
-      };
-    });
-};
+//       return {
+//         questionId: question.questionId && question.questionId > 0 ? question.questionId : 0,
+//         questionText: question.questionText,
+//         questionFiles: packageQuestionImages(question.questionFiles),
+//         passage: question.passage || '',
+//         passageId: question.passageId || 0,
+//         instruction: question.instruction || '',
+//         instructionId: question.instructionId || 0,
+//         topic: question.topic || '',
+//         topicId: question.topicId || 0,
+//         explanation: question.explanation || '',
+//         explanationId: question.explanationId || 0,
+//         questionType: question.questionType,
+//         options: isShortAnswer ? [] : question.options.map((option, idx) => ({
+//           order: Number.isFinite(Number(option.order)) ? Number(option.order) : idx + 1,
+//           text: option.text,
+//           optionFiles: packageOptionImages(option.optionFiles)
+//         })),
+//         correct: {
+//           order: correctOrder,
+//           text: question.correct.text
+//         },
+//         year: question.year || 0
+//       };
+//     });
+// };
 
 /**
  * Package settings separately as in AssessmentView
@@ -612,26 +663,107 @@ const packageSettings = () => {
   };
 };
 
-const saveChanges = async () => {
+// // Legacy function - use saveToServer instead
+// const _saveChanges = async () => {
+//   // Legacy function - use saveToServer instead
+//   await saveToServer();
+// };
+
+/**
+ * Save only COMPLETE questions to server
+ * Incomplete questions stay in local draft
+ * Server detects new questions by questionId === 0
+ */
+const saveToServer = async () => {
   try {
     isSaving.value = true;
 
-    // Package questions and settings
-    const questions = packageQuestionsForSubmission();
+    // Filter questions: Only NEW (questionId <= 0) or EDITED (in editedQuestions Set)
+    const questionsToSend = allQuestions.value
+      .filter(question => {
+        const id = question.questionId || 0;
+        const isNew = id <= 0;
+        const isEdited = editedQuestions.value.has(String(id));
+        return isNew || isEdited;
+      })
+      .filter(question => isValidForSubmission(question)) // Only send valid questions
+      .map(question => {
+        const isShortAnswer = question.questionType === 'short_answer';
+
+        // Derive correct order strictly from the selected option
+        let correctOrder = 0;
+        if (!isShortAnswer) {
+          const correctOption = question.options.find(opt =>
+            opt.text?.trim().toLowerCase() === question.correct.text?.trim().toLowerCase()
+          );
+          correctOrder = correctOption ? Number(correctOption.order) - 1 : 0;
+        }
+
+        const isNew = !question.questionId || question.questionId <= 0;
+        console.log('Packaging question for server:', question.questionId, 'isNew:', isNew);
+
+        return {
+          questionId: isNew ? 0 : question.questionId,
+          questionText: question.questionText,
+          questionFiles: packageQuestionImages(question.questionFiles),
+          passage: question.passage || '',
+          passageId: question.passageId || 0,
+          instruction: question.instruction || '',
+          instructionId: question.instructionId || 0,
+          topic: question.topic || '',
+          topicId: question.topicId || 0,
+          explanation: question.explanation || '',
+          explanationId: question.explanationId || 0,
+          questionType: question.questionType,
+          options: isShortAnswer ? [] : question.options.map((option, idx) => ({
+            order: Number.isFinite(Number(option.order)) ? Number(option.order) : idx + 1,
+            text: option.text,
+            optionFiles: packageOptionImages(option.optionFiles)
+          })),
+          correct: {
+            order: correctOrder,
+            text: question.correct.text
+          },
+          year: question.year || 0
+        };
+      });
+
+    if (questionsToSend.length === 0) {
+      // Nothing to save to server
+      isSaving.value = false;
+      console.log('No new or edited questions ready for server save');
+      return;
+    }
+
     const settings = packageSettings();
 
-    // Prepare payload
     const payload = {
       settings,
-      questions
+      questions: questionsToSend
     };
 
-    console.log('Saving questions and settings:', payload);
+    console.log('Saving to server (only new/edited questions):', payload);
+    console.log(`Sending ${questionsToSend.length} out of ${allQuestions.value.length} total questions`);
 
-    // TODO: Send to API endpoint
-    // const response = await questionService.put(undefined, payload);
+    //   if (response.success) {
+    //     console.log('Server response:', response);
+    //     console.log("Assessments updated successfully on server.");
+    //   } else {
+    //     console.error("Server responded with an error:", response.message);
+    //   }
+    // }
+    // catch (error) {
+    //   console.error("Failed to update assessments:", error);
+    // }
 
-    setTimeout(() => {
+    // For now, simulate success
+    setTimeout(async () => {
+      // After successful save, refetch to get real IDs from server
+      await fetchAssessments(currentExamId.value || 0);
+
+      // Transform server data: Convert 0-based correct.order to 1-based for UI
+      allQuestions.value = transformQuestionsFromServer(questions.value);
+
       isSaving.value = false;
       savedIndicator.value = true;
 
@@ -641,24 +773,105 @@ const saveChanges = async () => {
       }, 2000);
     }, 500);
   } catch (error) {
-    console.error('Error saving changes:', error);
+    console.error('Error saving to server:', error);
     isSaving.value = false;
-    savedIndicator.value = false;
+    // Draft still saved locally, so no data loss
+  }
+};
+
+// Helper function to save cursor position
+const saveCursorPosition = (element: HTMLElement) => {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+
+  const range = selection.getRangeAt(0);
+  const preCaretRange = range.cloneRange();
+  preCaretRange.selectNodeContents(element);
+  preCaretRange.setEnd(range.endContainer, range.endOffset);
+  const caretOffset = preCaretRange.toString().length;
+
+  return caretOffset;
+};
+
+// Helper function to restore cursor position
+const restoreCursorPosition = (element: HTMLElement, offset: number) => {
+  const selection = window.getSelection();
+  if (!selection) return;
+
+  let charCount = 0;
+  let foundNode: Node | null = null;
+  let foundOffset = 0;
+
+  const traverseNodes = (node: Node): boolean => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const textLength = node.textContent?.length || 0;
+      if (charCount + textLength >= offset) {
+        foundNode = node;
+        foundOffset = offset - charCount;
+        return true;
+      }
+      charCount += textLength;
+    } else {
+      for (let i = 0; i < node.childNodes.length; i++) {
+        if (traverseNodes(node.childNodes[i])) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  traverseNodes(element);
+
+  if (foundNode) {
+    const range = document.createRange();
+    range.setStart(foundNode, foundOffset);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 };
 
 const handleContentEdit = (question: Question, field: keyof Question, event: Event) => {
   const target = event.target as HTMLDivElement;
+
+  // Save cursor position before updating
+  const cursorPos = saveCursorPosition(target);
+
   if (typeof question[field] === 'string') {
     (question[field] as string) = target.innerHTML;
   }
+
+  // Restore cursor position after Vue re-render
+  nextTick(() => {
+    if (cursorPos !== null) {
+      restoreCursorPosition(target, cursorPos);
+    }
+  });
+
+  // Mark as edited after updating the value
+  handleEdit(String(question.questionId!));
 };
 
 const handleOptionEdit = (question: Question, optionIndex: number, event: Event) => {
   const target = event.target as HTMLDivElement;
+
+  // Save cursor position before updating
+  const cursorPos = saveCursorPosition(target);
+
   if (question.options[optionIndex]) {
     question.options[optionIndex].text = target.innerHTML;
   }
+
+  // Restore cursor position after Vue re-render
+  nextTick(() => {
+    if (cursorPos !== null) {
+      restoreCursorPosition(target, cursorPos);
+    }
+  });
+
+  // Mark as edited after updating the value
+  handleEdit(String(question.questionId!));
 };
 
 const setCorrectAnswer = (question: Question, order: number) => {
@@ -820,8 +1033,8 @@ const duplicateQuestion = (question: Question, event?: Event) => {
   const currentIndex = allQuestions.value.findIndex(q => q.questionId === question.questionId);
   if (currentIndex !== -1) {
     allQuestions.value.splice(currentIndex + 1, 0, duplicatedQuestion);
-    // Mark the duplicated question as edited
-    handleEdit(String(duplicatedQuestion.questionId));
+    // Save to local draft only (don't trigger server save immediately)
+    saveLocalDraft(String(duplicatedQuestion.questionId), duplicatedQuestion);
   }
 };
 
@@ -849,8 +1062,8 @@ const addQuestionAfter = (index: number) => {
   allQuestions.value.splice(index + 1, 0, newQuestion);
   // Expand the new question
   collapsedCards.value.delete(String(newQuestion.questionId));
-  // Mark as edited
-  handleEdit(String(newQuestion.questionId));
+  // Save to local draft only (don't trigger server save immediately)
+  saveLocalDraft(String(newQuestion.questionId), newQuestion);
 };
 
 // Image upload handlers

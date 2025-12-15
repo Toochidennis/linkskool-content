@@ -18,7 +18,7 @@ export const useAssessment = () => {
 
   const updateAssessment = async (payload: any) => {
     try {
-      const response = await examService.put<Question[]>(`questions`, payload as unknown as Record<string, unknown>);
+      const response = await examService.put(`questions`, payload as unknown as Record<string, unknown>);
       questions.value = response.data || [];
       console.log("Updated assessments:", questions.value);
     }
