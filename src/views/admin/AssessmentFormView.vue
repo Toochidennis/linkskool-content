@@ -157,8 +157,8 @@
             <div class="form-section">
               <label class="section-label">Question Image</label>
               <div v-if="question.questionFiles && question.questionFiles.length > 0" class="image-preview-container">
-                <img :src="getImageUrl(question.questionFiles[0]?.file || '')" :alt="'Question ' + (index + 1)"
-                  class="uploaded-image" />
+                <img :src="getImageUrl(question.questionFiles[0]?.file_name || question.questionFiles[0]?.file || '')"
+                  :alt="'Question ' + (index + 1)" class="uploaded-image" />
                 <button class="delete-image-btn" @click="deleteQuestionImage(question)" title="Delete image">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -207,8 +207,8 @@
                   <div class="option-image-section">
                     <div v-if="option.optionFiles && option.optionFiles.length > 0"
                       class="image-preview-container small">
-                      <img :src="getImageUrl(option.optionFiles[0]?.file || '')" :alt="`Option ${optIndex + 1}`"
-                        class="uploaded-image" />
+                      <img :src="getImageUrl(option.optionFiles[0]?.file_name || option.optionFiles[0]?.file || '')"
+                        :alt="`Option ${optIndex + 1}`" class="uploaded-image" />
                       <button class="delete-image-btn" @click="deleteOptionImage(question, optIndex)"
                         title="Delete image">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14">
@@ -502,7 +502,7 @@ const transformQuestionsFromServer = (serverQuestions: Question[]): Question[] =
       const uiOrder = serverOrder + 1;
       const matchingOption = question.options.find(opt => opt.order === uiOrder);
 
-      console.log(`Q${question.questionId}: Converting correct answer from server 0-based (${serverOrder}) to UI 1-based (${uiOrder}), matching option: ${matchingOption?.text}`);
+      // console.log(`Q${question.questionId}: Converting correct answer from server 0-based (${serverOrder}) to UI 1-based (${uiOrder}), matching option: ${matchingOption?.text}`);
 
       return {
         ...question,
@@ -534,7 +534,7 @@ let saveTimeout: ReturnType<typeof setTimeout>;
 
 const handleEdit = (questionId: string) => {
   editedQuestions.value.add(questionId);
-  console.log(`Question ${questionId} marked as edited. Total edited: ${editedQuestions.value.size}`);
+  // console.log(`Question ${questionId} marked as edited. Total edited: ${editedQuestions.value.size}`);
 
   // Immediately save to local draft
   const question = allQuestions.value.find(q => String(q.questionId) === questionId);
@@ -546,7 +546,7 @@ const handleEdit = (questionId: string) => {
   isSaving.value = true;
 
   saveTimeout = setTimeout(() => {
-    console.log(`Auto-saving ${editedQuestions.value.size} edited question(s) to server...`);
+    // console.log(`Auto-saving ${editedQuestions.value.size} edited question(s) to server...`);
     saveToServer();
   }, 3000); // Increased debounce time for more changes to batch
 };
@@ -723,14 +723,14 @@ const saveToServer = async () => {
           if (correctOption) {
             // Find the index in the filtered array (0-based for server)
             correctOrder = filteredOptions.findIndex(opt => opt.order === correctOption.order);
-            console.log(`Q${question.questionId}: Original options: ${question.options.length}, Filtered: ${filteredOptions.length}, Correct order: ${correctOrder}`);
+            // console.log(`Q${question.questionId}: Original options: ${question.options.length}, Filtered: ${filteredOptions.length}, Correct order: ${correctOrder}`);
           } else {
             console.warn(`Q${question.questionId}: Correct option not found in filtered options!`);
           }
         }
 
         const isNew = !question.questionId || question.questionId <= 0;
-        console.log('Packaging question for server:', question.questionId, 'isNew:', isNew);
+        // console.log('Packaging question for server:', question.questionId, 'isNew:', isNew);
 
         return {
           questionId: isNew ? 0 : question.questionId,
@@ -761,7 +761,7 @@ const saveToServer = async () => {
     if (questionsToSend.length === 0) {
       // Nothing to save to server
       isSaving.value = false;
-      console.log('No new or edited questions ready for server save');
+      // console.log('No new or edited questions ready for server save');
       return;
     }
 
@@ -772,15 +772,15 @@ const saveToServer = async () => {
       questions: questionsToSend
     };
 
-    console.log('Saving to server (only new/edited questions):', payload);
-    console.log(`Sending ${questionsToSend.length} out of ${allQuestions.value.length} total questions`);
+    // console.log('Saving to server (only new/edited questions):', payload);
+    // console.log(`Sending ${questionsToSend.length} out of ${allQuestions.value.length} total questions`);
 
     try {
       const response = await questionService.put(undefined, payload as unknown as Record<string, unknown>);
 
       if (response.success) {
-        console.log('Server response:', response);
-        console.log("Assessments updated successfully on server.");
+        // console.log('Server response:', response);
+        // console.log("Assessments updated successfully on server.");
       } else {
         console.error("Server responded with an error:", response.message);
       }
@@ -940,6 +940,7 @@ const addOption = (question: Question) => {
 };
 
 const getImageUrl = (imageData: string): string => {
+  console.log('Getting image URL for data:', imageData);
   if (!imageData) return '';
 
   // If it's already a full URL, return it
@@ -960,7 +961,7 @@ const getImageUrl = (imageData: string): string => {
   // Otherwise, assume it's a file path from server - prepend ASSET_URL
   const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || '';
   return `${assetsBaseUrl}${imageData}`;
-};
+}
 
 // const switchToSpreadsheet = () => {
 //   router.push('/dashboard/assessment-spreadsheet');

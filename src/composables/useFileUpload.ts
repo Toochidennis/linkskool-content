@@ -26,7 +26,7 @@ export const readCSVFile = (file: File): Promise<Array<Record<string, string>>> 
       dynamicTyping: false,
       encoding: 'utf-8',
       complete: (results) => {
-        console.log('CSV Data:', results.data);
+        // console.log('CSV Data:', results.data);
         resolve(results.data as Array<Record<string, string>>);
       },
       error: (error) => {
@@ -89,7 +89,7 @@ export const readHTMLFile = (file: File): Promise<Array<Record<string, string>>>
         }
       }
 
-      console.log("Extracted HTML Data:", results);
+      // console.log("Extracted HTML Data:", results);
       resolve(results);
     };
 
@@ -128,7 +128,7 @@ export const readJSONFile = (file: File): Promise<Array<Record<string, string>>>
           });
           return record;
         });
-        console.log('Normalized JSON Data:', normalized);
+        // console.log('Normalized JSON Data:', normalized);
 
         resolve(normalized);
       } catch (error) {
@@ -211,7 +211,7 @@ export const extractImagesFromZip = async (
     // Wait for all FileReader operations to complete
     await Promise.all(fileReaderPromises);
 
-    console.log(`Extracted ${images.length} images from ZIP file`);
+    // console.log(`Extracted ${images.length} images from ZIP file`);
     return images;
   } catch (error) {
     console.error('Error extracting ZIP file:', error);

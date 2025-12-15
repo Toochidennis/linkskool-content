@@ -27,7 +27,7 @@ export const useFilters = () => {
     loading.value = true;
     try {
       const response = await assessmentService.get<AssessmentFilter[]>();
-      console.log("Filters response:", response);
+      // console.log("Filters response:", response);
       filters.value = response.data || [];
     } catch (error) {
       console.error("Failed to fetch filters:", error);
