@@ -693,6 +693,18 @@
   color: #9ca3af;
 }
 
+/* Placeholder styling for contenteditable using data-placeholder */
+.editable-content[data-placeholder]:not([data-placeholder='']):empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.editable-content[data-placeholder]:not([data-placeholder='']):empty:focus::before {
+  opacity: 0.6;
+}
+
 .question-text {
   font-size: 16px;
   font-weight: 500;

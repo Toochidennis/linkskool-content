@@ -9,7 +9,7 @@
             <span class="stat-badge">{{ filteredQuestions.length }} questions</span>
             <span class="stat-badge success">{{ savedIndicator ? 'Saved' : 'Ready' }}</span>
           </div>
-          <button class="view-toggle-btn" @click="switchToSpreadsheet">
+          <!-- <button class="view-toggle-btn" @click="switchToSpreadsheet">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <line x1="9" y1="3" x2="9" y2="21" />
@@ -18,7 +18,7 @@
               <line x1="3" y1="15" x2="21" y2="15" />
             </svg>
             Spreadsheet View
-          </button>
+          </button> -->
         </div>
       </div>
 
@@ -114,7 +114,7 @@
             <div v-if="question.questionType === 'multiple_choice'" class="preview-options">
               <div v-for="(option, optIndex) in question.options" :key="optIndex" class="preview-option-item">
                 <input type="radio" :name="`preview-${question.questionId}`" disabled
-                  :checked="question.correct.order === option.order" />
+                  :checked="Number(question.correct.order) === Number(option.order)" />
                 <span class="preview-option-text" v-html="option.text"></span>
               </div>
             </div>
@@ -131,16 +131,16 @@
             <div v-if="question.passage || editMode" class="form-section">
               <label class="section-label">Passage</label>
               <div class="editable-content" contenteditable="true"
-                @input="(e) => handleContentEdit(question, 'passage', e)"
-                v-html="question.passage || 'Click to add passage...'"></div>
+                :data-placeholder="question.passage ? '' : 'Add passage text here...'"
+                @input="(e) => handleContentEdit(question, 'passage', e)" v-html="question.passage"></div>
             </div>
 
             <!-- Instruction Section -->
             <div v-if="question.instruction || editMode" class="form-section">
               <label class="section-label">Instruction</label>
               <div class="editable-content" contenteditable="true"
-                @input="(e) => handleContentEdit(question, 'instruction', e)"
-                v-html="question.instruction || 'Click to add instruction...'"></div>
+                :data-placeholder="question.instruction ? '' : 'Add instruction for this question...'"
+                @input="(e) => handleContentEdit(question, 'instruction', e)" v-html="question.instruction"></div>
             </div>
 
             <!-- Question Text -->
@@ -149,6 +149,7 @@
                 Question <span class="required">*</span>
               </label>
               <div class="editable-content question-text" contenteditable="true"
+                :data-placeholder="question.questionText ? '' : 'Enter your question here...'"
                 @input="(e) => handleContentEdit(question, 'questionText', e)" v-html="question.questionText"></div>
             </div>
 
@@ -190,9 +191,10 @@
                 <div v-for="(option, optIndex) in question.options" :key="optIndex" class="option-item">
                   <div class="option-row">
                     <input type="radio" :name="`correct-${question.questionId}`"
-                      :checked="question.correct.order === option.order"
+                      :checked="Number(question.correct.order) === Number(option.order)"
                       @change="setCorrectAnswer(question, option.order)" class="option-radio" />
                     <div class="editable-content option-text" contenteditable="true"
+                      :data-placeholder="option.text ? '' : `Option ${String.fromCharCode(64 + option.order)}`"
                       @input="(e) => handleOptionEdit(question, optIndex, e)" v-html="option.text"></div>
                     <button class="icon-btn delete-option-btn" @click="deleteOption(question, optIndex)"
                       title="Delete option">
@@ -256,8 +258,8 @@
             <div class="form-section">
               <label class="section-label">Explanation</label>
               <div class="editable-content" contenteditable="true"
-                @input="(e) => handleContentEdit(question, 'explanation', e)"
-                v-html="question.explanation || 'Click to add explanation...'"></div>
+                :data-placeholder="question.explanation ? '' : 'Add explanation for the answer...'"
+                @input="(e) => handleContentEdit(question, 'explanation', e)" v-html="question.explanation"></div>
             </div>
           </div>
         </div>
@@ -289,7 +291,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
 import { useFilters } from '@/composables/useFilters';
 import { useAssessment } from "@/composables/useAssessment";
 import { useFloatingActionCard } from '@/composables/useFloatingActionCard';
@@ -298,13 +299,11 @@ import FloatingActionCard from '@/components/FloatingActionCard.vue';
 import type { Question, QuestionFile } from '@/composables/useQuestionUpload';
 import { questionService } from '@/api/services/serviceFactory';
 
-const router = useRouter();
-
 // Filters
 const { filters, fetchFilters } = useFilters();
 const { questions, fetchAssessments } = useAssessment();
 const { activeCard } = useFloatingActionCard();
-const { saveLocalDraft, initializeFromServer, getQuestionsReadyForServer, loadDraftsFromIndexedDB, isValidForSubmission } = useQuestionSave();
+const { saveLocalDraft, initializeFromServer, loadDraftsFromIndexedDB, isValidForSubmission } = useQuestionSave();
 
 type LocalQuestion = Question & { localId?: string };
 
@@ -498,21 +497,35 @@ watch([selectedProgram, selectedCourse, selectedYear], async (newVals) => {
 const transformQuestionsFromServer = (serverQuestions: Question[]): Question[] => {
   return serverQuestions.map(question => {
     if (question.questionType === 'multiple_choice' && question.correct) {
+      // Ensure correct.order is a number (server might return it as string)
       const serverOrder = Number(question.correct.order);
       const uiOrder = serverOrder + 1;
       const matchingOption = question.options.find(opt => opt.order === uiOrder);
 
-      console.log(`Q${question.questionId}: Converting correct answer from server 0-based (${serverOrder}) to UI 1-based (${uiOrder})`);
+      console.log(`Q${question.questionId}: Converting correct answer from server 0-based (${serverOrder}) to UI 1-based (${uiOrder}), matching option: ${matchingOption?.text}`);
 
       return {
         ...question,
+        // Ensure all numeric fields are actually numbers
+        questionId: Number(question.questionId),
         correct: {
           order: uiOrder,
           text: matchingOption?.text || question.correct.text
-        }
+        },
+        options: question.options.map(opt => ({
+          ...opt,
+          order: Number(opt.order)
+        }))
       };
     }
-    return question;
+    return {
+      ...question,
+      questionId: Number(question.questionId),
+      options: question.options.map(opt => ({
+        ...opt,
+        order: Number(opt.order)
+      }))
+    };
   });
 };
 
@@ -535,7 +548,7 @@ const handleEdit = (questionId: string) => {
   saveTimeout = setTimeout(() => {
     console.log(`Auto-saving ${editedQuestions.value.size} edited question(s) to server...`);
     saveToServer();
-  }, 1500); // Increased debounce time for more changes to batch
+  }, 3000); // Increased debounce time for more changes to batch
 };
 
 /**
@@ -690,13 +703,30 @@ const saveToServer = async () => {
       .map(question => {
         const isShortAnswer = question.questionType === 'short_answer';
 
-        // Derive correct order strictly from the selected option
+        // For multiple choice: filter out empty options (no text and no images)
+        let filteredOptions = question.options;
         let correctOrder = 0;
+
         if (!isShortAnswer) {
-          const correctOption = question.options.find(opt =>
+          // Filter out options that have neither text nor images
+          filteredOptions = question.options.filter(opt => {
+            const hasText = opt.text?.trim().length > 0;
+            const hasImage = opt.optionFiles && opt.optionFiles.length > 0;
+            return hasText || hasImage;
+          });
+
+          // Find the correct option in the FILTERED list
+          const correctOption = filteredOptions.find(opt =>
             opt.text?.trim().toLowerCase() === question.correct.text?.trim().toLowerCase()
           );
-          correctOrder = correctOption ? Number(correctOption.order) - 1 : 0;
+
+          if (correctOption) {
+            // Find the index in the filtered array (0-based for server)
+            correctOrder = filteredOptions.findIndex(opt => opt.order === correctOption.order);
+            console.log(`Q${question.questionId}: Original options: ${question.options.length}, Filtered: ${filteredOptions.length}, Correct order: ${correctOrder}`);
+          } else {
+            console.warn(`Q${question.questionId}: Correct option not found in filtered options!`);
+          }
         }
 
         const isNew = !question.questionId || question.questionId <= 0;
@@ -715,8 +745,8 @@ const saveToServer = async () => {
           explanation: question.explanation || '',
           explanationId: question.explanationId || 0,
           questionType: question.questionType,
-          options: isShortAnswer ? [] : question.options.map((option, idx) => ({
-            order: Number.isFinite(Number(option.order)) ? Number(option.order) : idx + 1,
+          options: isShortAnswer ? [] : filteredOptions.map((option, idx) => ({
+            order: idx + 1,  // Re-number sequentially: 1, 2, 3, 4...
             text: option.text,
             optionFiles: packageOptionImages(option.optionFiles)
           })),
@@ -745,16 +775,19 @@ const saveToServer = async () => {
     console.log('Saving to server (only new/edited questions):', payload);
     console.log(`Sending ${questionsToSend.length} out of ${allQuestions.value.length} total questions`);
 
-    //   if (response.success) {
-    //     console.log('Server response:', response);
-    //     console.log("Assessments updated successfully on server.");
-    //   } else {
-    //     console.error("Server responded with an error:", response.message);
-    //   }
-    // }
-    // catch (error) {
-    //   console.error("Failed to update assessments:", error);
-    // }
+    try {
+      const response = await questionService.put(undefined, payload as unknown as Record<string, unknown>);
+
+      if (response.success) {
+        console.log('Server response:', response);
+        console.log("Assessments updated successfully on server.");
+      } else {
+        console.error("Server responded with an error:", response.message);
+      }
+    }
+    catch (error) {
+      console.error("Failed to update assessments:", error);
+    }
 
     // For now, simulate success
     setTimeout(async () => {
@@ -762,7 +795,19 @@ const saveToServer = async () => {
       await fetchAssessments(currentExamId.value || 0);
 
       // Transform server data: Convert 0-based correct.order to 1-based for UI
-      allQuestions.value = transformQuestionsFromServer(questions.value);
+      const transformedQuestions = transformQuestionsFromServer(questions.value);
+
+      // Replace the array completely to force Vue reactivity
+      allQuestions.value = [];
+      await nextTick();
+      allQuestions.value = transformedQuestions;
+
+      // Reinitialize drafts for all questions (mark as not dirty after successful save)
+      transformedQuestions.forEach(question => {
+        if (question.questionId && question.questionId > 0) {
+          initializeFromServer(String(question.questionId), question, question.questionId);
+        }
+      });
 
       isSaving.value = false;
       savedIndicator.value = true;
@@ -813,7 +858,8 @@ const restoreCursorPosition = (element: HTMLElement, offset: number) => {
       charCount += textLength;
     } else {
       for (let i = 0; i < node.childNodes.length; i++) {
-        if (traverseNodes(node.childNodes[i])) {
+        const childNode = node.childNodes[i];
+        if (childNode && traverseNodes(childNode)) {
           return true;
         }
       }
@@ -893,22 +939,32 @@ const addOption = (question: Question) => {
   handleEdit(String(question.questionId!));
 };
 
-const getImageUrl = (base64Data: string): string => {
+const getImageUrl = (imageData: string): string => {
+  if (!imageData) return '';
+
   // If it's already a full URL, return it
-  if (base64Data.startsWith('http://') || base64Data.startsWith('https://')) {
-    return base64Data;
+  if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+    return imageData;
   }
-  // If it's a data URL, return as is
-  if (base64Data.startsWith('data:')) {
-    return base64Data;
+
+  // If it's a data URL (newly uploaded base64), return as is
+  if (imageData.startsWith('data:')) {
+    return imageData;
   }
-  // Otherwise, prepend data URL prefix for base64
-  return `data:image/jpeg;base64,${base64Data}`;
+
+  // If it looks like base64 data (long string without path separators), prepend data URL prefix
+  if (imageData.length > 100 && !imageData.includes('/') && !imageData.includes('\\')) {
+    return `data:image/jpeg;base64,${imageData}`;
+  }
+
+  // Otherwise, assume it's a file path from server - prepend ASSET_URL
+  const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || '';
+  return `${assetsBaseUrl}${imageData}`;
 };
 
-const switchToSpreadsheet = () => {
-  router.push('/dashboard/assessment-spreadsheet');
-};
+// const switchToSpreadsheet = () => {
+//   router.push('/dashboard/assessment-spreadsheet');
+// };
 
 const toggleCardCollapse = (questionId: string, event?: Event) => {
   if (event) {
@@ -1039,22 +1095,22 @@ const duplicateQuestion = (question: Question, event?: Event) => {
 };
 
 const addQuestionAfter = (index: number) => {
-  // Create a new blank question
+  // Create a new blank question with empty fields (placeholders will show via CSS)
   const newQuestion: LocalQuestion = {
     questionId: nextTempId(),
     localId: `temp-${Date.now()}`,
-    questionText: 'New question text',
+    questionText: '',
     questionFiles: [],
     passage: '',
     explanation: '',
     questionType: 'multiple_choice',
     options: [
-      { order: 1, text: 'Option A', optionFiles: [] },
-      { order: 2, text: 'Option B', optionFiles: [] },
-      { order: 3, text: 'Option C', optionFiles: [] },
-      { order: 4, text: 'Option D', optionFiles: [] }
+      { order: 1, text: '', optionFiles: [] },
+      { order: 2, text: '', optionFiles: [] },
+      { order: 3, text: '', optionFiles: [] },
+      { order: 4, text: '', optionFiles: [] }
     ],
-    correct: { order: 1, text: 'Option A' },
+    correct: { order: 0, text: '' },  // No option selected initially
     year: selectedYear.value ? Number(selectedYear.value) : undefined
   };
 

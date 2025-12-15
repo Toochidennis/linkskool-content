@@ -18,23 +18,59 @@ export const useQuestionSave = () => {
    * Avoids validation errors from incomplete data
    */
   const isValidForSubmission = (question: Question): boolean => {
-    // Minimum requirements to avoid server validation errors
-    const hasQuestionText = question.questionText?.trim().length > 0;
-    const hasOptions = question.options?.length >= 2;
-    const hasCorrectAnswer = question.correct?.text?.trim().length > 0;
-    const hasQuestionType = question.questionType && ['multiple_choice', 'short_answer'].includes(question.questionType);
+    // Exclude default/placeholder text patterns
+    const defaultTextPatterns = [
+      /^new question text$/i,
+      /^option [a-z]$/i,
+      /^click to add/i,
+      /^enter.*here$/i
+    ];
+
+    const questionText = question.questionText?.trim() || '';
+    const hasQuestionText = questionText.length > 0 &&
+      !defaultTextPatterns.some(pattern => pattern.test(questionText));
+
+    const hasQuestionType = question.questionType &&
+      ['multiple_choice', 'short_answer'].includes(question.questionType);
 
     if (!hasQuestionText || !hasQuestionType) {
       return false;
     }
 
-    // For multiple choice, need options and correct answer
+    // For multiple choice, need:
+    // 1. At least 2 options with meaningful text
+    // 2. A correct answer selected (correct.order must match an option)
     if (question.questionType === 'multiple_choice') {
-      return !!(hasOptions && hasCorrectAnswer);
+      const validOptions = question.options?.filter(opt => {
+        const optText = opt.text?.trim() || '';
+        return optText.length > 0 &&
+          !defaultTextPatterns.some(pattern => pattern.test(optText));
+      }) || [];
+
+      if (validOptions.length < 2) {
+        return false;
+      }
+
+      // Check that correct answer is actually one of the options
+      const correctOrder = question.correct?.order;
+      const hasValidCorrectAnswer = question.options?.some(opt =>
+        opt.order === correctOrder && opt.text?.trim().length > 0
+      );
+
+      return !!hasValidCorrectAnswer;
     }
 
-    // For short answer, just need question text
-    return true;
+    // For short answer, need:
+    // 1. Question text (already checked)
+    // 2. An answer in correct.text
+    // 3. correct.order should be 0
+    if (question.questionType === 'short_answer') {
+      const hasAnswer = question.correct?.text?.trim().length > 0;
+      const hasCorrectOrder = question.correct?.order === 0;
+      return !!(hasAnswer && hasCorrectOrder);
+    }
+
+    return false;
   };
 
   /**

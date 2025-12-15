@@ -3,7 +3,7 @@ import { toCamel, toSnake } from "./util/transform";
 
 export const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 180000,
+  timeout: 300000,
   headers: {
     "X-API-KEY": import.meta.env.VITE_API_KEY
   }
@@ -25,11 +25,11 @@ client.interceptors.request.use(
       config.data = toSnake(config.data);
     }
 
-    console.log(`${config.method?.toUpperCase()} ${config.url}`, {
-      data: config.data,
-      params: config.params,
-      headers: config.headers
-    });
+    // console.log(`${config.method?.toUpperCase()} ${config.url}`, {
+    //   data: config.data,
+    //   params: config.params,
+    //   headers: config.headers
+    // });
     return config;
   },
   err => Promise.reject(err)
