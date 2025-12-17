@@ -670,7 +670,9 @@ const packageSettings = () => {
     courseId,
     year,
     courseName: selectedCourse.value || '',
-    description: selectedProgram.value || '',
+    title: selectedProgram.value || '',
+    description: '',
+    duration: 1800,
     userId: userObj ? userObj.id : null,
     username: userObj ? userObj.username : ''
   };

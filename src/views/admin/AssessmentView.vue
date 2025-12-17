@@ -587,7 +587,9 @@ const submitUpload = async () => {
       exam_type_id: parseInt(selectedProgram.value),
       course_id: parseInt(selectedSubject.value),
       course_name: availableSubjects.value.find(c => c.id === parseInt(selectedSubject.value))?.courseName || '',
-      description: programs.value.find(p => p.id === parseInt(selectedProgram.value))?.name || '',
+      title: programs.value.find(p => p.id === parseInt(selectedProgram.value))?.name || '',
+      description: '',
+      duration: 1800,
       user_id: userObj ? userObj.id : null,
       username: userObj ? userObj.username : ''
     };
