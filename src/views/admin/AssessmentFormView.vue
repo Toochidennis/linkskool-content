@@ -595,60 +595,6 @@ const packageOptionImages = (optionFiles: QuestionFile[]): QuestionFile[] => {
 };
 
 /**
- * Package questions for submission
- * New questions have questionId = 0, existing questions keep their questionId
- * For multiple choice: correct.order is 0-based index, correct.text is the option text
- * For short answer: return empty options array
- */
-// Legacy function - kept for reference but using saveToServer instead
-// const _packageQuestionsForSubmission = (): Question[] => {
-//   return allQuestions.value
-//     .filter(question => {
-//       const id = question.questionId || 0;
-//       const isNew = id <= 0;
-//       const isEdited = editedQuestions.value.has(String(id));
-//       return isNew || isEdited;
-//     })
-//     .map(question => {
-//       const isShortAnswer = question.questionType === 'short_answer';
-
-//       // Derive correct order strictly from the selected option
-//       let correctOrder = 0;
-//       if (!isShortAnswer) {
-//         const correctOption = question.options.find(opt =>
-//           opt.text?.trim().toLowerCase() === question.correct.text?.trim().toLowerCase()
-//         );
-//         correctOrder = correctOption ? Number(correctOption.order) - 1 : 0;
-//       }
-
-//       return {
-//         questionId: question.questionId && question.questionId > 0 ? question.questionId : 0,
-//         questionText: question.questionText,
-//         questionFiles: packageQuestionImages(question.questionFiles),
-//         passage: question.passage || '',
-//         passageId: question.passageId || 0,
-//         instruction: question.instruction || '',
-//         instructionId: question.instructionId || 0,
-//         topic: question.topic || '',
-//         topicId: question.topicId || 0,
-//         explanation: question.explanation || '',
-//         explanationId: question.explanationId || 0,
-//         questionType: question.questionType,
-//         options: isShortAnswer ? [] : question.options.map((option, idx) => ({
-//           order: Number.isFinite(Number(option.order)) ? Number(option.order) : idx + 1,
-//           text: option.text,
-//           optionFiles: packageOptionImages(option.optionFiles)
-//         })),
-//         correct: {
-//           order: correctOrder,
-//           text: question.correct.text
-//         },
-//         year: question.year || 0
-//       };
-//     });
-// };
-
-/**
  * Package settings separately as in AssessmentView
  */
 const packageSettings = () => {
@@ -678,17 +624,6 @@ const packageSettings = () => {
   };
 };
 
-// // Legacy function - use saveToServer instead
-// const _saveChanges = async () => {
-//   // Legacy function - use saveToServer instead
-//   await saveToServer();
-// };
-
-/**
- * Save only COMPLETE questions to server
- * Incomplete questions stay in local draft
- * Server detects new questions by questionId === 0
- */
 const saveToServer = async () => {
   try {
     isSaving.value = true;
