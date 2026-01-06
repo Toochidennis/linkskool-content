@@ -119,7 +119,15 @@ const menuItems: MenuItem[] = [
     icon: 'fas fa-bell',
     children: [
       { name: 'Announcements', route: '/dashboard/announcements', icon: 'fas fa-newspaper' },
+      {name: 'Ads', route: '/dashboard/ads', icon: 'fas fa-ad' },
       { name: 'Admissions', route: '/dashboard/admissions', icon: 'fas fa-user-plus' },
+    ]
+  },
+    {
+    name: 'Learn',
+    icon: 'fas fa-graduation-cap',
+    children: [
+      { name: 'Videos', route: '/dashboard/videos', icon: 'fas fa-video' },
     ]
   },
 ]

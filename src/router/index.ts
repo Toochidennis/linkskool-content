@@ -12,7 +12,7 @@ import UploadView from '@/views/user/UploadView.vue'
 import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
 import TopicsView from '@/views/admin/TopicsView.vue'
 import SyllabusView from '@/views/admin/SyllabusView.vue'
-import NewsView from '@/views/admin/NewsView.vue'
+import AnnouncementView from '@/views/admin/AnnouncementView.vue'
 import AdmissionsView from '@/views/admin/AdmissionsView.vue'
 import ChallengeView from '@/views/admin/ChallengeView.vue'
 import AssessmentSpreadsheetView from '@/views/admin/AssessmentSpreadsheetView.vue'
@@ -76,8 +76,8 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'announcements',
-        name: 'News',
-        component: NewsView
+        name: 'News & Announcements',
+        component: AnnouncementView
       },
       {
         path: 'admissions',
