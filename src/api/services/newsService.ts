@@ -46,7 +46,7 @@ class NewsService extends BaseService<News> {
   async fetchNews(): Promise<ApiResponse<News[]>> {
     try {
       const response = await this.get();
-      return response;
+      return response.data;
     } catch (error: any) {
       throw {
         success: false,
@@ -101,15 +101,7 @@ class NewsService extends BaseService<News> {
         formData.append(`images[${index}]`, image);
       });
 
-      const response = await client.post<ApiResponse<News>>(
-        '/news',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+      const response = await client.post<ApiResponse<News>>('/news',formData);
 
       return response.data;
     } catch (error: any) {
@@ -152,15 +144,7 @@ class NewsService extends BaseService<News> {
         });
       }
 
-      const response = await client.post<ApiResponse<News>>(
-        `/news/${id}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+      const response = await client.post<ApiResponse<News>>( `/news/${id}`, formData);
 
       return response.data;
     } catch (error: any) {
