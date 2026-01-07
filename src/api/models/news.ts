@@ -2,27 +2,27 @@ export interface News {
   id: number;
   title: string;
   content: string;
-  date_posted: string;
+  datePosted: string;
   categories: Category[];
-  author_id: number;
-  author_name: string;
+  authorId: number;
+  authorName: string;
   status: 'draft' | 'published' | 'archived';
   images: NewsImage[];
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface NewsImage {
-  id: number;
-  image_url: string;
-  news_id: number;
+  fileName: string;
+  oldFileName?: string;
+  file?: string;
 }
 
 export interface Category {
   id: number;
   name: string;
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateNewsPayload {

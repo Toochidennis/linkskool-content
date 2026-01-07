@@ -1,6 +1,5 @@
 import { BaseService } from "./baseService";
 import * as type from "@/api/models";
-import { newsService } from "./newsService";
 
 const serviceFactory = <T, D = Record<string, unknown>>(endpoint: string) =>
   new BaseService<T, D>(endpoint);
@@ -14,5 +13,4 @@ export const settingsService = serviceFactory<type.Settings>("settings");
 export const dashboardService = serviceFactory<type.DashboardMetric>("dashboard");
 export const activityLogService = serviceFactory<type.PaginatedResponse<type.ActivityLog>>("activity-logs");
 export const assessmentService = serviceFactory<any[]>("cbt/exams");
-
-export { newsService };
+export const newsService = serviceFactory<any>("news");

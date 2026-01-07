@@ -18,7 +18,7 @@
       <div v-for="news in newsList" :key="news.id" class="masonry-item">
         <div class="news-card">
           <div class="news-image-container">
-            <img :src="news.images[0]" :alt="news.title" class="news-image" />
+            <img :src="loadImage(news.images[0] || '')" :alt="news.title" class="news-image" />
             <div v-if="news.images.length > 1" class="image-count-badge">
               +{{ news.images.length - 1 }}
             </div>
@@ -178,7 +178,7 @@
               <!-- Image Previews -->
               <div v-if="imagePreviews.length > 0" class="image-previews">
                 <div v-for="(preview, index) in imagePreviews" :key="index" class="image-preview">
-                  <img :src="preview" alt="Preview" class="preview-image" />
+                  <img :src="loadImage(preview)" alt="Preview" class="preview-image" />
                   <button type="button" @click="removeImage(index)" class="remove-image-btn">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -213,8 +213,10 @@
 import { ref, computed, nextTick, onMounted } from 'vue';
 import { useToast } from 'vue-toast-notification';
 import { useAuthStore } from '@/stores/auth';
-import { newsService } from '@/api/services/serviceFactory';
 import type { News, Category, CreateNewsPayload } from '@/api/models';
+import { useAnnouncement } from '@/composables/useAnnouncement';
+
+const announcement = useAnnouncement();
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -257,10 +259,10 @@ const availableCategories = ref<Array<{ id: number; name: string }>>([]);
 const fetchCategories = async () => {
   try {
     isLoadingCategories.value = true;
-    const response = await newsService.fetchCategories();
+    const response = await announcement.fetchCategories();
 
-    if (response && response.success && response.data) {
-      availableCategories.value = response.data;
+    if (response) {
+      availableCategories.value = response;
     }
   } catch (error: unknown) {
     console.error('Failed to fetch categories:', error);
@@ -274,19 +276,21 @@ const fetchCategories = async () => {
 // Fetch all news from API
 const fetchNews = async () => {
   try {
-    const response = await newsService.fetchNews();
+    const newsData = await announcement.fetchNews();
 
-    if (response && response.success && response.data) {
+    console.log('Fetched news data:', newsData);
+
+    if (newsData) {
       // Map API response to local NewsItem format
-      newsList.value = response.data.map((news: News) => ({
+      newsList.value = newsData.map((news: News) => ({
         id: news.id,
         title: news.title,
         content: news.content,
-        datePosted: news.date_posted,
-        images: news.images.map(img => img.image_url),
+        datePosted: news.datePosted,
+        images: news.images.map(img => img.fileName),
         categories: news.categories.map(cat => cat.name),
         status: news.status,
-        author: news.author_name,
+        author: news.authorName,
       }));
     }
   } catch (error: unknown) {
@@ -296,12 +300,21 @@ const fetchNews = async () => {
   }
 };
 
+const loadImage = (image: string) => {
+  if (!image) return '';
+
+  if (image.startsWith('data:')) {
+    return image;
+  }
+  return import.meta.env.VITE_ASSETS_BASE_URL + '/' + image;
+}
+
 // Create new category
 const createCategory = async (name: string): Promise<Category | null> => {
   try {
-    const response = await newsService.createCategory({ name });
+    const response = await announcement.createCategory({ name });
 
-    if (response && response.success && response.data) {
+    if (response && response.success) {
       toast.success('Category created successfully');
       return response.data;
     }
@@ -468,12 +481,12 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
     };
 
     if (formData.value.datePosted) {
-      payload.date_posted = formData.value.datePosted;
+      payload.date_posted = toServerDatetime(formData.value.datePosted);
     }
 
     if (editingNewsId.value !== null) {
       // Update existing news
-      const response = await newsService.updateNews(editingNewsId.value, payload);
+      const response = await announcement.updateNews(editingNewsId.value, payload);
 
       if (response && response.success) {
         toast.success('News updated successfully');
@@ -482,7 +495,7 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
       }
     } else {
       // Create new news
-      const response = await newsService.createNews(payload);
+      const response = await announcement.createNews(payload);
 
       if (response && response.success) {
         toast.success('News created successfully');
@@ -508,7 +521,7 @@ const editNews = (news: NewsItem) => {
   formData.value = {
     title: news.title,
     content: news.content,
-    datePosted: news.datePosted,
+    datePosted: toDatetimeLocal(news.datePosted),
     categories: [...news.categories],
     author: news.author || '',
   };
@@ -525,7 +538,7 @@ const togglePublishStatus = async (newsId: number) => {
     const news = newsList.value.find(n => n.id === newsId);
     if (news) {
       const newStatus = news.status === 'published' ? 'archived' : 'published';
-      const response = await newsService.updateNewsStatus(newsId, newStatus);
+      const response = await announcement.updateNewsStatus(newsId, newStatus);
 
       if (response && response.success) {
         toast.success(`News ${newStatus} successfully`);
@@ -548,7 +561,7 @@ const deleteNews = async (newsId: number) => {
   }
 
   try {
-    const response = await newsService.deleteNews(newsId);
+    const response = await announcement.deleteNews(newsId);
 
     if (response && response.success) {
       toast.success('News deleted successfully');
@@ -564,12 +577,40 @@ const deleteNews = async (newsId: number) => {
 };
 
 const formatDate = (dateString: string) => {
+  if (!dateString) return '';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
+};
+
+// Convert server date format to datetime-local input format
+const toDatetimeLocal = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Convert datetime-local input to server format (YYYY-MM-DD HH:mm:ss)
+const toServerDatetime = (datetimeLocal: string) => {
+  if (!datetimeLocal) return '';
+  const date = new Date(datetimeLocal);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 </script>
 

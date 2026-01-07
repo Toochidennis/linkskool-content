@@ -1,18 +1,15 @@
-import { BaseService } from './baseService';
-import { client } from '../client';
-import type { News, Category, CreateNewsPayload, CreateCategoryPayload, ApiResponse } from '../models';
+import { newsService } from '../api/services/serviceFactory';
+import type { News, Category, CreateNewsPayload, CreateCategoryPayload } from '../api/models';
 
-class NewsService extends BaseService<News> {
-  constructor() {
-    super('news');
-  }
+
+export const useAnnouncement = () => {
 
   /**
    * Fetch all categories
    */
-  async fetchCategories(): Promise<ApiResponse<Category[]>> {
+  const fetchCategories = async () => {
     try {
-      const response = await client.get<ApiResponse<Category[]>>('/categories');
+      const response = await newsService.get<Category[]>('categories');
       return response.data;
     } catch (error: any) {
       throw {
@@ -24,13 +21,13 @@ class NewsService extends BaseService<News> {
   }
 
   /**
-   * Create a new category
-   * @param payload - Category data with name only
-   */
-  async createCategory(payload: CreateCategoryPayload): Promise<ApiResponse<Category>> {
+ * Create a new category
+ * @param payload - Category data with name only
+ */
+  const createCategory = async (payload: CreateCategoryPayload) => {
     try {
-      const response = await client.post<ApiResponse<Category>>('/categories', payload);
-      return response.data;
+      const response = await newsService.post('categories', payload as unknown as Record<string, unknown>);
+      return response;
     } catch (error: any) {
       throw {
         success: false,
@@ -40,12 +37,9 @@ class NewsService extends BaseService<News> {
     }
   }
 
-  /**
-   * Fetch all news
-   */
-  async fetchNews(): Promise<ApiResponse<News[]>> {
+  const fetchNews = async () => {
     try {
-      const response = await this.get();
+      const response = await newsService.get<News[]>('admin');
       return response.data;
     } catch (error: any) {
       throw {
@@ -56,13 +50,10 @@ class NewsService extends BaseService<News> {
     }
   }
 
-  /**
-   * Fetch news by ID
-   */
-  async fetchNewsById(id: number): Promise<ApiResponse<News>> {
+  const fetchNewsById = async (id: number) => {
     try {
-      const response = await this.get(id.toString());
-      return response;
+      const response = await newsService.get<News>(id.toString());
+      return response.data;
     } catch (error: any) {
       throw {
         success: false,
@@ -76,7 +67,7 @@ class NewsService extends BaseService<News> {
    * Create new news with multipart/form-data
    * @param payload - News data including raw image files
    */
-  async createNews(payload: CreateNewsPayload): Promise<ApiResponse<News>> {
+  const createNews = async (payload: CreateNewsPayload) => {
     try {
       const formData = new FormData();
 
@@ -96,14 +87,20 @@ class NewsService extends BaseService<News> {
         formData.append('date_posted', payload.date_posted);
       }
 
-      // Append images
-      payload.images.forEach((image, index) => {
-        formData.append(`images[${index}]`, image);
+      // Append images - use 'images[]' as key for Laravel
+      payload.images.forEach((image) => {
+        formData.append('images[]', image, image.name);
       });
 
-      const response = await client.post<ApiResponse<News>>('/news',formData);
+      console.log('Creating news with FormData');
+      // Log FormData contents for debugging
+      for (const pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
 
-      return response.data;
+      const response = await newsService.post(undefined, formData as unknown as Record<string, unknown>);
+
+      return response;
     } catch (error: any) {
       throw {
         success: false,
@@ -113,12 +110,13 @@ class NewsService extends BaseService<News> {
     }
   }
 
+
   /**
    * Update existing news with multipart/form-data
    * @param id - News ID
    * @param payload - News data including raw image files
    */
-  async updateNews(id: number, payload: Partial<CreateNewsPayload>): Promise<ApiResponse<News>> {
+  const updateNews = async (id: number, payload: Partial<CreateNewsPayload>) => {
     try {
       const formData = new FormData();
 
@@ -137,16 +135,25 @@ class NewsService extends BaseService<News> {
       if (payload.status) formData.append('status', payload.status);
       if (payload.date_posted) formData.append('date_posted', payload.date_posted);
 
-      // Append images if provided
+      // Append images if provided - use 'images[]' as key for Laravel
       if (payload.images && payload.images.length > 0) {
-        payload.images.forEach((image, index) => {
-          formData.append(`images[${index}]`, image);
+        payload.images.forEach((image) => {
+          formData.append('images[]', image, image.name);
         });
       }
 
-      const response = await client.post<ApiResponse<News>>( `/news/${id}`, formData);
+      // Add _method for Laravel PUT emulation
+      formData.append('_method', 'PUT');
 
-      return response.data;
+      console.log('Updating news with ID:', id);
+      // Log FormData contents for debugging
+      for (const pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
+      const response = await newsService.post(id.toString(), formData as unknown as Record<string, unknown>);
+
+      return response;
     } catch (error: any) {
       throw {
         success: false,
@@ -157,12 +164,12 @@ class NewsService extends BaseService<News> {
   }
 
   /**
-   * Delete news
-   * @param id - News ID
-   */
-  async deleteNews(id: number): Promise<ApiResponse<void>> {
+ * Delete news
+ * @param id - News ID
+ */
+  const deleteNews = async (id: number) => {
     try {
-      const response = await this.delete(id.toString());
+      const response = await newsService.delete(id.toString());
       return response;
     } catch (error: any) {
       throw {
@@ -178,13 +185,10 @@ class NewsService extends BaseService<News> {
    * @param id - News ID
    * @param status - New status
    */
-  async updateNewsStatus(id: number, status: 'draft' | 'published' | 'archived'): Promise<ApiResponse<News>> {
+  const updateNewsStatus = async (id: number, status: 'draft' | 'published' | 'archived') => {
     try {
-      const response = await client.put<ApiResponse<News>>(
-        `/news/${id}/status`,
-        { status }
-      );
-      return response.data;
+      const response = await newsService.put(`${id}/status`, { status });
+      return response;
     } catch (error: any) {
       throw {
         success: false,
@@ -193,6 +197,17 @@ class NewsService extends BaseService<News> {
       };
     }
   }
+
+
+  return {
+    fetchCategories,
+    createCategory,
+    fetchNews,
+    fetchNewsById,
+    createNews,
+    updateNews,
+    deleteNews,
+    updateNewsStatus
+  }
 }
 
-export const newsService = new NewsService();
