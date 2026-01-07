@@ -14,3 +14,4 @@ export const dashboardService = serviceFactory<type.DashboardMetric>("dashboard"
 export const activityLogService = serviceFactory<type.PaginatedResponse<type.ActivityLog>>("activity-logs");
 export const assessmentService = serviceFactory<any[]>("cbt/exams");
 export const newsService = serviceFactory<any>("news");
+export const advertisementService = serviceFactory<any>("advertisements");

@@ -17,6 +17,7 @@ import AdmissionsView from '@/views/admin/AdmissionsView.vue'
 import ChallengeView from '@/views/admin/ChallengeView.vue'
 import AssessmentSpreadsheetView from '@/views/admin/AssessmentSpreadsheetView.vue'
 import AssessmentFormView from '@/views/admin/AssessmentFormView.vue'
+import AdsView from '@/views/admin/AdvertisementView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -78,6 +79,11 @@ const routes: RouteRecordRaw[] = [
         path: 'announcements',
         name: 'News & Announcements',
         component: AnnouncementView
+      },
+      {
+        path: 'ads',
+        name: 'Advertisements',
+        component: AdsView
       },
       {
         path: 'admissions',
