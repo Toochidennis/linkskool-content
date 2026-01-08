@@ -17,7 +17,9 @@ import AdmissionsView from '@/views/admin/AdmissionsView.vue'
 import ChallengeView from '@/views/admin/ChallengeView.vue'
 import AssessmentSpreadsheetView from '@/views/admin/AssessmentSpreadsheetView.vue'
 import AssessmentFormView from '@/views/admin/AssessmentFormView.vue'
-import AdsView from '@/views/admin/AdvertisementView.vue'
+import AdvertisementView from '@/views/admin/AdvertisementView.vue'
+import VideoLibraryView from '@/views/admin/VideoLibraryView.vue'
+import VideoLibraryDetailsView from '@/views/admin/VideoLibraryDetailsView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -83,7 +85,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'ads',
         name: 'Advertisements',
-        component: AdsView
+        component: AdvertisementView
       },
       {
         path: 'admissions',
@@ -94,6 +96,16 @@ const routes: RouteRecordRaw[] = [
         path: 'assessments',
         name: 'Assessments',
         component: AssessmentView
+      },
+      {
+        path: 'video-library',
+        name: 'Video Library',
+        component: VideoLibraryView
+      },
+      {
+        path: 'video-library/:courseId',
+        name: 'CourseVideos',
+        component: VideoLibraryDetailsView
       },
       {
         path: 'assessment-spreadsheet',

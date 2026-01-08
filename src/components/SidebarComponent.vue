@@ -127,7 +127,7 @@ const menuItems: MenuItem[] = [
     name: 'Learn',
     icon: 'fas fa-graduation-cap',
     children: [
-      { name: 'Videos', route: '/dashboard/videos', icon: 'fas fa-video' },
+      { name: 'Videos', route: '/dashboard/video-library', icon: 'fas fa-video' },
     ]
   },
 ]
