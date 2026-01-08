@@ -20,6 +20,7 @@ import AssessmentFormView from '@/views/admin/AssessmentFormView.vue'
 import AdvertisementView from '@/views/admin/AdvertisementView.vue'
 import VideoLibraryView from '@/views/admin/VideoLibraryView.vue'
 import VideoLibraryDetailsView from '@/views/admin/VideoLibraryDetailsView.vue'
+import LevelView from '@/views/admin/LevelView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -106,6 +107,11 @@ const routes: RouteRecordRaw[] = [
         path: 'video-library/:courseId',
         name: 'CourseVideos',
         component: VideoLibraryDetailsView
+      },
+      {
+        path: 'levels',
+        name: 'Levels',
+        component: LevelView
       },
       {
         path: 'assessment-spreadsheet',

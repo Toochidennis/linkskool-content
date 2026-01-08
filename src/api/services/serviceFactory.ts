@@ -15,3 +15,5 @@ export const activityLogService = serviceFactory<type.PaginatedResponse<type.Act
 export const assessmentService = serviceFactory<any[]>("cbt/exams");
 export const newsService = serviceFactory<any>("news");
 export const advertisementService = serviceFactory<any>("advertisements");
+export const videoLibraryService = serviceFactory<any>("video-library");
+export const levelService = serviceFactory<any>("levels");

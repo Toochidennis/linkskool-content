@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div class="flex items-center gap-3">
         <button @click="router.push('/dashboard/video-library')"
-          class="h-10 w-10 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          class="h-10 w-10 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
           aria-label="Back to courses">
           <i class="fas fa-arrow-left"></i>
         </button>
@@ -20,7 +20,7 @@
           <span class="font-semibold text-gray-900 dark:text-white mr-1">{{ videos.length }}</span> videos uploaded
         </div>
         <button @click="openAddModal()"
-          class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition">
+          class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition cursor-pointer">
           <i class="fas fa-plus"></i>
           Add Video
         </button>
@@ -144,15 +144,83 @@
             </div>
           </div>
           <div class="px-4 pb-4 flex items-center justify-between text-sm text-blue-600 dark:text-blue-400">
-            <a :href="video.videoUrl" target="_blank" rel="noopener"
-              class="inline-flex items-center gap-1 hover:underline">
+            <button @click="openVideoPlayer(video)"
+              class="inline-flex items-center gap-1 hover:underline bg-none border-none cursor-pointer p-0">
               <i class="fas fa-play-circle"></i>
               Watch
-            </a>
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Video Player Modal - Teleported to body -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showVideoPlayer" class="modal-overlay" @click.self="closeVideoPlayer">
+          <div class="video-player-container">
+            <button @click="closeVideoPlayer" class="close-button-video">
+              <i class="fas fa-times text-lg"></i>
+            </button>
+
+            <!-- Video Title -->
+            <div class="video-header">
+              <h2 class="video-title">{{ currentVideo?.title }}</h2>
+              <p class="video-meta">{{ currentVideo?.level }} • {{ currentVideo?.author }}</p>
+            </div>
+
+            <!-- Video Player -->
+            <div class="video-player">
+              <!-- YouTube Embed -->
+              <iframe v-if="currentVideoType === 'youtube'" :src="getYouTubeEmbedUrl(currentVideo?.videoUrl || '')"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen title="YouTube video player" class="w-full h-full"></iframe>
+
+              <!-- YouTube Shorts Embed -->
+              <iframe v-else-if="currentVideoType === 'youtube-shorts'"
+                :src="getYouTubeShortsEmbedUrl(currentVideo?.videoUrl || '')" frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen title="YouTube Shorts video player" class="w-full h-full"></iframe>
+
+              <!-- Vimeo Embed -->
+              <iframe v-else-if="currentVideoType === 'vimeo'" :src="getVimeoEmbedUrl(currentVideo?.videoUrl || '')"
+                frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
+                title="Vimeo video player" class="w-full h-full"></iframe>
+
+              <!-- HTML5 Video Player -->
+              <video v-else-if="currentVideoType === 'html5'" controls class="w-full h-full bg-black">
+                <source :src="currentVideo?.videoUrl" />
+                Your browser does not support the video tag.
+              </video>
+
+              <!-- Fallback for unknown types -->
+              <div v-else class="flex items-center justify-center h-full bg-gray-900 text-white">
+                <div class="text-center">
+                  <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                  <p class="text-lg">Unable to determine video format</p>
+                  <p class="text-sm text-gray-400 mt-2">{{ currentVideo?.videoUrl }}</p>
+                  <a :href="currentVideo?.videoUrl" target="_blank" rel="noopener"
+                    class="inline-block mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
+                    Open in New Tab
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Video Description -->
+            <div class="video-description">
+              <p>{{ currentVideo?.description }}</p>
+              <div class="video-meta-full">
+                <span><strong>Syllabus:</strong> {{ currentVideo?.syllabus }}</span>
+                <span><strong>Topic:</strong> {{ currentVideo?.topic }}</span>
+                <span><strong>Level:</strong> {{ currentVideo?.level }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Add Video Modal - Teleported to body -->
     <Teleport to="body">
@@ -161,8 +229,11 @@
           <div class="modal-container">
             <div class="modal-header">
               <div>
-                <p class="text-xs uppercase tracking-wide text-blue-600 dark:text-blue-400 font-semibold">Add Video</p>
-                <h2 class="modal-title">New video for {{ courseName }}</h2>
+                <p class="text-xs uppercase tracking-wide text-blue-600 dark:text-blue-400 font-semibold">
+                  {{ editingVideoId ? 'Edit Video' : 'Add Video' }}
+                </p>
+                <h2 class="modal-title">{{ editingVideoId ? 'Update video details' : `New video for ${courseName}` }}
+                </h2>
                 <p class="text-sm text-gray-600 dark:text-gray-400">Fill in the details below to upload or link a video.
                 </p>
               </div>
@@ -210,6 +281,11 @@
                 </div>
 
                 <div class="form-group">
+                  <label class="form-label">Author <span class="text-gray-400 text-xs">(Optional)</span></label>
+                  <input v-model="form.author" type="text" placeholder="Enter author name" class="form-input" />
+                </div>
+
+                <div class="form-group">
                   <label class="form-label">Syllabus</label>
                   <select v-model="form.syllabus" @change="onSyllabusChange" class="form-input">
                     <option value="" disabled>Select syllabus</option>
@@ -234,12 +310,12 @@
               </button>
               <button @click="form.status = 'Draft'; submitVideo()"
                 :class="form.status === 'Draft' ? 'btn-status-active bg-amber-500 text-white border-amber-500' : 'btn-status-inactive'"
-                class="px-4 py-2 rounded-lg text-sm font-medium border transition" type="button">
+                class="px-4 py-2 rounded-lg text-sm font-medium border transition cursor-pointer" type="button">
                 <i class="fas fa-pen mr-2"></i>Save as Draft
               </button>
               <button @click="form.status = 'Published'; submitVideo()"
                 :class="form.status === 'Published' ? 'btn-status-active bg-green-600 text-white border-green-600' : 'btn-status-inactive'"
-                class="px-4 py-2 rounded-lg text-sm font-medium border transition" type="button">
+                class="px-4 py-2 rounded-lg text-sm font-medium border transition cursor-pointer" type="button">
                 <i class="fas fa-check mr-2"></i>Publish Now
               </button>
             </div>
@@ -254,6 +330,27 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
+import { useAuthStore } from '@/stores/auth'
+import type { Level } from '@/api/models'
+import { levelService, videoLibraryService } from '@/api/services/serviceFactory'
+
+interface Topic {
+  topicId: number
+  topicName: string
+}
+
+interface Syllabus {
+  id: number
+  syllabusName: string
+  courseId: number
+  topics: Topic[]
+}
+
+interface LevelData {
+  id: number
+  name: string
+  rank: number
+}
 
 interface VideoItem {
   id: number
@@ -262,6 +359,7 @@ interface VideoItem {
   videoUrl: string
   thumbnailUrl?: string
   level: string
+  author: string
   syllabus: string
   topic: string
   status: 'Published' | 'Draft' | 'Archived'
@@ -270,23 +368,27 @@ interface VideoItem {
 const router = useRouter()
 const route = useRoute()
 const $toast = useToast()
+const authStore = useAuthStore()
 
+const courseId = computed(() => route.params.courseId as string)
 const courseName = computed(() => (route.query.name as string) || 'Selected Course')
 
 const videos = ref<VideoItem[]>([])
 const showAddModal = ref(false)
+const showVideoPlayer = ref(false)
+const currentVideo = ref<VideoItem | null>(null)
+const currentVideoType = ref<'youtube' | 'youtube-shorts' | 'vimeo' | 'html5' | 'unknown'>('unknown')
 const thumbnailFileName = ref('')
+const thumbnailFile = ref<File | null>(null)
 const activeMenu = ref<number | null>(null)
+const editingVideoId = ref<number | null>(null)
+const originalThumbnailUrl = ref<string>('')
 
-const levelOptions = ['Beginner', 'Intermediate', 'Advanced']
-const syllabusOptions = ['Core Curriculum', 'Elective', 'Exam Prep']
-const topicsBySyllabus: Record<string, string[]> = {
-  'Core Curriculum': ['Foundations', 'Key Concepts', 'Practice'],
-  'Elective': ['Exploration', 'Case Studies', 'Projects'],
-  'Exam Prep': ['Past Questions', 'Mock Tests', 'Tips']
-}
-
-const statusOptions: VideoItem['status'][] = ['Published', 'Draft', 'Archived']
+const levelOptions = ref<string[]>([])
+const levelData = ref<LevelData[]>([])
+const syllabusOptions = ref<string[]>([])
+const syllabusData = ref<Syllabus[]>([])
+const topicsBySyllabus = ref<Record<string, string[]>>({})
 
 const form = reactive({
   title: '',
@@ -294,13 +396,14 @@ const form = reactive({
   videoUrl: '',
   thumbnailUrl: '',
   level: '',
+  author: '',
   syllabus: '',
   topic: '',
   status: 'Draft' as VideoItem['status']
 })
 
 const topicOptions = computed(() => {
-  return form.syllabus ? (topicsBySyllabus[form.syllabus] || []) : []
+  return form.syllabus ? (topicsBySyllabus.value[form.syllabus] || []) : []
 })
 
 const publishedCount = computed(() => videos.value.filter(v => v.status === 'Published').length)
@@ -315,11 +418,15 @@ watch(() => form.syllabus, () => {
 
 const openAddModal = () => {
   resetForm()
+  editingVideoId.value = null
+  originalThumbnailUrl.value = ''
   showAddModal.value = true
 }
 
 const closeAddModal = () => {
   showAddModal.value = false
+  editingVideoId.value = null
+  originalThumbnailUrl.value = ''
 }
 
 const resetForm = () => {
@@ -328,16 +435,19 @@ const resetForm = () => {
   form.videoUrl = ''
   form.thumbnailUrl = ''
   form.level = ''
+  form.author = ''
   form.syllabus = ''
   form.topic = ''
   form.status = 'Draft'
   thumbnailFileName.value = ''
+  thumbnailFile.value = null
 }
 
 const onThumbnailSelected = (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (file) {
+    thumbnailFile.value = file
     thumbnailFileName.value = file.name
     form.thumbnailUrl = URL.createObjectURL(file)
   }
@@ -349,37 +459,211 @@ const validateForm = (): boolean => {
     return false
   }
 
-  if (!form.thumbnailUrl.trim() && !thumbnailFileName.value) {
-    $toast.warning('Provide a thumbnail URL or upload a thumbnail')
+  if (!form.description.trim()) {
+    $toast.warning('Description is required')
     return false
   }
 
-  if (!form.level || !form.syllabus || !form.topic) {
-    $toast.warning('Select level, syllabus, and topic')
+  if (!form.level || !form.syllabus) {
+    $toast.warning('Select level and syllabus')
     return false
   }
 
   return true
 }
 
-const submitVideo = () => {
+const submitVideo = async () => {
+  if (editingVideoId.value !== null) {
+    await updateVideo()
+  } else {
+    await createVideo()
+  }
+}
+
+const createVideo = async () => {
   if (!validateForm()) return
 
-  const newVideo: VideoItem = {
-    id: Date.now(),
-    title: form.title,
-    description: form.description,
-    videoUrl: form.videoUrl,
-    thumbnailUrl: form.thumbnailUrl,
-    level: form.level,
-    syllabus: form.syllabus,
-    topic: form.topic,
-    status: form.status
+  // Get level data
+  const selectedLevel = levelData.value.find(l => l.name === form.level)
+  if (!selectedLevel) {
+    $toast.error('Invalid level selected')
+    return
   }
 
-  videos.value.unshift(newVideo)
-  $toast.success('Video added to course')
-  closeAddModal()
+  // Get syllabus data
+  const selectedSyllabus = syllabusData.value.find(s => s.syllabusName === form.syllabus)
+  if (!selectedSyllabus) {
+    $toast.error('Invalid syllabus selected')
+    return
+  }
+
+  // Get topic data (optional)
+  let topicId: number | null = null
+  let topicName: string | null = null
+  if (form.topic) {
+    const selectedTopic = selectedSyllabus.topics.find(t => t.topicName === form.topic)
+    if (selectedTopic) {
+      topicId = selectedTopic.topicId
+      topicName = selectedTopic.topicName
+    }
+  }
+
+  // Get author info
+  const user = authStore.user
+  if (!user) {
+    $toast.error('User not authenticated')
+    return
+  }
+
+  const authorId = user.id
+  const authorName = form.author.trim() || `${user.firstName} ${user.lastName || ''}`.trim()
+
+  // Build FormData
+  const formData = new FormData()
+  formData.append('title', form.title)
+  formData.append('description', form.description)
+  formData.append('video_url', form.videoUrl)
+  formData.append('course_id', courseId.value)
+  formData.append('course_name', courseName.value)
+  formData.append('level_id', selectedLevel.id.toString())
+  formData.append('level_name', selectedLevel.name)
+  formData.append('syllabus_id', selectedSyllabus.id.toString())
+  formData.append('syllabus_name', selectedSyllabus.syllabusName)
+
+  if (topicId !== null && topicName !== null) {
+    formData.append('topic_id', topicId.toString())
+    formData.append('topic_name', topicName)
+  }
+
+  formData.append('status', form.status.toLowerCase())
+  formData.append('author_id', authorId.toString())
+  formData.append('author_name', authorName)
+
+  // Handle thumbnail
+  if (thumbnailFile.value) {
+    formData.append('thumbnail', thumbnailFile.value)
+  } else if (form.thumbnailUrl.trim() && !form.thumbnailUrl.startsWith('blob:')) {
+    formData.append('thumbnail_url', form.thumbnailUrl)
+  }
+
+  try {
+    const response = await videoLibraryService.post('videos', formData as unknown as Record<string, unknown>)
+
+    if (response.success) {
+      $toast.success(response.message || 'Video added successfully')
+      closeAddModal()
+      await fetchVideos()
+    } else {
+      $toast.error(response.message || 'Failed to add video')
+    }
+  } catch (e) {
+    console.error('Error creating video:', e)
+    $toast.error('Failed to add video')
+  }
+}
+
+const updateVideo = async () => {
+  if (!validateForm()) return
+
+  // Get level data
+  const selectedLevel = levelData.value.find(l => l.name === form.level)
+  if (!selectedLevel) {
+    $toast.error('Invalid level selected')
+    return
+  }
+
+  // Get syllabus data
+  const selectedSyllabus = syllabusData.value.find(s => s.syllabusName === form.syllabus)
+  if (!selectedSyllabus) {
+    $toast.error('Invalid syllabus selected')
+    return
+  }
+
+  // Get topic data (optional)
+  let topicId: number | null = null
+  let topicName: string | null = null
+  if (form.topic) {
+    const selectedTopic = selectedSyllabus.topics.find(t => t.topicName === form.topic)
+    if (selectedTopic) {
+      topicId = selectedTopic.topicId
+      topicName = selectedTopic.topicName
+    }
+  }
+
+  // Get author info
+  const user = authStore.user
+  if (!user) {
+    $toast.error('User not authenticated')
+    return
+  }
+
+  const authorId = user.id
+  const authorName = form.author.trim() || `${user.firstName} ${user.lastName || ''}`.trim()
+
+  // Build FormData
+  const formData = new FormData()
+  formData.append('title', form.title)
+  formData.append('description', form.description)
+  formData.append('video_url', form.videoUrl)
+  formData.append('course_id', courseId.value)
+  formData.append('course_name', courseName.value)
+  formData.append('level_id', selectedLevel.id.toString())
+  formData.append('level_name', selectedLevel.name)
+  formData.append('syllabus_id', selectedSyllabus.id.toString())
+  formData.append('syllabus_name', selectedSyllabus.syllabusName)
+
+  if (topicId !== null && topicName !== null) {
+    formData.append('topic_id', topicId.toString())
+    formData.append('topic_name', topicName)
+  }
+
+  formData.append('status', form.status.toLowerCase())
+  formData.append('author_id', authorId.toString())
+  formData.append('author_name', authorName)
+
+  // Handle thumbnail based on your requirements
+  const baseUrl = import.meta.env.VITE_ASSETS_BASE_URL + '/'
+
+  if (thumbnailFile.value) {
+    // New file is being uploaded
+    formData.append('thumbnail', thumbnailFile.value)
+
+    // If old thumbnail starts with assets, send it for deletion
+    if (originalThumbnailUrl.value.startsWith(baseUrl + 'assets')) {
+      const oldPath = originalThumbnailUrl.value.replace(baseUrl, '')
+      formData.append('old_thumbnail_url', oldPath)
+    } else if (originalThumbnailUrl.value.startsWith('assets')) {
+      formData.append('old_thumbnail_url', originalThumbnailUrl.value)
+    }
+  } else if (form.thumbnailUrl.trim() && !form.thumbnailUrl.startsWith('blob:')) {
+    // No new file, handle existing URL
+    if (form.thumbnailUrl.startsWith(baseUrl + 'assets')) {
+      // Remove base URL and send just the assets path
+      const assetsPath = form.thumbnailUrl.replace(baseUrl, '')
+      formData.append('thumbnail_url', assetsPath)
+    } else if (form.thumbnailUrl.startsWith('assets')) {
+      // Already in correct format
+      formData.append('thumbnail_url', form.thumbnailUrl)
+    } else {
+      // External URL or other format
+      formData.append('thumbnail_url', form.thumbnailUrl)
+    }
+  }
+
+  try {
+    const response = await videoLibraryService.post(`videos/${editingVideoId.value}`, formData as unknown as Record<string, unknown>)
+
+    if (response.success) {
+      $toast.success(response.message || 'Video updated successfully')
+      closeAddModal()
+      await fetchVideos()
+    } else {
+      $toast.error(response.message || 'Failed to update video')
+    }
+  } catch (e) {
+    console.error('Error updating video:', e)
+    $toast.error('Failed to update video')
+  }
 }
 
 const statusBadgeClass = (status: VideoItem['status']) => {
@@ -393,11 +677,15 @@ const toggleMenu = (videoId: number) => {
 }
 
 const editVideo = (video: VideoItem) => {
+  resetForm()
+  editingVideoId.value = video.id
+  originalThumbnailUrl.value = video.thumbnailUrl || ''
   form.title = video.title
   form.description = video.description
   form.videoUrl = video.videoUrl
   form.thumbnailUrl = video.thumbnailUrl || ''
   form.level = video.level
+  form.author = video.author
   form.syllabus = video.syllabus
   form.topic = video.topic
   form.status = video.status === 'Archived' ? 'Draft' : (video.status as 'Published' | 'Draft')
@@ -405,27 +693,50 @@ const editVideo = (video: VideoItem) => {
   showAddModal.value = true
 }
 
-const toggleVideoStatus = (video: VideoItem) => {
+const toggleVideoStatus = async (video: VideoItem) => {
+  let newStatus: string
+
   if (video.status === 'Published') {
-    video.status = 'Archived'
-    $toast.success('Video archived')
+    newStatus = 'archived'
   } else if (video.status === 'Archived') {
-    video.status = 'Published'
-    $toast.success('Video published')
+    newStatus = 'published'
   } else {
-    video.status = 'Published'
-    $toast.success('Video published')
+    newStatus = 'published'
   }
-  activeMenu.value = null
+
+  try {
+    const response = await videoLibraryService.put(`videos/${video.id}/status`, {
+      status: newStatus
+    })
+
+    if (response.success) {
+      $toast.success(response.message || `Video ${newStatus} successfully`)
+      activeMenu.value = null
+      await fetchVideos()
+    } else {
+      $toast.error(response.message || 'Failed to update video status')
+    }
+  } catch (e) {
+    console.error('Error updating video status:', e)
+    $toast.error('Failed to update video status')
+  }
 }
 
-const deleteVideo = (videoId: number) => {
-  const index = videos.value.findIndex(v => v.id === videoId)
-  if (index > -1) {
-    videos.value.splice(index, 1)
-    $toast.success('Video deleted')
+const deleteVideo = async (videoId: number) => {
+  try {
+    const response = await videoLibraryService.delete(`videos/${videoId}`)
+
+    if (response.success) {
+      $toast.success(response.message || 'Video deleted successfully')
+      activeMenu.value = null
+      await fetchVideos()
+    } else {
+      $toast.error(response.message || 'Failed to delete video')
+    }
+  } catch (e) {
+    console.error('Error deleting video:', e)
+    $toast.error('Failed to delete video')
   }
-  activeMenu.value = null
 }
 
 const onSyllabusChange = () => {
@@ -434,32 +745,180 @@ const onSyllabusChange = () => {
   }
 }
 
-onMounted(() => {
-  // Placeholder seed data for UI illustration
-  videos.value = [
-    {
-      id: 1,
-      title: 'Introduction and Overview',
-      description: 'Kick-off video covering objectives and structure.',
-      videoUrl: 'https://example.com/video/intro',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80',
-      level: 'Beginner',
-      syllabus: 'Core Curriculum',
-      topic: 'Foundations',
-      status: 'Published'
-    },
-    {
-      id: 2,
-      title: 'Practice Session',
-      description: 'Hands-on practice with guided examples.',
-      videoUrl: 'https://example.com/video/practice',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1582719478248-54e9f2c12aa4?auto=format&fit=crop&w=600&q=80',
-      level: 'Intermediate',
-      syllabus: 'Exam Prep',
-      topic: 'Mock Tests',
-      status: 'Draft'
+const fetchLevels = async () => {
+  try {
+    const response = await levelService.get()
+    if (response && response.data && Array.isArray(response.data)) {
+      const sorted = response.data.sort((a: Level, b: Level) => a.rank - b.rank)
+      levelData.value = sorted.map((level: Level) => ({
+        id: level.id,
+        name: level.name,
+        rank: level.rank
+      }))
+      levelOptions.value = sorted.map((level: Level) => level.name)
     }
-  ]
+  } catch (e) {
+    console.error('Error fetching levels:', e)
+    $toast.error('Failed to load levels')
+  }
+}
+
+const fetchSyllabi = async () => {
+  if (!courseId.value) return
+
+  try {
+    const response = await videoLibraryService.get(`syllabi/${courseId.value}`)
+    if (response && response.data && Array.isArray(response.data)) {
+      syllabusData.value = response.data
+      syllabusOptions.value = response.data.map((s: Syllabus) => s.syllabusName)
+
+      // Build topics mapping
+      const topicsMap: Record<string, string[]> = {}
+      response.data.forEach((s: Syllabus) => {
+        topicsMap[s.syllabusName] = s.topics.map((t: Topic) => t.topicName)
+      })
+      topicsBySyllabus.value = topicsMap
+    }
+  } catch (e) {
+    console.error('Error fetching syllabi:', e)
+    $toast.error('Failed to load syllabi and topics')
+  }
+}
+
+const fetchVideos = async () => {
+  if (!courseId.value) return
+
+  try {
+    const response = await videoLibraryService.get(`videos/${courseId.value}`)
+    if (response && response.data && Array.isArray(response.data)) {
+      videos.value = response.data.map((video: {
+        id: number
+        title: string
+        description: string
+        videoUrl: string
+        thumbnailUrl?: string
+        levelName: string
+        authorName: string
+        syllabusName: string
+        topicName: string
+        status: string
+      }) => {
+        // Use video_url as thumbnail fallback if thumbnail is empty
+        const thumbnailUrl = loadThumbnail(video.thumbnailUrl || '') || video.videoUrl
+
+        return {
+          id: video.id,
+          title: video.title,
+          description: video.description,
+          videoUrl: video.videoUrl,
+          thumbnailUrl: thumbnailUrl,
+          level: video.levelName,
+          author: video.authorName,
+          syllabus: video.syllabusName,
+          topic: video.topicName,
+          status: (video.status.charAt(0).toUpperCase() + video.status.slice(1)) as VideoItem['status']
+        }
+      })
+    }
+  } catch (e) {
+    console.error('Error fetching videos:', e)
+    $toast.error('Failed to load videos')
+  }
+}
+
+const loadThumbnail = (url: string) => {
+  if (!url) return null
+  if (url.startsWith('assets')) {
+    return import.meta.env.VITE_ASSETS_BASE_URL + '/' + url
+  }
+
+  return url
+}
+
+const detectVideoType = (url: string): 'youtube' | 'youtube-shorts' | 'vimeo' | 'html5' | 'unknown' => {
+  if (!url) return 'unknown'
+
+  // YouTube regular videos
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    if (url.includes('youtube.com/shorts') || url.includes('youtu.be/shorts')) {
+      return 'youtube-shorts'
+    }
+    return 'youtube'
+  }
+
+  // Vimeo
+  if (url.includes('vimeo.com')) {
+    return 'vimeo'
+  }
+
+  // HTML5 video formats
+  if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.ogg') || url.endsWith('.mov')) {
+    return 'html5'
+  }
+
+  return 'unknown'
+}
+
+const getYouTubeEmbedUrl = (url: string): string => {
+  let videoId = ''
+
+  // Handle youtube.com/watch?v=xxx
+  if (url.includes('youtube.com/watch')) {
+    const match = url.match(/v=([^&]+)/)
+    videoId = (match && match[1]) || ''
+  }
+  // Handle youtu.be/xxx
+  else if (url.includes('youtu.be/')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/)
+    videoId = (match && match[1]) || ''
+  }
+  // Handle youtube.com/embed/xxx
+  else if (url.includes('youtube.com/embed/')) {
+    const match = url.match(/embed\/([^?&]+)/)
+    videoId = (match && match[1]) || ''
+  }
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1`
+}
+
+const getYouTubeShortsEmbedUrl = (url: string): string => {
+  let videoId = ''
+
+  // Extract video ID from shorts URL
+  const match = url.match(/shorts\/([^?&]+)/)
+  videoId = (match && match[1]) || ''
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1`
+}
+
+const getVimeoEmbedUrl = (url: string): string => {
+  // Extract video ID from vimeo URL
+  const match = url.match(/vimeo\.com\/(\d+)/)
+  const videoId = (match && match[1]) || ''
+
+  return `https://player.vimeo.com/video/${videoId}`
+}
+
+const openVideoPlayer = (video: VideoItem) => {
+  currentVideo.value = video
+  currentVideoType.value = detectVideoType(video.videoUrl)
+  showVideoPlayer.value = true
+  // Prevent body scroll when modal is open
+  document.body.style.overflow = 'hidden'
+}
+
+const closeVideoPlayer = () => {
+  showVideoPlayer.value = false
+  currentVideo.value = null
+  currentVideoType.value = 'unknown'
+  // Restore body scroll
+  document.body.style.overflow = ''
+}
+
+onMounted(() => {
+  fetchLevels()
+  fetchSyllabi()
+  fetchVideos()
 })
 </script>
 
@@ -777,5 +1236,111 @@ onMounted(() => {
 .modal-enter-from .modal-container,
 .modal-leave-to .modal-container {
   transform: scale(0.95);
+}
+
+/* Video Player Modal Styles */
+.video-player-container {
+  background: #111827;
+  border-radius: 1rem;
+  max-width: 90vw;
+  width: 100%;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.close-button-video {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  padding: 0.5rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  z-index: 10;
+  transition: all 0.2s;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button-video:hover {
+  background: rgba(0, 0, 0, 0.8);
+  color: #f3f4f6;
+}
+
+.video-header {
+  padding: 1.5rem 1.5rem 0 1.5rem;
+}
+
+.video-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  margin-bottom: 0.5rem;
+}
+
+.video-meta {
+  font-size: 0.875rem;
+  color: #d1d5db;
+  margin: 0;
+}
+
+.video-player {
+  flex: 1;
+  min-height: 0;
+  padding: 1.5rem;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.video-player iframe,
+.video-player video {
+  width: 100%;
+  height: 100%;
+  max-height: 65vh;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.5rem;
+}
+
+.video-description {
+  padding: 1.5rem;
+  border-top: 1px solid #374151;
+  background: #111827;
+}
+
+.video-description p {
+  color: #d1d5db;
+  margin: 0 0 1rem 0;
+  line-height: 1.6;
+}
+
+.video-meta-full {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.video-meta-full span {
+  display: flex;
+  flex-direction: column;
+}
+
+.video-meta-full strong {
+  color: #d1d5db;
+  margin-bottom: 0.25rem;
 }
 </style>

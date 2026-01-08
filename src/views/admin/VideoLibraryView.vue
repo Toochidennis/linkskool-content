@@ -69,7 +69,7 @@
         <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div class="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
             <i class="fas fa-clock"></i>
-            <span>{{ getVideoDuration(course.videoCount) }}</span>
+            <span>{{ getVideoDuration(course.videoCount ?? 0) }}</span>
           </div>
           <div
             class="text-blue-600 dark:text-blue-400 text-sm font-medium flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
@@ -85,10 +85,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toast-notification'
 import type { Course } from '@/api/models'
-import { courseService } from '@/api/services/serviceFactory'
+import { videoLibraryService } from '@/api/services/serviceFactory'
 
 const router = useRouter()
+const $toast = useToast()
 const courseList = ref<Course[]>([])
 const isLoading = ref(false)
 const searchQuery = ref('')
@@ -136,12 +138,12 @@ const getCourseIcon = (courseName: string): string => {
       return icon
     }
   }
-  return courseIcons.default
+  return courseIcons.default || 'fas fa-graduation-cap'
 }
 
 const getCourseColor = (courseName: string): string => {
   const hash = courseName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  return courseColors[hash % courseColors.length] || courseColors[0]
+  return courseColors[hash % courseColors.length]!
 }
 
 const getVideoDuration = (videoCount: number): string => {
@@ -181,14 +183,14 @@ const filteredCourses = computed(() => {
 const fetchCourses = async () => {
   isLoading.value = true
   try {
-    const response = await courseService.get()
+    const response = await videoLibraryService.get('courses')
 
     if (response && response.data && Array.isArray(response.data)) {
       courseList.value = response.data.map((courseData: any) => ({
         id: courseData.id,
         courseName: capitalize(courseData.courseName),
         description: courseData.description || '',
-        videoCount: courseData.videoCount || Math.floor(Math.random() * 25) + 5 // Random count for now
+        videoCount: courseData.videoCount || 0
       }))
     }
   } catch (e) {

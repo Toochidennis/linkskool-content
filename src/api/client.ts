@@ -17,6 +17,11 @@ client.interceptors.request.use(
     }
 
     if (config.data instanceof FormData) {
+          console.log(`${config.method?.toUpperCase()} ${config.url}`, {
+      data: config.data,
+      params: config.params,
+      headers: config.headers
+    });
       return config;
     }
 
