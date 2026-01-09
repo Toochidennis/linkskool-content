@@ -18,6 +18,13 @@ export interface NewsImage {
   file?: string;
 }
 
+export interface OldNewsImage {
+  file_name: string;
+  old_file_name: string;
+  file: string | File;
+  is_deleted: boolean;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -34,6 +41,12 @@ export interface CreateNewsPayload {
   author_name: string;
   status: 'draft' | 'published' | 'archived';
   images: File[];
+  old_images?: Array<{
+    file_name: string;
+    old_file_name: string;
+    file: string | File;
+    is_deleted: boolean;
+  }>;
 }
 
 export interface CreateCategoryPayload {

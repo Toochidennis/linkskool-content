@@ -50,18 +50,14 @@
                       </svg>
                       Edit
                     </button>
-                    <button @click="togglePublishStatus(news.id)" class="menu-item"
-                      :disabled="statusLoadingId === news.id"
-                      :class="statusLoadingId === news.id ? 'opacity-60 cursor-not-allowed' : ''">
+                    <button @click="togglePublishStatus(news.id)" class="menu-item">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                       </svg>
                       {{ news.status === 'published' ? 'Archive' : 'Publish' }}
                     </button>
-                    <button @click="deleteNews(news.id)" class="menu-item menu-item-danger"
-                      :disabled="deleteLoadingId === news.id"
-                      :class="deleteLoadingId === news.id ? 'opacity-60 cursor-not-allowed' : ''">
+                    <button @click="deleteNews(news.id)" class="menu-item menu-item-danger">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -210,31 +206,6 @@
         </div>
       </div>
     </Transition>
-
-    <!-- Delete Confirmation Modal -->
-    <Transition name="modal">
-      <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
-        <div class="delete-modal">
-          <div class="delete-modal-header">
-            <h3 class="delete-modal-title">Delete News</h3>
-          </div>
-
-          <div class="delete-modal-body">
-            <p class="delete-modal-text">Are you sure you want to delete this news?</p>
-            <p class="delete-modal-hint">This action cannot be undone.</p>
-          </div>
-
-          <div class="delete-modal-footer">
-            <button @click="closeDeleteModal" class="delete-modal-btn delete-modal-cancel">Cancel</button>
-            <button @click="confirmDelete" :disabled="deleteLoadingId === newsToDelete"
-              class="delete-modal-btn delete-modal-delete"
-              :class="{ 'opacity-50 cursor-not-allowed': deleteLoadingId === newsToDelete }">
-              {{ deleteLoadingId === newsToDelete ? 'Deleting...' : 'Delete' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -262,12 +233,11 @@ interface NewsItem {
 }
 
 const showModal = ref(false);
-const showDeleteModal = ref(false);
-const newsToDelete = ref<number | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const categoryInput = ref<HTMLInputElement | null>(null);
 const imagePreviews = ref<string[]>([]);
 const imageFiles = ref<File[]>([]);
+const originalImages = ref<Array<{ fileName: string; oldFileName: string; file: string; isDeleted: boolean }>>([]);
 const newsList = ref<NewsItem[]>([]);
 const showCategoryInput = ref(false);
 const newCategoryName = ref('');
@@ -275,8 +245,6 @@ const activeMenu = ref<number | null>(null);
 const editingNewsId = ref<number | null>(null);
 const isSubmitting = ref(false);
 const isLoadingCategories = ref(false);
-const statusLoadingId = ref<number | null>(null);
-const deleteLoadingId = ref<number | null>(null);
 
 const formData = ref({
   title: '',
@@ -367,10 +335,17 @@ onMounted(() => {
 });
 
 const isFormValid = computed(() => {
-  return formData.value.title.trim() !== '' &&
-    formData.value.content.trim() !== '' &&
-    formData.value.categories.length > 0 &&
-    imageFiles.value.length > 0;
+  const hasTitle = formData.value.title.trim() !== '';
+  const hasContent = formData.value.content.trim() !== '';
+  const hasCategories = formData.value.categories.length > 0;
+
+  // For editing mode: allow submission if there are original images (even if being deleted) or new images
+  // For create mode: require at least one new image
+  const hasImages = editingNewsId.value !== null
+    ? (originalImages.value.length > 0 || imageFiles.value.length > 0)
+    : imageFiles.value.length > 0;
+
+  return hasTitle && hasContent && hasCategories && hasImages;
 });
 
 const openModal = () => {
@@ -393,6 +368,7 @@ const resetForm = () => {
   };
   imagePreviews.value = [];
   imageFiles.value = [];
+  originalImages.value = [];
   showCategoryInput.value = false;
   newCategoryName.value = '';
   editingNewsId.value = null;
@@ -466,8 +442,21 @@ const addFiles = (files: File[]) => {
 };
 
 const removeImage = (index: number) => {
-  imagePreviews.value.splice(index, 1);
-  imageFiles.value.splice(index, 1);
+  // Check if this is an original image (from editing mode)
+  if (index < originalImages.value.length) {
+    // Mark the original image as deleted instead of removing it
+    const originalImage = originalImages.value[index];
+    if (originalImage) {
+      originalImage.isDeleted = true;
+    }
+    // Remove from previews
+    imagePreviews.value.splice(index, 1);
+  } else {
+    // This is a newly added image, remove from both arrays
+    const newImageIndex = index - originalImages.value.length;
+    imagePreviews.value.splice(index, 1);
+    imageFiles.value.splice(newImageIndex, 1);
+  }
 };
 
 const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
@@ -517,6 +506,16 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
       payload.date_posted = toServerDatetime(formData.value.datePosted);
     }
 
+    // If editing, include old_images array for tracking changes
+    if (editingNewsId.value !== null && originalImages.value.length > 0) {
+      payload.old_images = originalImages.value.map(img => ({
+        file_name: img.fileName,
+        old_file_name: img.oldFileName,
+        file: img.file,
+        is_deleted: img.isDeleted
+      }));
+    }
+
     if (editingNewsId.value !== null) {
       // Update existing news
       const response = await announcement.updateNews(editingNewsId.value, payload);
@@ -558,18 +557,26 @@ const editNews = (news: NewsItem) => {
     categories: [...news.categories],
     author: news.author || '',
   };
-  // Note: For edit, we're keeping previews but would need to re-fetch actual files from server
-  // For now, we'll clear files and require re-upload
+
+  // Load existing images as original images
+  originalImages.value = news.images.map(imgUrl => ({
+    fileName: imgUrl.split('/').pop() || imgUrl,
+    oldFileName: imgUrl.split('/').pop() || imgUrl,
+    file: imgUrl,
+    isDeleted: false
+  }));
+
+  // Set previews from original images
   imagePreviews.value = [...news.images];
-  imageFiles.value = []; // Clear files - user must re-upload if they want to change images
+
+  // Clear new image files
+  imageFiles.value = [];
+
   activeMenu.value = null;
   showModal.value = true;
 };
 
 const togglePublishStatus = async (newsId: number) => {
-  if (statusLoadingId.value === newsId) return;
-  statusLoadingId.value = newsId;
-
   try {
     const news = newsList.value.find(n => n.id === newsId);
     if (news) {
@@ -587,43 +594,28 @@ const togglePublishStatus = async (newsId: number) => {
     toast.error(message);
   } finally {
     activeMenu.value = null;
-    statusLoadingId.value = null;
   }
 };
 
-const deleteNews = (newsId: number) => {
-  newsToDelete.value = newsId;
-  showDeleteModal.value = true;
-  activeMenu.value = null;
-};
-
-const confirmDelete = async () => {
-  if (newsToDelete.value === null) return;
-  if (deleteLoadingId.value === newsToDelete.value) return;
-
-  const newsId = newsToDelete.value;
-  deleteLoadingId.value = newsId;
+const deleteNews = async (newsId: number) => {
+  if (!confirm('Are you sure you want to delete this news?')) {
+    activeMenu.value = null;
+    return;
+  }
 
   try {
     const response = await announcement.deleteNews(newsId);
-
     if (response && response.success) {
       toast.success('News deleted successfully');
       await fetchNews(); // Refresh the list
-      closeDeleteModal();
     }
   } catch (error: unknown) {
     console.error('Failed to delete news:', error);
     const message = error instanceof Error ? error.message : 'Failed to delete news';
     toast.error(message);
   } finally {
-    deleteLoadingId.value = null;
+    activeMenu.value = null;
   }
-};
-
-const closeDeleteModal = () => {
-  showDeleteModal.value = false;
-  newsToDelete.value = null;
 };
 
 const formatDate = (dateString: string) => {
@@ -1250,79 +1242,5 @@ const toServerDatetime = (datetimeLocal: string) => {
 .modal-enter-from .modal-container,
 .modal-leave-to .modal-container {
   transform: scale(0.95);
-}
-
-/* Delete Modal */
-.delete-modal {
-  background: white;
-  border-radius: 0.75rem;
-  width: 90%;
-  max-width: 20rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.delete-modal-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.delete-modal-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.delete-modal-body {
-  padding: 1rem 1.25rem;
-}
-
-.delete-modal-text {
-  color: #374151;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  margin: 0 0 0.5rem 0;
-}
-
-.delete-modal-hint {
-  color: #6b7280;
-  font-size: 0.8125rem;
-  margin: 0;
-}
-
-.delete-modal-footer {
-  display: flex;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  justify-content: flex-end;
-}
-
-.delete-modal-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  border: none;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.delete-modal-cancel {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.delete-modal-cancel:hover {
-  background: #e5e7eb;
-}
-
-.delete-modal-delete {
-  background: #ef4444;
-  color: white;
-}
-
-.delete-modal-delete:hover:not(:disabled) {
-  background: #dc2626;
 }
 </style>

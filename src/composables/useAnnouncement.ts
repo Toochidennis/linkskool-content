@@ -114,27 +114,47 @@ export const useAnnouncement = () => {
   /**
    * Update existing news with multipart/form-data
    * @param id - News ID
-   * @param payload - News data including raw image files
+   * @param payload - Complete news data including all fields, raw image files, and old_images array for tracking changes
    */
-  const updateNews = async (id: number, payload: Partial<CreateNewsPayload>) => {
+  const updateNews = async (id: number, payload: CreateNewsPayload) => {
     try {
       const formData = new FormData();
 
-      if (payload.title) formData.append('title', payload.title);
-      if (payload.content) formData.append('content', payload.content);
+      // Always send all required fields
+      formData.append('title', payload.title);
+      formData.append('content', payload.content);
 
-      // Append category IDs as array if provided
-      if (payload.category_ids && payload.category_ids.length > 0) {
-        payload.category_ids.forEach((id, index) => {
-          formData.append(`category_ids[${index}]`, id.toString());
+      // Append category IDs as array
+      payload.category_ids.forEach((id, index) => {
+        formData.append(`category_ids[${index}]`, id.toString());
+      });
+
+      formData.append('author_id', payload.author_id.toString());
+      formData.append('author_name', payload.author_name);
+      formData.append('status', payload.status);
+
+      if (payload.date_posted) {
+        formData.append('date_posted', payload.date_posted);
+      }
+
+      // Append old_images array if provided - tracks existing images and their deletion status
+      if (payload.old_images && payload.old_images.length > 0) {
+        payload.old_images.forEach((oldImage, index) => {
+          formData.append(`old_images[${index}][file_name]`, oldImage.file_name);
+          formData.append(`old_images[${index}][old_file_name]`, oldImage.old_file_name);
+          formData.append(`old_images[${index}][is_deleted]`, oldImage.is_deleted.toString());
+
+          // Append file data (only if it's a File object, not a string/path)
+          if (oldImage.file instanceof File) {
+            formData.append(`old_images[${index}][file]`, oldImage.file);
+          } else if (typeof oldImage.file === 'string') {
+            // If it's a base64 string or data URL, we need to convert it to a File
+            formData.append(`old_images[${index}][file]`, oldImage.file);
+          }
         });
       }
 
-      if (payload.author_id) formData.append('author_id', payload.author_id.toString());
-      if (payload.author_name) formData.append('author_name', payload.author_name);
-      if (payload.status) formData.append('status', payload.status);
-      if (payload.date_posted) formData.append('date_posted', payload.date_posted);
-
+      // Append new images
       if (payload.images && payload.images.length > 0) {
         payload.images.forEach((image) => {
           formData.append('images[]', image, image.name);
