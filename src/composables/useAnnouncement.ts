@@ -135,21 +135,13 @@ export const useAnnouncement = () => {
       if (payload.status) formData.append('status', payload.status);
       if (payload.date_posted) formData.append('date_posted', payload.date_posted);
 
-      // Append images if provided - use 'images[]' as key for Laravel
       if (payload.images && payload.images.length > 0) {
         payload.images.forEach((image) => {
           formData.append('images[]', image, image.name);
         });
       }
 
-      // Add _method for Laravel PUT emulation
       formData.append('_method', 'PUT');
-
-      console.log('Updating news with ID:', id);
-      // Log FormData contents for debugging
-      for (const pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
 
       const response = await newsService.post(id.toString(), formData as unknown as Record<string, unknown>);
 

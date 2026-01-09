@@ -120,12 +120,16 @@
                         <i class="fas fa-edit text-sm"></i>
                         Edit
                       </button>
-                      <button @click="toggleVideoStatus(video)" class="menu-item">
+                      <button @click="toggleVideoStatus(video)" class="menu-item"
+                        :disabled="statusLoadingId === video.id"
+                        :class="statusLoadingId === video.id ? 'opacity-60 cursor-not-allowed' : ''">
                         <i :class="video.status === 'Published' ? 'fas fa-archive' : 'fas fa-check'"
                           class="text-sm"></i>
                         {{ video.status === 'Published' ? 'Archive' : 'Publish' }}
                       </button>
-                      <button @click="deleteVideo(video.id)" class="menu-item menu-item-danger">
+                      <button @click="deleteVideo(video.id)" class="menu-item menu-item-danger"
+                        :disabled="deleteLoadingId === video.id"
+                        :class="deleteLoadingId === video.id ? 'opacity-60 cursor-not-allowed' : ''">
                         <i class="fas fa-trash text-sm"></i>
                         Delete
                       </button>
@@ -137,9 +141,9 @@
               <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{{ video.description }}</p>
               <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
                 <i class="fas fa-layer-group"></i>
-                <span>{{ video.syllabus }}</span>
+                <span class="truncate max-w-[120px]" :title="video.syllabus">{{ video.syllabus }}</span>
                 <span>•</span>
-                <span>{{ video.topic }}</span>
+                <span class="truncate max-w-[120px]" :title="video.topic">{{ video.topic }}</span>
               </div>
             </div>
           </div>
@@ -212,8 +216,10 @@
             <div class="video-description">
               <p>{{ currentVideo?.description }}</p>
               <div class="video-meta-full">
-                <span><strong>Syllabus:</strong> {{ currentVideo?.syllabus }}</span>
-                <span><strong>Topic:</strong> {{ currentVideo?.topic }}</span>
+                <span class="truncate" :title="currentVideo?.syllabus"><strong>Syllabus:</strong> {{
+                  currentVideo?.syllabus }}</span>
+                <span class="truncate" :title="currentVideo?.topic"><strong>Topic:</strong> {{ currentVideo?.topic
+                }}</span>
                 <span><strong>Level:</strong> {{ currentVideo?.level }}</span>
               </div>
             </div>
@@ -308,13 +314,13 @@
               <button @click="closeAddModal" class="btn-secondary">
                 Cancel
               </button>
-              <button @click="form.status = 'Draft'; submitVideo()"
-                :class="form.status === 'Draft' ? 'btn-status-active bg-amber-500 text-white border-amber-500' : 'btn-status-inactive'"
+              <button @click="form.status = 'Draft'; submitVideo()" :disabled="isSubmitting"
+                :class="[form.status === 'Draft' ? 'btn-status-active bg-amber-500 text-white border-amber-500' : 'btn-status-inactive', isSubmitting ? 'opacity-60 cursor-not-allowed' : '']"
                 class="px-4 py-2 rounded-lg text-sm font-medium border transition cursor-pointer" type="button">
                 <i class="fas fa-pen mr-2"></i>Save as Draft
               </button>
-              <button @click="form.status = 'Published'; submitVideo()"
-                :class="form.status === 'Published' ? 'btn-status-active bg-green-600 text-white border-green-600' : 'btn-status-inactive'"
+              <button @click="form.status = 'Published'; submitVideo()" :disabled="isSubmitting"
+                :class="[form.status === 'Published' ? 'btn-status-active bg-green-600 text-white border-green-600' : 'btn-status-inactive', isSubmitting ? 'opacity-60 cursor-not-allowed' : '']"
                 class="px-4 py-2 rounded-lg text-sm font-medium border transition cursor-pointer" type="button">
                 <i class="fas fa-check mr-2"></i>Publish Now
               </button>
@@ -323,6 +329,31 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Delete Confirmation Modal -->
+    <Transition name="modal">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+        <div class="delete-modal">
+          <div class="delete-modal-header">
+            <h3 class="delete-modal-title">Delete Video</h3>
+          </div>
+
+          <div class="delete-modal-body">
+            <p class="delete-modal-text">Are you sure you want to delete this video?</p>
+            <p class="delete-modal-hint">This action cannot be undone.</p>
+          </div>
+
+          <div class="delete-modal-footer">
+            <button @click="closeDeleteModal" class="delete-modal-btn delete-modal-cancel">Cancel</button>
+            <button @click="confirmDelete" :disabled="deleteLoadingId === videoToDelete"
+              class="delete-modal-btn delete-modal-delete"
+              :class="{ 'opacity-50 cursor-not-allowed': deleteLoadingId === videoToDelete }">
+              {{ deleteLoadingId === videoToDelete ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -375,6 +406,8 @@ const courseName = computed(() => (route.query.name as string) || 'Selected Cour
 
 const videos = ref<VideoItem[]>([])
 const showAddModal = ref(false)
+const showDeleteModal = ref(false)
+const videoToDelete = ref<number | null>(null)
 const showVideoPlayer = ref(false)
 const currentVideo = ref<VideoItem | null>(null)
 const currentVideoType = ref<'youtube' | 'youtube-shorts' | 'vimeo' | 'html5' | 'unknown'>('unknown')
@@ -383,6 +416,9 @@ const thumbnailFile = ref<File | null>(null)
 const activeMenu = ref<number | null>(null)
 const editingVideoId = ref<number | null>(null)
 const originalThumbnailUrl = ref<string>('')
+const isSubmitting = ref(false)
+const statusLoadingId = ref<number | null>(null)
+const deleteLoadingId = ref<number | null>(null)
 
 const levelOptions = ref<string[]>([])
 const levelData = ref<LevelData[]>([])
@@ -473,10 +509,16 @@ const validateForm = (): boolean => {
 }
 
 const submitVideo = async () => {
-  if (editingVideoId.value !== null) {
-    await updateVideo()
-  } else {
-    await createVideo()
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+  try {
+    if (editingVideoId.value !== null) {
+      await updateVideo()
+    } else {
+      await createVideo()
+    }
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -694,6 +736,9 @@ const editVideo = (video: VideoItem) => {
 }
 
 const toggleVideoStatus = async (video: VideoItem) => {
+  if (statusLoadingId.value === video.id) return
+  statusLoadingId.value = video.id
+
   let newStatus: string
 
   if (video.status === 'Published') {
@@ -719,24 +764,45 @@ const toggleVideoStatus = async (video: VideoItem) => {
   } catch (e) {
     console.error('Error updating video status:', e)
     $toast.error('Failed to update video status')
+  } finally {
+    statusLoadingId.value = null
   }
 }
 
-const deleteVideo = async (videoId: number) => {
+const deleteVideo = (videoId: number) => {
+  videoToDelete.value = videoId
+  showDeleteModal.value = true
+  activeMenu.value = null
+}
+
+const confirmDelete = async () => {
+  if (videoToDelete.value === null) return
+  if (deleteLoadingId.value === videoToDelete.value) return
+
+  const videoId = videoToDelete.value
+  deleteLoadingId.value = videoId
+
   try {
     const response = await videoLibraryService.delete(`videos/${videoId}`)
 
     if (response.success) {
       $toast.success(response.message || 'Video deleted successfully')
-      activeMenu.value = null
       await fetchVideos()
+      closeDeleteModal()
     } else {
       $toast.error(response.message || 'Failed to delete video')
     }
   } catch (e) {
     console.error('Error deleting video:', e)
     $toast.error('Failed to delete video')
+  } finally {
+    deleteLoadingId.value = null
   }
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  videoToDelete.value = null
 }
 
 const onSyllabusChange = () => {
@@ -1342,5 +1408,79 @@ onMounted(() => {
 .video-meta-full strong {
   color: #d1d5db;
   margin-bottom: 0.25rem;
+}
+
+/* Delete Modal */
+.delete-modal {
+  background: white;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 20rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.delete-modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.delete-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.delete-modal-body {
+  padding: 1rem 1.25rem;
+}
+
+.delete-modal-text {
+  color: #374151;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.delete-modal-hint {
+  color: #6b7280;
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.delete-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  justify-content: flex-end;
+}
+
+.delete-modal-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-modal-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.delete-modal-cancel:hover {
+  background: #e5e7eb;
+}
+
+.delete-modal-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.delete-modal-delete:hover:not(:disabled) {
+  background: #dc2626;
 }
 </style>

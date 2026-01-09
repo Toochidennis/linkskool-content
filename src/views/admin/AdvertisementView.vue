@@ -81,14 +81,17 @@
                     </svg>
                     Edit
                   </button>
-                  <button @click="togglePublishStatus(ad.id)" class="menu-item">
+                  <button @click="togglePublishStatus(ad.id)" class="menu-item" :disabled="statusLoadingId === ad.id"
+                    :class="statusLoadingId === ad.id ? 'opacity-60 cursor-not-allowed' : ''">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                     </svg>
                     {{ ad.status === 'published' ? 'Archive' : 'Publish' }}
                   </button>
-                  <button @click="deleteAd(ad.id)" class="menu-item menu-item-danger">
+                  <button @click="deleteAd(ad.id)" class="menu-item menu-item-danger"
+                    :disabled="deleteLoadingId === ad.id"
+                    :class="deleteLoadingId === ad.id ? 'opacity-60 cursor-not-allowed' : ''">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -198,7 +201,7 @@
                   <span class="toggle-slider"></span>
                 </button>
                 <span class="toggle-label">{{ formData.isSponsored ? 'Yes, this is a sponsored ad' : 'No, regular ad'
-                  }}</span>
+                }}</span>
               </div>
             </div>
 
@@ -218,7 +221,8 @@
               <!-- Image Preview -->
               <div v-if="imagePreview" class="image-preview-single">
                 <img :src="loadImage(imagePreview)" alt="Preview" class="preview-image-single" />
-                <button type="button" @click="removeImage" class="remove-image-btn">
+                <button type="button" @click="removeImage" class="remove-image-btn" :disabled="isRemovingImage"
+                  :class="isRemovingImage ? 'opacity-60 cursor-not-allowed' : ''">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -240,6 +244,31 @@
                 {{ isSubmitting ? 'Publishing...' : 'Publish Now' }}
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Delete Confirmation Modal -->
+    <Transition name="modal">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+        <div class="delete-modal">
+          <div class="delete-modal-header">
+            <h3 class="delete-modal-title">Delete Advertisement</h3>
+          </div>
+
+          <div class="delete-modal-body">
+            <p class="delete-modal-text">Are you sure you want to delete this advertisement?</p>
+            <p class="delete-modal-hint">This action cannot be undone.</p>
+          </div>
+
+          <div class="delete-modal-footer">
+            <button @click="closeDeleteModal" class="delete-modal-btn delete-modal-cancel">Cancel</button>
+            <button @click="confirmDelete" :disabled="deleteLoadingId === adToDelete"
+              class="delete-modal-btn delete-modal-delete"
+              :class="{ 'opacity-50 cursor-not-allowed': deleteLoadingId === adToDelete }">
+              {{ deleteLoadingId === adToDelete ? 'Deleting...' : 'Delete' }}
+            </button>
           </div>
         </div>
       </div>
@@ -273,6 +302,8 @@ interface AdItem {
 }
 
 const showModal = ref(false);
+const showDeleteModal = ref(false);
+const adToDelete = ref<number | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const imagePreview = ref<string>('');
 const imageFile = ref<File | null>(null);
@@ -280,6 +311,10 @@ const adsList = ref<AdItem[]>([]);
 const activeMenu = ref<number | null>(null);
 const editingAdId = ref<number | null>(null);
 const isSubmitting = ref(false);
+const isRemovingImage = ref(false);
+const originalImageFileName = ref('');
+const statusLoadingId = ref<number | null>(null);
+const deleteLoadingId = ref<number | null>(null);
 
 // Filter states
 const searchQuery = ref('');
@@ -450,6 +485,8 @@ const addFile = (file: File) => {
 };
 
 const removeImage = () => {
+  // Just clear the preview locally - don't delete from server yet
+  // Actual deletion will happen on submit if a new image is uploaded
   imagePreview.value = '';
   imageFile.value = null;
   if (fileInput.value) {
@@ -482,24 +519,29 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
 
     if (editingAdId.value !== null) {
       // Update existing advertisement
-      const payload: Partial<CreateAdvertisementPayload> = {
-        title: formData.value.title,
-        content: formData.value.content,
-        action_url: formData.value.actionUrl,
-        action_text: formData.value.actionText,
-        display_position: formData.value.displayPosition,
-        author_id: authorId,
-        author_name: authorName,
-        is_sponsored: formData.value.isSponsored,
-        status,
-      };
 
-      // Only include image if a new one is selected
+      const payload = new FormData();
+      payload.append('title', formData.value.title);
+      payload.append('content', formData.value.content);
+      payload.append('action_url', formData.value.actionUrl);
+      payload.append('action_text', formData.value.actionText);
+      payload.append('display_position', formData.value.displayPosition);
+      payload.append('author_id', authorId.toString());
+      payload.append('author_name', authorName);
+      payload.append('is_sponsored', formData.value.isSponsored ? '1' : '0');
+      payload.append('status', status);
+
+      // If a new image is selected, include it
       if (imageFile.value) {
-        payload.image = imageFile.value;
+        payload.append('image', imageFile.value);
+
+        // If there was an original image, send it for deletion
+        if (originalImageFileName.value) {
+          payload.append('old_file_name', originalImageFileName.value);
+        }
       }
 
-      const response = await advertisement.updateAd(editingAdId.value, payload);
+      const response = await advertisement.updateAd(editingAdId.value, payload as Record<string, any>);
 
       if (response && response.success) {
         toast.success('Advertisement updated successfully');
@@ -559,6 +601,7 @@ const editAd = (ad: AdItem) => {
     displayPosition: ad.displayPosition,
     isSponsored: ad.isSponsored,
   };
+  originalImageFileName.value = ad.image;
   imagePreview.value = ad.image;
   imageFile.value = null;
   activeMenu.value = null;
@@ -566,6 +609,9 @@ const editAd = (ad: AdItem) => {
 };
 
 const togglePublishStatus = async (adId: number) => {
+  if (statusLoadingId.value === adId) return;
+  statusLoadingId.value = adId;
+
   try {
     const ad = adsList.value.find(a => a.id === adId);
     if (ad) {
@@ -593,14 +639,22 @@ const togglePublishStatus = async (adId: number) => {
     toast.error(message);
   } finally {
     activeMenu.value = null;
+    statusLoadingId.value = null;
   }
 };
 
-const deleteAd = async (adId: number) => {
-  if (!confirm('Are you sure you want to delete this advertisement?')) {
-    activeMenu.value = null;
-    return;
-  }
+const deleteAd = (adId: number) => {
+  adToDelete.value = adId;
+  showDeleteModal.value = true;
+  activeMenu.value = null;
+};
+
+const confirmDelete = async () => {
+  if (adToDelete.value === null) return;
+  if (deleteLoadingId.value === adToDelete.value) return;
+
+  const adId = adToDelete.value;
+  deleteLoadingId.value = adId;
 
   try {
     const response = await advertisement.deleteAd(adId);
@@ -608,14 +662,20 @@ const deleteAd = async (adId: number) => {
     if (response && response.success) {
       toast.success('Advertisement deleted successfully');
       await fetchAds(); // Refresh the list
+      closeDeleteModal();
     }
   } catch (error: unknown) {
     console.error('Failed to delete ad:', error);
     const message = error instanceof Error ? error.message : 'Failed to delete advertisement';
     toast.error(message);
   } finally {
-    activeMenu.value = null;
+    deleteLoadingId.value = null;
   }
+};
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false;
+  adToDelete.value = null;
 };
 
 const getStatusClass = (status: string) => {
@@ -1175,5 +1235,79 @@ const getStatusClass = (status: string) => {
 .modal-enter-from .modal-container,
 .modal-leave-to .modal-container {
   transform: scale(0.95);
+}
+
+/* Delete Modal */
+.delete-modal {
+  background: white;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 20rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.delete-modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.delete-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.delete-modal-body {
+  padding: 1rem 1.25rem;
+}
+
+.delete-modal-text {
+  color: #374151;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.delete-modal-hint {
+  color: #6b7280;
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.delete-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  justify-content: flex-end;
+}
+
+.delete-modal-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-modal-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.delete-modal-cancel:hover {
+  background: #e5e7eb;
+}
+
+.delete-modal-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.delete-modal-delete:hover:not(:disabled) {
+  background: #dc2626;
 }
 </style>

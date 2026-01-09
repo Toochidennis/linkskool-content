@@ -63,12 +63,6 @@ export const useAdvertisement = () => {
         throw new Error('Invalid image file');
       }
 
-      console.log('Creating advertisement with FormData');
-      // Log FormData contents for debugging
-      for (const pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
-
       const response = await advertisementService.post(undefined, formData as unknown as Record<string, unknown>);
 
       return response;
@@ -86,32 +80,15 @@ export const useAdvertisement = () => {
    * @param id - Advertisement ID
    * @param payload - Advertisement data including raw image file (optional)
    */
-  const updateAd = async (id: number, payload: Partial<CreateAdvertisementPayload>) => {
+  const updateAd = async (id: number, payload: Record<string, any>) => {
     try {
-      const formData = new FormData();
-
-      if (payload.title) formData.append('title', payload.title);
-      if (payload.content) formData.append('content', payload.content);
-      if (payload.action_url) formData.append('action_url', payload.action_url);
-      if (payload.action_text) formData.append('action_text', payload.action_text);
-      if (payload.author_id) formData.append('author_id', payload.author_id.toString());
-      if (payload.author_name) formData.append('author_name', payload.author_name);
-      if (payload.is_sponsored !== undefined) formData.append('is_sponsored', payload.is_sponsored ? '1' : '0');
-      if (payload.status) formData.append('status', payload.status);
-      if (payload.display_position) formData.append('display_position', payload.display_position);
-
-      // Append image file if provided - ensure it's a valid File object
-      if (payload.image && payload.image instanceof File) {
-        formData.append('image', payload.image);
-      }
-
       console.log('Updating advertisement with ID:', id);
       // Log FormData contents for debugging
-      for (const pair of formData.entries()) {
+      for (const pair of payload.entries()) {
         console.log(pair[0], pair[1]);
       }
 
-      const response = await advertisementService.put(id.toString(), formData as unknown as Record<string, unknown>);
+      const response = await advertisementService.post(id.toString(), payload as unknown as Record<string, unknown>);
 
       return response;
     } catch (error: any) {
@@ -158,12 +135,31 @@ export const useAdvertisement = () => {
     }
   };
 
+  /**
+   * Delete an image from an advertisement
+   * @param id - Advertisement ID
+   * @param fileName - Image file name to delete
+   */
+  const deleteAdImage = async (id: number, fileName: string) => {
+    try {
+      const response = await advertisementService.delete(`${id}/images`, { fileName });
+      return response;
+    } catch (error: any) {
+      throw {
+        success: false,
+        message: error.response?.data?.message || 'Failed to delete advertisement image',
+        error
+      };
+    }
+  };
+
   return {
     fetchAds,
     fetchAdById,
     createAd,
     updateAd,
     deleteAd,
-    updateAdStatus
+    updateAdStatus,
+    deleteAdImage
   };
 };

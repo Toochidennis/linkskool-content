@@ -17,11 +17,6 @@ client.interceptors.request.use(
     }
 
     if (config.data instanceof FormData) {
-          console.log(`${config.method?.toUpperCase()} ${config.url}`, {
-      data: config.data,
-      params: config.params,
-      headers: config.headers
-    });
       return config;
     }
 
@@ -30,11 +25,11 @@ client.interceptors.request.use(
       config.data = toSnake(config.data);
     }
 
-    // console.log(`${config.method?.toUpperCase()} ${config.url}`, {
-    //   data: config.data,
-    //   params: config.params,
-    //   headers: config.headers
-    // });
+    console.log(`${config.method?.toUpperCase()} ${config.url}`, {
+      data: config.data,
+      params: config.params,
+      headers: config.headers
+    });
     return config;
   },
   err => Promise.reject(err)
