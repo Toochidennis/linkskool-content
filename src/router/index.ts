@@ -3,24 +3,25 @@ import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import UserView from '@/views/admin/TeamView.vue'
-import AssessmentView from '@/views/admin/AssessmentView.vue'
-import ProgramsView from '@/views/admin/ProgramView.vue'
+import AssessmentView from '@/views/admin/cbt/AssessmentView.vue'
+import ExamTypeView from '@/views/admin/cbt/ExamTypeView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
-import CoursesVue from '@/views/admin/CoursesView.vue'
+import CoursesVue from '@/views/admin/cbt/CoursesView.vue'
 import UploadView from '@/views/user/UploadView.vue'
 import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
-import TopicsView from '@/views/admin/TopicsView.vue'
-import SyllabusView from '@/views/admin/SyllabusView.vue'
-import AnnouncementView from '@/views/admin/AnnouncementView.vue'
-import AdmissionsView from '@/views/admin/AdmissionsView.vue'
-import ChallengeView from '@/views/admin/ChallengeView.vue'
-import AssessmentSpreadsheetView from '@/views/admin/AssessmentSpreadsheetView.vue'
-import AssessmentFormView from '@/views/admin/AssessmentFormView.vue'
-import AdvertisementView from '@/views/admin/AdvertisementView.vue'
-import VideoLibraryView from '@/views/admin/VideoLibraryView.vue'
-import VideoLibraryDetailsView from '@/views/admin/VideoLibraryDetailsView.vue'
-import LevelView from '@/views/admin/LevelView.vue'
+import TopicsView from '@/views/admin/cbt/TopicsView.vue'
+import SyllabusView from '@/views/admin/cbt/SyllabusView.vue'
+import AnnouncementView from '@/views/admin/updates/AnnouncementView.vue'
+import AdmissionsView from '@/views/admin/updates/AdmissionsView.vue'
+import ChallengeView from '@/views/admin/cbt/ChallengeView.vue'
+import AssessmentSpreadsheetView from '@/views/admin/cbt/AssessmentSpreadsheetView.vue'
+import AssessmentFormView from '@/views/admin/cbt/AssessmentFormView.vue'
+import AdvertisementView from '@/views/admin/updates/AdvertisementView.vue'
+import VideoLibraryView from '@/views/admin/learn/VideoLibraryView.vue'
+import VideoLibraryDetailsView from '@/views/admin/learn/VideoLibraryDetailsView.vue'
+import LevelView from '@/views/admin/learn/LevelView.vue'
+import ProgramLibraryView from '@/views/admin/learn/ProgramLibraryView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -109,6 +110,11 @@ const routes: RouteRecordRaw[] = [
         component: VideoLibraryDetailsView
       },
       {
+        path: 'learn-programs',
+        name: 'Programs',
+        component: ProgramLibraryView
+      },
+      {
         path: 'levels',
         name: 'Levels',
         component: LevelView
@@ -124,9 +130,9 @@ const routes: RouteRecordRaw[] = [
         component: AssessmentFormView
       },
       {
-        path: 'programs',
-        name: 'Programs',
-        component: ProgramsView
+        path: 'exam-types',
+        name: 'Exam Types',
+        component: ExamTypeView
       },
       {
         path: 'challenges',

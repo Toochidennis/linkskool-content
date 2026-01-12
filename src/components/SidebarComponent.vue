@@ -107,7 +107,7 @@ const menuItems: MenuItem[] = [
     icon: 'fas fa-layer-group',
     children: [
       { name: 'Courses', route: '/dashboard/courses', icon: 'fas fa-book' },
-      { name: 'Programs', route: '/dashboard/programs', icon: 'fas fa-sitemap' },
+      { name: 'Exam Types', route: '/dashboard/exam-types', icon: 'fas fa-file-alt' },
       { name: 'Topics', route: '/dashboard/topics', icon: 'fas fa-list' },
       { name: 'Syllabus', route: '/dashboard/syllabus', icon: 'fas fa-graduation-cap' },
       { name: 'Assessments', route: '/dashboard/assessments', icon: 'fas fa-question-circle' },
@@ -129,6 +129,7 @@ const menuItems: MenuItem[] = [
     children: [
       {name: 'Levels', route: '/dashboard/levels', icon: 'fas fa-layer-group' },
       { name: 'Videos', route: '/dashboard/video-library', icon: 'fas fa-video' },
+      { name: 'Programs', route: '/dashboard/learn-programs', icon: 'fas fa-sitemap' },
     ]
   },
 ]
