@@ -1,59 +1,43 @@
 <template>
-  <div>
-    <!-- Header Section -->
-    <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6">
-      <div class="flex justify-between items-center">
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Advertisements</h1>
-        <button @click="openModal"
-          class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Add Ad
-        </button>
+  <div class="advertisement-library">
+    <!-- Modern Header with Title, Description, Search & Filter -->
+    <div class="header-section">
+      <div class="header-left">
+        <h1 class="header-title">Advertisements</h1>
+        <p class="header-subtitle">Create and manage promotional advertisements across your platform</p>
       </div>
-    </div>
 
-    <!-- Filters Section -->
-    <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="header-right">
         <!-- Search Bar -->
-        <div class="relative">
-          <input v-model="searchQuery" type="text" placeholder="Search ads..."
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
-          <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor"
-            viewBox="0 0 24 24">
+        <div class="search-container">
+          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
+          <input v-model="searchQuery" type="text" placeholder="Search ads..." class="search-input" />
         </div>
 
-        <!-- Filter by Date -->
-        <div>
-          <select v-model="dateFilter"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-            <option value="">All Dates</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-        </div>
+        <!-- Filter Button with Badge -->
+        <button @click="showFilterModal = true" class="filter-button"
+          :class="{ 'filter-active': activeFiltersCount > 0 }">
+          <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          <span v-if="activeFiltersCount > 0" class="filter-badge">{{ activeFiltersCount }}</span>
+        </button>
 
-        <!-- Filter by Status -->
-        <div>
-          <select v-model="statusFilter"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-            <option value="">All Status</option>
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
+        <!-- Clear Filters Button -->
+        <Transition name="fade-slide">
+          <button v-if="activeFiltersCount > 0" @click="clearAllFilters" class="clear-button">
+            Clear
+          </button>
+        </Transition>
       </div>
     </div>
 
     <!-- Grid View -->
-    <div v-if="filteredAdsList.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-if="filteredAdsList.length > 0" class="ads-grid">
       <div v-for="ad in filteredAdsList" :key="ad.id" class="ad-card">
         <div class="ad-image-container">
           <img :src="loadImage(ad.image)" :alt="ad.title" class="ad-image" />
@@ -201,7 +185,7 @@
                   <span class="toggle-slider"></span>
                 </button>
                 <span class="toggle-label">{{ formData.isSponsored ? 'Yes, this is a sponsored ad' : 'No, regular ad'
-                }}</span>
+                  }}</span>
               </div>
             </div>
 
@@ -244,6 +228,92 @@
                 {{ isSubmitting ? 'Publishing...' : 'Publish Now' }}
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Floating Action Button (Add Ad) -->
+    <button @click="openModal" class="floating-action-button" title="Add new advertisement">
+      <svg class="fab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+      </svg>
+    </button>
+
+    <!-- Filter Modal -->
+    <Transition name="modal">
+      <div v-if="showFilterModal" class="modal-overlay" @click.self="showFilterModal = false">
+        <div class="filter-modal">
+          <div class="filter-modal-header">
+            <h3 class="filter-modal-title">Filter Advertisements</h3>
+            <button @click="showFilterModal = false" class="filter-close-button">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="filter-modal-body">
+            <!-- Filter by Status -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Status</h4>
+              <div class="filter-options">
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="statusFilter" value="" name="status" />
+                  <span>All Status</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="statusFilter" value="published" name="status" />
+                  <span class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                    Published
+                  </span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="statusFilter" value="draft" name="status" />
+                  <span class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    Draft
+                  </span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="statusFilter" value="archived" name="status" />
+                  <span class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 bg-gray-500 rounded-full"></span>
+                    Archived
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Filter by Date -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Date Created</h4>
+              <div class="filter-options">
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="dateFilter" value="" name="date" />
+                  <span>All Dates</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="dateFilter" value="today" name="date" />
+                  <span>Today</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="dateFilter" value="week" name="date" />
+                  <span>This Week</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="dateFilter" value="month" name="date" />
+                  <span>This Month</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-modal-footer">
+            <button @click="showFilterModal = false" class="filter-btn-secondary">
+              Done
+            </button>
           </div>
         </div>
       </div>
@@ -303,6 +373,7 @@ interface AdItem {
 
 const showModal = ref(false);
 const showDeleteModal = ref(false);
+const showFilterModal = ref(false);
 const adToDelete = ref<number | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const imagePreview = ref<string>('');
@@ -408,6 +479,14 @@ const filteredAdsList = computed(() => {
   }
 
   return filtered;
+});
+
+// Count active filters
+const activeFiltersCount = computed(() => {
+  let count = 0;
+  if (statusFilter.value) count++;
+  if (dateFilter.value) count++;
+  return count;
 });
 
 // Load data on component mount
@@ -678,6 +757,12 @@ const closeDeleteModal = () => {
   adToDelete.value = null;
 };
 
+const clearAllFilters = () => {
+  searchQuery.value = '';
+  dateFilter.value = '';
+  statusFilter.value = '';
+};
+
 const getStatusClass = (status: string) => {
   switch (status) {
     case 'published':
@@ -693,6 +778,247 @@ const getStatusClass = (status: string) => {
 </script>
 
 <style scoped>
+/* Main Container */
+.advertisement-library {
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 2rem;
+}
+
+/* Header Section - Modern Design */
+.header-section {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding: 0;
+  background: transparent;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
+}
+
+.header-subtitle {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 500;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+/* Search Container */
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 24rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  border: 1.5px solid #e5e7eb;
+  background: white;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  color: #111827;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.search-input:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Filter Button */
+.filter-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid #e5e7eb;
+  background: white;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-button:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.filter-button.filter-active {
+  border-color: #4f46e5;
+  background: #f0f4ff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.filter-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #6b7280;
+  stroke-width: 1.8;
+}
+
+.filter-active .filter-icon {
+  color: #4f46e5;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+/* Clear Button */
+.clear-button {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.clear-button:hover {
+  color: #374151;
+  border-color: #d1d5db;
+  background: #fafafa;
+}
+
+/* Ads Grid */
+.ads-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Floating Action Button */
+.floating-action-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4), 0 0 0 0 rgba(79, 70, 229, 0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 40;
+  animation: floatIn 0.5s ease-out 0.2s both;
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: scale(0.3) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.floating-action-button:hover {
+  transform: scale(1.1) translateY(-4px);
+  box-shadow: 0 15px 40px rgba(79, 70, 229, 0.5), 0 0 0 0 rgba(79, 70, 229, 0.2);
+}
+
+.floating-action-button:active {
+  transform: scale(0.95);
+}
+
+.fab-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 2.5;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
 /* Grid Layout */
 .grid {
   display: grid;
@@ -704,15 +1030,29 @@ const getStatusClass = (status: string) => {
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
+  animation: cardFadeIn 0.4s ease-out;
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ad-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-6px);
+  border-color: #4f46e5;
 }
 
 .ad-image-container {
@@ -1309,5 +1649,178 @@ const getStatusClass = (status: string) => {
 
 .delete-modal-delete:hover:not(:disabled) {
   background: #dc2626;
+}
+
+/* Filter Modal */
+.filter-modal {
+  background: white;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 28rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.filter-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.filter-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.filter-close-button {
+  padding: 0.5rem;
+  color: #6b7280;
+  transition: color 0.2s;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+
+.filter-close-button:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.filter-modal-body {
+  padding: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.filter-section {
+  margin-bottom: 2rem;
+}
+
+.filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.filter-checkbox input[type="radio"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #4f46e5;
+  cursor: pointer;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.filter-checkbox span {
+  font-size: 0.875rem;
+  color: #374151;
+  user-select: none;
+}
+
+.filter-checkbox:hover span {
+  color: #111827;
+}
+
+.filter-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  justify-content: flex-end;
+}
+
+.filter-btn-secondary {
+  padding: 0.625rem 1.5rem;
+  background: #4f46e5;
+  color: white;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filter-btn-secondary:hover {
+  background: #4338ca;
+}
+
+/* Smooth Transition Animations */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active .modal-container,
+.modal-leave-active .modal-container {
+  transition: transform 0.3s ease;
+}
+
+.modal-enter-from .modal-container,
+.modal-leave-to .modal-container {
+  transform: scale(0.95);
+}
+
+.modal-enter-active .filter-modal,
+.modal-leave-active .filter-modal {
+  transition: transform 0.3s ease;
+}
+
+.modal-enter-from .filter-modal,
+.modal-leave-to .filter-modal {
+  transform: scale(0.95);
 }
 </style>

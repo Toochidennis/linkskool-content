@@ -18,8 +18,8 @@
             <select v-model="selectedProgram"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer text-sm max-h-48 overflow-y-auto">
               <option value="">-- Choose a program --</option>
-              <option v-for="program in programs" :key="program.id" :value="program.id">
-                {{ program.name }}
+              <option v-for="examType in examTypes" :key="examType.id" :value="examType.id">
+                {{ examType.name }}
               </option>
             </select>
           </div>
@@ -186,8 +186,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import type { Program, Exam } from '@/api/models'
-import { programService, questionService, examService } from '@/api/services/serviceFactory';
+import type { ExamType, Exam } from '@/api/models'
+import { examTypeService, questionService, examService } from '@/api/services/serviceFactory';
 import { useToast } from 'vue-toast-notification';
 import { useQuestionUpload } from '@/composables/useQuestionUpload';
 import { readCSVFile, readHTMLFile, readJSONFile, readDocxFile, extractZipForValidation } from '@/composables/useFileUpload';
@@ -210,20 +210,20 @@ const htmlData = ref<Array<Record<string, string>>>([]);
 const isDraggingZip = ref(false);
 
 // Program data
-const programs = ref<Program[]>([])
+const examTypes = ref<ExamType[]>([])
 
 const fetchPrograms = async () => {
   try {
-    const response = await programService.get()
+    const response = await examTypeService.get()
 
     if (response && response.data && Array.isArray(response.data)) {
-      programs.value = response.data.map((program: Program) => ({
-        id: program.id,
-        name: program.name,
-        shortname: program.shortname,
+      examTypes.value = response.data.map((examType: ExamType) => ({
+        id: examType.id,
+        name: examType.name,
+        shortname: examType.shortname,
         expanded: false,
-        courses: program.courses || [],
-        isActive: program.isActive
+        courses: examType.courses || [],
+        isActive: examType.isActive
       }));
     }
   } catch (error) {
@@ -245,8 +245,8 @@ const availableSubjects = computed(() => {
   if (!selectedProgram.value) {
     return []
   }
-  const program = programs.value.find(p => p.id === parseInt(selectedProgram.value))
-  return program ? program.courses : []
+  const examType = examTypes.value.find(p => p.id === parseInt(selectedProgram.value))
+  return examType ? examType.courses : []
 })
 
 // Watch for program changes and reset subject
@@ -525,7 +525,7 @@ const submitUpload = async () => {
       exam_type_id: parseInt(selectedProgram.value),
       course_id: parseInt(selectedSubject.value),
       course_name: availableSubjects.value.find(c => c.id === parseInt(selectedSubject.value))?.courseName || '',
-      title: programs.value.find(p => p.id === parseInt(selectedProgram.value))?.name || '',
+      title: examTypes.value.find(p => p.id === parseInt(selectedProgram.value))?.name || '',
       description: '',
       duration: 1800,
       user_id: userObj ? userObj.id : null,

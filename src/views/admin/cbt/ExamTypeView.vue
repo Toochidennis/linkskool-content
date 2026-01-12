@@ -1,21 +1,21 @@
 <template>
   <div class="space-y-8">
     <div>
-      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Program Setup</h2>
-      <p class="text-gray-600 dark:text-gray-400">Manage your educational program structure</p>
+      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Exam Type Setup</h2>
+      <p class="text-gray-600 dark:text-gray-400">Manage your educational exam type structure</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
       <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Program Structure</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Exam Type Structure</h3>
           <button @click="showModal = true"
             class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap">
-            <i class="fas fa-plus mr-2"></i>Add Program
+            <i class="fas fa-plus mr-2"></i>Add Exam Type
           </button>
         </div>
       </div>
       <div class="p-6">
-        <div v-for="program in programStructure" :key="program.id" class="mb-4">
+        <div v-for="program in examTypeStructure" :key="program.id" class="mb-4">
           <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div class="flex items-center">
               <button @click="program.expanded = !program.expanded" class="mr-3 cursor-pointer">
@@ -332,8 +332,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useToast } from 'vue-toast-notification';
-import type { Program, Course } from '@/api/models';
-import { programService, courseService } from '@/api/services/serviceFactory';
+import type { ExamType, Course } from '@/api/models';
+import { examTypeService, courseService } from '@/api/services/serviceFactory';
 
 const $toast = useToast();
 
@@ -341,7 +341,7 @@ const $toast = useToast();
 const availableCourses = ref<Course[]>([]);
 
 // Program structure
-const programStructure = ref<Program[]>([]);
+const examTypeStructure = ref<ExamType[]>([]);
 
 const fetchCourses = async () => {
   try {
@@ -357,10 +357,10 @@ const fetchCourses = async () => {
 
 const fetchPrograms = async () => {
   try {
-    const response = await programService.get()
+    const response = await examTypeService.get()
 
     if (response && response.data && Array.isArray(response.data)) {
-      programStructure.value = response.data.map((program: Program) => ({
+      examTypeStructure.value = response.data.map((program: ExamType) => ({
         id: program.id,
         name: program.name,
         shortname: program.shortname,
@@ -442,7 +442,7 @@ const addProgram = async () => {
   }
 
   try {
-    const response = await programService.post(undefined, {
+    const response = await examTypeService.post(undefined, {
       name: capitalize(newProgram.value.name),
       shortname: newProgram.value.shortname,
       courseIds: newProgram.value.courseIds,
@@ -461,7 +461,7 @@ const addProgram = async () => {
   }
 };
 
-const openEditModal = (program: Program & { expanded?: boolean }) => {
+const openEditModal = (program: ExamType & { expanded?: boolean }) => {
   editingProgram.value = {
     id: program.id,
     name: program.name,
@@ -485,7 +485,7 @@ const updateProgram = async () => {
   }
 
   try {
-    const response = await programService.put(`${editingProgram.value.id}`, {
+    const response = await examTypeService.put(`${editingProgram.value.id}`, {
       name: capitalize(editingProgram.value.name),
       shortname: editingProgram.value.shortname,
       courseIds: editingProgram.value.courseIds,
@@ -509,7 +509,7 @@ const closeModal = () => {
   newProgram.value = { name: '', shortname: '', courseIds: [], isActive: 1, displayOrder: 0 };
 };
 
-const openDeleteModal = (program: Program) => {
+const openDeleteModal = (program: ExamType) => {
   deletingProgramId.value = program.id;
   showDeleteModal.value = true;
 };
@@ -520,7 +520,7 @@ const confirmDelete = async () => {
   }
 
   try {
-    const response = await programService.delete(`${deletingProgramId.value}`);
+    const response = await examTypeService.delete(`${deletingProgramId.value}`);
 
     if (response.success) {
       $toast.success(response.message || 'Program deleted successfully');

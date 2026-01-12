@@ -1,17 +1,107 @@
 <template>
   <div>
-    <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6">
-      <div class="flex justify-between items-center">
-        <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200">News & Announcements</h2>
-        <button @click="openModal"
-          class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    <!-- Modern Header Section -->
+    <div class="header-section">
+      <div class="header-left">
+        <h1 class="header-title">News & Announcements</h1>
+        <p class="header-subtitle">Share and manage important news and announcements with your community</p>
+      </div>
+      <div class="header-right">
+        <div class="search-container">
+          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          Add News
+          <input v-model="searchQuery" type="text" placeholder="Search news..." class="search-input" />
+        </div>
+        <button @click="showFilterModal = true" class="filter-button"
+          :class="{ 'filter-active': activeFiltersCount > 0 }">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          <span v-if="activeFiltersCount > 0" class="filter-badge">{{ activeFiltersCount }}</span>
         </button>
+        <Transition name="fade-slide">
+          <button v-if="activeFiltersCount > 0" @click="clearAllFilters" class="clear-filters-btn">
+            Clear
+          </button>
+        </Transition>
       </div>
     </div>
+
+    <!-- Filter Modal -->
+    <Transition name="modal">
+      <div v-if="showFilterModal" class="modal-overlay" @click.self="showFilterModal = false">
+        <div class="filter-modal">
+          <div class="filter-modal-header">
+            <h3 class="filter-modal-title">Filter News</h3>
+            <button @click="showFilterModal = false" class="filter-close-button">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div class="filter-modal-body">
+            <!-- Status Filter -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Status</h4>
+              <div class="filter-options">
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.status" value="all" />
+                  <span>All Status</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.status" value="published" />
+                  <span><span class="status-dot" style="background: #10b981;"></span>Published</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.status" value="draft" />
+                  <span><span class="status-dot" style="background: #f59e0b;"></span>Draft</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.status" value="archived" />
+                  <span><span class="status-dot" style="background: #6b7280;"></span>Archived</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Date Filter -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Date</h4>
+              <div class="filter-options">
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.dateRange" value="all" />
+                  <span>All Dates</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.dateRange" value="today" />
+                  <span>Today</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.dateRange" value="week" />
+                  <span>This Week</span>
+                </label>
+                <label class="filter-checkbox">
+                  <input type="radio" v-model="filters.dateRange" value="month" />
+                  <span>This Month</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="filter-modal-footer">
+            <button @click="showFilterModal = false" class="filter-btn-secondary">Apply Filters</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Floating Action Button -->
+    <button @click="openModal" class="floating-action-button" title="Add News">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+    </button>
 
     <!-- Masonry Grid -->
     <div v-if="newsList.length > 0" class="masonry-grid">
@@ -233,6 +323,7 @@ interface NewsItem {
 }
 
 const showModal = ref(false);
+const showFilterModal = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const categoryInput = ref<HTMLInputElement | null>(null);
 const imagePreviews = ref<string[]>([]);
@@ -245,6 +336,12 @@ const activeMenu = ref<number | null>(null);
 const editingNewsId = ref<number | null>(null);
 const isSubmitting = ref(false);
 const isLoadingCategories = ref(false);
+const searchQuery = ref('');
+
+const filters = ref({
+  status: 'all',
+  dateRange: 'all',
+});
 
 const formData = ref({
   title: '',
@@ -333,6 +430,19 @@ onMounted(() => {
   fetchCategories();
   fetchNews();
 });
+
+const activeFiltersCount = computed(() => {
+  let count = 0;
+  if (filters.value.status !== 'all') count++;
+  if (filters.value.dateRange !== 'all') count++;
+  return count;
+});
+
+const clearAllFilters = () => {
+  filters.value.status = 'all';
+  filters.value.dateRange = 'all';
+  searchQuery.value = '';
+};
 
 const isFormValid = computed(() => {
   const hasTitle = formData.value.title.trim() !== '';
@@ -657,178 +767,134 @@ const toServerDatetime = (datetimeLocal: string) => {
 </script>
 
 <style scoped>
-/* Masonry Grid */
-.masonry-grid {
-  column-count: 3;
-  column-gap: 1.5rem;
-  margin-top: 1.5rem;
-}
-
-@media (max-width: 1024px) {
-  .masonry-grid {
-    column-count: 2;
-  }
-}
-
-@media (max-width: 640px) {
-  .masonry-grid {
-    column-count: 1;
-  }
-}
-
-.masonry-item {
-  break-inside: avoid;
-  margin-bottom: 1.5rem;
-}
-
-/* News Card */
-.news-card {
-  background: white;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
-}
-
-.news-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.news-image-container {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-}
-
-.news-image {
-  width: 100%;
-  height: auto;
-  display: block;
-  object-fit: cover;
-}
-
-.image-count-badge {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: rgba(0, 0, 0, 0.75);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  backdrop-filter: blur(8px);
-}
-
-.news-status-badge {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  backdrop-filter: blur(8px);
-}
-
-.status-published {
-  background: rgba(16, 185, 129, 0.9);
-  color: white;
-}
-
-.status-draft {
-  background: rgba(251, 191, 36, 0.9);
-  color: white;
-}
-
-.news-content {
-  padding: 1rem;
-}
-
-.news-header-row {
+/* Modern Header Section */
+.header-section {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.news-categories {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
+.header-left {
   flex: 1;
 }
 
-.category-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background: #eef2ff;
-  color: #4f46e5;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 9999px;
-  text-transform: uppercase;
-}
-
-.news-title {
-  font-size: 1.125rem;
+.header-title {
+  font-size: 1.875rem;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 0.5rem;
-  line-height: 1.3;
+  margin: 0 0 0.5rem 0;
 }
 
-.news-text {
+.header-subtitle {
+  font-size: 0.875rem;
   color: #6b7280;
-  line-height: 1.5;
-  margin-bottom: 0.75rem;
-  display: -webkit-box;
-  font-size: 0.7rem;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin: 0;
 }
 
-.news-footer {
+.header-right {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e5e7eb;
+  gap: 1rem;
 }
 
-.news-date {
-  font-size: 0.875rem;
+/* Search Container */
+.search-container {
+  position: relative;
+  min-width: 250px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+  height: 1.25rem;
   color: #9ca3af;
+  pointer-events: none;
 }
 
-/* Empty State */
-.empty-state {
+.search-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem 0.625rem 2.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* Filter Button */
+.filter-button {
+  position: relative;
+  padding: 0.625rem 1rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-button:hover {
+  border-color: #4f46e5;
+  background: #f9fafb;
+  color: #4f46e5;
+}
+
+.filter-button.filter-active {
+  border-color: #4f46e5;
+  background: #f0f4ff;
+  color: #4f46e5;
+}
+
+.filter-badge {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-.empty-icon {
-  width: 4rem;
-  height: 4rem;
-  color: #d1d5db;
-  margin-bottom: 1rem;
-}
-
-.empty-text {
+/* Clear Filters Button */
+.clear-filters-btn {
+  padding: 0.625rem 1rem;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   color: #6b7280;
-  font-size: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* Modal */
+.clear-filters-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* Modal Overlay */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -922,7 +988,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-/* Categories */
+/* Categories Chips */
 .categories-chips {
   display: flex;
   flex-wrap: wrap;
@@ -1146,6 +1212,185 @@ const toServerDatetime = (datetimeLocal: string) => {
   background: #f9fafb;
 }
 
+/* Masonry Grid */
+.masonry-grid {
+  column-count: 3;
+  column-gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .masonry-grid {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .masonry-grid {
+    column-count: 1;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1.5rem;
+}
+
+/* News Card */
+.news-card {
+  background: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.news-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.news-image-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.news-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.image-count-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+}
+
+.news-status-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.status-published {
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+}
+
+.status-draft {
+  background: rgba(251, 191, 36, 0.9);
+  color: white;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.news-content {
+  padding: 1rem;
+}
+
+.news-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.news-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  flex: 1;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.news-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.news-text {
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+  display: -webkit-box;
+  font-size: 0.7rem;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.news-date {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 4rem;
+  height: 4rem;
+  color: #d1d5db;
+  margin-bottom: 1rem;
+}
+
+.empty-text {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
 /* Menu Dropdown */
 .menu-container {
   position: relative;
@@ -1211,7 +1456,207 @@ const toServerDatetime = (datetimeLocal: string) => {
   background: #fef2f2;
 }
 
-/* Dropdown Transitions */
+/* Floating Action Button */
+.floating-action-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 40;
+  animation: floatIn 0.5s ease-out;
+}
+
+.floating-action-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 15px 35px rgba(79, 70, 229, 0.4);
+}
+
+.floating-action-button:active {
+  transform: scale(0.95);
+}
+
+/* Filter Modal Styles */
+.filter-modal {
+  background: white;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 28rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.filter-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.filter-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.filter-close-button {
+  padding: 0.5rem;
+  color: #6b7280;
+  transition: color 0.2s;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+
+.filter-close-button:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.filter-modal-body {
+  padding: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.filter-section {
+  margin-bottom: 2rem;
+}
+
+.filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.filter-checkbox input[type="radio"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #4f46e5;
+  cursor: pointer;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.filter-checkbox span {
+  font-size: 0.875rem;
+  color: #374151;
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+
+.filter-checkbox:hover span {
+  color: #111827;
+}
+
+.filter-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  justify-content: flex-end;
+}
+
+.filter-btn-secondary {
+  padding: 0.625rem 1.5rem;
+  background: #4f46e5;
+  color: white;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filter-btn-secondary:hover {
+  background: #4338ca;
+}
+
+/* Animation Keyframes */
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth Transition Animations */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -1223,7 +1668,6 @@ const toServerDatetime = (datetimeLocal: string) => {
   transform: translateY(-8px);
 }
 
-/* Modal Transitions */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.3s ease;
@@ -1241,6 +1685,16 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .modal-enter-from .modal-container,
 .modal-leave-to .modal-container {
+  transform: scale(0.95);
+}
+
+.modal-enter-active .filter-modal,
+.modal-leave-active .filter-modal {
+  transition: transform 0.3s ease;
+}
+
+.modal-enter-from .filter-modal,
+.modal-leave-to .filter-modal {
   transform: scale(0.95);
 }
 </style>
