@@ -37,8 +37,8 @@
     </div>
 
     <!-- Grid View -->
-    <div v-if="filteredProgramsList.length > 0" class="programs-grid">
-      <div v-for="program in filteredProgramsList" :key="program.id" class="program-card">
+    <div v-if="filteredProgramsList.length > 0" class="programs-grid" @click="closeMenuOutside">
+      <div v-for="program in filteredProgramsList" :key="program.id" class="program-card" @click.stop>
         <div class="program-image-container">
           <img :src="loadImage(program.bannerImage?.fileName || '')" :alt="program.name" class="program-image" />
           <div class="program-status-badge" :class="getStatusClass(program.status)">
@@ -67,6 +67,13 @@
                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     Edit
+                  </button>
+                  <button @click="duplicateProgram(program)" class="menu-item">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Duplicate
                   </button>
                   <button @click="togglePublishStatus(program.id)" class="menu-item"
                     :disabled="statusLoadingId === program.id"
@@ -408,15 +415,84 @@ const formData = ref({
 });
 
 // Fetch programs from API
+const dummyPrograms: Program[] = [
+  {
+    id: 1,
+    name: 'Kids Coding Bootcamp',
+    shortname: 'KCB',
+    description: 'Intensive 4-week summer program teaching kids ages 8-14 the fundamentals of coding through fun, interactive projects and games.',
+    sponsor: 'TechKids Academy',
+    bannerImage: { fileName: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
+    isFree: false,
+    trialType: 'days',
+    trialValue: 7,
+    status: 'published',
+    startDate: '2025-06-01',
+    endDate: '2025-06-28',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    name: 'Easter Coding Fest',
+    shortname: 'ECF',
+    description: 'Holiday special! Three-day coding festival with workshops, competitions, and prizes. Perfect for beginners and advanced learners.',
+    sponsor: 'CodeFest Community',
+    bannerImage: { fileName: 'https://images.unsplash.com/photo-1526374965328-7f5ae4e8a365?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
+    isFree: true,
+    status: 'published',
+    startDate: '2025-04-14',
+    endDate: '2025-04-16',
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 3,
+    name: 'Summer Tech Camp',
+    shortname: 'STC',
+    description: 'All-inclusive 6-week summer camp combining coding, design, and robotics. Residential and day options available.',
+    sponsor: 'Tech Summer Camps',
+    bannerImage: { fileName: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
+    isFree: false,
+    trialType: 'watches',
+    trialValue: 5,
+    status: 'draft',
+    startDate: '2025-07-01',
+    endDate: '2025-08-12',
+    createdAt: new Date(Date.now() - 259200000).toISOString(),
+  },
+  {
+    id: 4,
+    name: 'Winter Robotics Challenge',
+    shortname: 'WRC',
+    description: 'Competitive robotics program during winter break. Build, program, and test robots in weekly challenges.',
+    bannerImage: { fileName: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
+    isFree: false,
+    trialType: 'days',
+    trialValue: 14,
+    status: 'published',
+    startDate: '2025-12-20',
+    endDate: '2026-01-10',
+    createdAt: new Date(Date.now() - 604800000).toISOString(),
+  },
+  {
+    id: 5,
+    name: 'Spring Coding Sprint',
+    shortname: 'SCS',
+    description: 'Fast-paced 3-week intensive program designed to accelerate your coding skills. Limited spots available.',
+    sponsor: 'Code Accelerators',
+    bannerImage: { fileName: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
+    isFree: true,
+    status: 'published',
+    startDate: '2025-03-15',
+    endDate: '2025-04-04',
+    createdAt: new Date(Date.now() - 1209600000).toISOString(),
+  },
+];
+
 const fetchPrograms = async () => {
   try {
-    const programsData = await program.fetchPrograms();
-
-    console.log('Fetched programs data:', programsData);
-
-    if (programsData) {
-      programsList.value = programsData;
-    }
+    // Using dummy data instead of API call
+    programsList.value = dummyPrograms;
+    console.log('Loaded dummy programs:', dummyPrograms);
   } catch (error: unknown) {
     console.error('Failed to fetch programs:', error);
     const message = error instanceof Error ? error.message : 'Failed to load programs';
@@ -579,88 +655,61 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
   isSubmitting.value = true;
 
   try {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     if (editingProgramId.value !== null) {
-      // Update existing program
-      const payload = new FormData();
-      payload.append('name', formData.value.name);
-      payload.append('shortname', formData.value.shortname);
-      payload.append('description', formData.value.description);
-      if (formData.value.sponsor) {
-        payload.append('sponsor', formData.value.sponsor);
-      }
-      payload.append('is_free', formData.value.isFree ? '1' : '0');
-      payload.append('status', status);
+      // Update existing program locally
+      const programIndex = programsList.value.findIndex(p => p.id === editingProgramId.value);
+      if (programIndex > -1) {
+        const updatedProgram: Program = {
+          ...programsList.value[programIndex],
+          name: formData.value.name,
+          shortname: formData.value.shortname,
+          description: formData.value.description,
+          sponsor: formData.value.sponsor || undefined,
+          isFree: formData.value.isFree,
+          trialType: !formData.value.isFree ? formData.value.trialType : undefined,
+          trialValue: !formData.value.isFree ? formData.value.trialValue : undefined,
+          startDate: formData.value.startDate || undefined,
+          endDate: formData.value.endDate || undefined,
+          status,
+        };
 
-      if (!formData.value.isFree && formData.value.trialType) {
-        payload.append('trial_type', formData.value.trialType);
-        if (formData.value.trialValue) {
-          payload.append('trial_value', formData.value.trialValue.toString());
+        // Update banner image if new one is selected
+        if (imageFile.value) {
+          updatedProgram.bannerImage = {
+            fileName: URL.createObjectURL(imageFile.value),
+          };
         }
-      }
 
-      if (formData.value.startDate) {
-        payload.append('start_date', formData.value.startDate);
-      }
-
-      if (formData.value.endDate) {
-        payload.append('end_date', formData.value.endDate);
-      }
-
-      // If a new image is selected, include it
-      if (imageFile.value) {
-        payload.append('banner_image', imageFile.value);
-
-        // If there was an original image, send it for deletion
-        if (originalImageFileName.value) {
-          payload.append('old_file_name', originalImageFileName.value);
-        }
-      }
-
-      const response = await program.updateProgram(editingProgramId.value, payload as Record<string, any>);
-
-      if (response && response.success) {
+        programsList.value[programIndex] = updatedProgram;
         toast.success('Program updated successfully');
-        await fetchPrograms();
         closeModal();
       }
     } else {
-      // Create new program
-      if (!imageFile.value) {
-        toast.error('Banner image is required');
-        isSubmitting.value = false;
-        return;
-      }
-
-      const payload: CreateProgramPayload = {
+      // Create new program locally
+      const newProgram: Program = {
+        id: Math.max(...programsList.value.map(p => p.id), 0) + 1,
         name: formData.value.name,
         shortname: formData.value.shortname,
         description: formData.value.description,
         sponsor: formData.value.sponsor || undefined,
-        is_free: formData.value.isFree,
+        bannerImage: imageFile.value ? {
+          fileName: URL.createObjectURL(imageFile.value),
+        } : { fileName: '' },
+        isFree: formData.value.isFree,
+        trialType: !formData.value.isFree ? formData.value.trialType : undefined,
+        trialValue: !formData.value.isFree ? formData.value.trialValue : undefined,
+        startDate: formData.value.startDate || undefined,
+        endDate: formData.value.endDate || undefined,
         status,
-        banner_image: imageFile.value,
+        createdAt: new Date().toISOString(),
       };
 
-      if (!formData.value.isFree && formData.value.trialType) {
-        payload.trial_type = formData.value.trialType;
-        payload.trial_value = formData.value.trialValue;
-      }
-
-      if (formData.value.startDate) {
-        payload.start_date = formData.value.startDate;
-      }
-
-      if (formData.value.endDate) {
-        payload.end_date = formData.value.endDate;
-      }
-
-      const response = await program.createProgram(payload);
-
-      if (response && response.success) {
-        toast.success('Program created successfully');
-        await fetchPrograms();
-        closeModal();
-      }
+      programsList.value.unshift(newProgram);
+      toast.success('Program created successfully');
+      closeModal();
     }
   } catch (error: unknown) {
     console.error('Failed to submit program:', error);
@@ -673,6 +722,10 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
 
 const toggleMenu = (programId: number) => {
   activeMenu.value = activeMenu.value === programId ? null : programId;
+};
+
+const closeMenuOutside = () => {
+  activeMenu.value = null;
 };
 
 const editProgram = (prog: Program) => {
@@ -695,11 +748,34 @@ const editProgram = (prog: Program) => {
   showModal.value = true;
 };
 
+const duplicateProgram = (prog: Program) => {
+  editingProgramId.value = null;
+  formData.value = {
+    name: prog.name + ' (Copy)',
+    shortname: prog.shortname + ' Copy',
+    description: prog.description || '',
+    sponsor: prog.sponsor || '',
+    isFree: prog.isFree,
+    trialType: prog.trialType,
+    trialValue: prog.trialValue,
+    startDate: prog.startDate || '',
+    endDate: prog.endDate || '',
+  };
+  originalImageFileName.value = '';
+  imagePreview.value = prog.bannerImage?.fileName || '';
+  imageFile.value = null;
+  activeMenu.value = null;
+  showModal.value = true;
+};
+
 const togglePublishStatus = async (programId: number) => {
   if (statusLoadingId.value === programId) return;
   statusLoadingId.value = programId;
 
   try {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     const prog = programsList.value.find(p => p.id === programId);
     if (prog) {
       let newStatus: 'draft' | 'published' | 'archived';
@@ -712,12 +788,8 @@ const togglePublishStatus = async (programId: number) => {
         newStatus = 'published';
       }
 
-      const response = await program.updateProgramStatus(programId, newStatus);
-
-      if (response && response.success) {
-        toast.success(`Program ${newStatus} successfully`);
-        await fetchPrograms();
-      }
+      prog.status = newStatus;
+      toast.success(`Program ${newStatus} successfully`);
     }
   } catch (error: unknown) {
     console.error('Failed to update program status:', error);
@@ -743,11 +815,13 @@ const confirmDelete = async () => {
   deleteLoadingId.value = programId;
 
   try {
-    const response = await program.deleteProgram(programId);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-    if (response && response.success) {
+    const index = programsList.value.findIndex(p => p.id === programId);
+    if (index > -1) {
+      programsList.value.splice(index, 1);
       toast.success('Program deleted successfully');
-      await fetchPrograms();
       closeDeleteModal();
     }
   } catch (error: unknown) {
@@ -950,8 +1024,8 @@ const getStatusClass = (status: string) => {
 /* Programs Grid */
 .programs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
   animation: fadeInUp 0.5s ease-out;
 }
 
@@ -1067,7 +1141,7 @@ const getStatusClass = (status: string) => {
 .program-image-container {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 160px;
   overflow: hidden;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -1119,7 +1193,7 @@ const getStatusClass = (status: string) => {
 }
 
 .program-content {
-  padding: 1.25rem;
+  padding: 1rem;
   flex: 1;
   display: flex;
   flex-direction: column;
