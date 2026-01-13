@@ -1,10 +1,17 @@
 <template>
-  <div class="program-library">
+  <div class="program-course-library">
     <!-- Modern Header with Title, Description, Search & Filter -->
     <div class="header-section">
       <div class="header-left">
-        <h1 class="header-title">Tech Programs</h1>
-        <p class="header-subtitle">Manage and organize all your technology programs and courses</p>
+        <div class="back-button" @click="goBack">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="header-title">{{ programName }}</h1>
+          <p class="header-subtitle">Create and manage courses for this program</p>
+        </div>
       </div>
 
       <div class="header-right">
@@ -14,7 +21,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search programs..." class="search-input" />
+          <input v-model="searchQuery" type="text" placeholder="Search courses..." class="search-input" />
         </div>
 
         <!-- Filter Button with Badge -->
@@ -37,56 +44,47 @@
     </div>
 
     <!-- Grid View -->
-    <div v-if="filteredProgramsList.length > 0" class="programs-grid" @click="closeMenuOutside">
-      <div v-for="program in filteredProgramsList" :key="program.id" class="program-card" @click="viewProgram(program)">
-        <div class="program-image-container">
-          <img :src="loadImage(program.bannerImage?.fileName || '')" :alt="program.name" class="program-image" />
-          <div class="program-status-badge" :class="getStatusClass(program.status)">
-            {{ program.status }}
-          </div>
-          <div v-if="!program.isFree" class="program-paid-badge">
-            💳 Paid
+    <div v-if="filteredCoursesList.length > 0" class="courses-grid" @click="closeMenuOutside">
+      <div v-for="course in filteredCoursesList" :key="course.id" class="course-card" @click.stop
+        @click="navigateToCohorts(course)">
+        <div class="course-image-container">
+          <img :src="loadImage(course.image_url || '')" :alt="course.title" class="course-image" />
+          <div class="course-status-badge" :class="getStatusClass(course.status || 'draft')">
+            {{ course.status || 'draft' }}
           </div>
         </div>
-        <div class="program-content">
-          <div class="program-header-row">
-            <h3 class="program-title">{{ program.name }}</h3>
+        <div class="course-content">
+          <div class="course-header-row">
+            <h3 class="course-title">{{ course.title }}</h3>
             <!-- Three Dot Menu -->
-            <div class="menu-container" @click.stop>
-              <button @click.stop="toggleMenu(program.id)" class="menu-button">
+            <div class="menu-container">
+              <button @click="toggleMenu(course.id)" class="menu-button">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                 </svg>
               </button>
               <Transition name="dropdown">
-                <div v-if="activeMenu === program.id" class="menu-dropdown">
-                  <button @click.stop="editProgram(program)" class="menu-item">
+                <div v-if="activeMenu === course.id" class="menu-dropdown">
+                  <button @click="editCourse(course)" class="menu-item">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     Edit
                   </button>
-                  <button @click.stop="duplicateProgram(program)" class="menu-item">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Duplicate
-                  </button>
-                  <button @click.stop="togglePublishStatus(program.id)" class="menu-item"
-                    :disabled="statusLoadingId === program.id"
-                    :class="statusLoadingId === program.id ? 'opacity-60 cursor-not-allowed' : ''">
+                  <button @click="togglePublishStatus(course.id)" class="menu-item"
+                    :disabled="statusLoadingId === course.id"
+                    :class="statusLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                     </svg>
-                    {{ program.status === 'published' ? 'Archive' : 'Publish' }}
+                    {{ course.status === 'published' ? 'Archive' : 'Publish' }}
                   </button>
-                  <button @click.stop="deleteProgram(program.id)" class="menu-item menu-item-danger"
-                    :disabled="deleteLoadingId === program.id"
-                    :class="deleteLoadingId === program.id ? 'opacity-60 cursor-not-allowed' : ''">
+                  <button @click="deleteCourse(course.id)" class="menu-item menu-item-danger"
+                    :disabled="deleteLoadingId === course.id"
+                    :class="deleteLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 7l-.867 12.142A2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -97,14 +95,12 @@
               </Transition>
             </div>
           </div>
-          <p class="program-shortname">{{ program.shortname }}</p>
-          <p v-if="program.sponsor" class="program-sponsor">🏢 {{ program.sponsor }}</p>
-          <p class="program-text">{{ program.description }}</p>
-          <div class="program-meta">
-            <span v-if="program.startDate" class="program-date">📅 {{ formatDate(program.startDate) }}</span>
-            <span v-if="!program.isFree && program.trialType" class="program-trial">
-              🎁 {{ program.trialValue }} {{ program.trialType === 'watches' ? 'free views' : 'day trial' }}
-            </span>
+          <p v-if="course.slogan" class="course-slogan">{{ course.slogan }}</p>
+          <p class="course-text">{{ course.description }}</p>
+          <div class="course-meta">
+            <span v-if="course.category" class="course-category">{{ course.category }}</span>
+            <span v-if="course.startDate" class="course-date">📅 {{ formatDate(course.startDate) }}</span>
+            <span v-if="course.zoomUrl" class="course-zoom">🎥 Zoom</span>
           </div>
         </div>
       </div>
@@ -116,8 +112,8 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
       </svg>
-      <p class="empty-text">{{ searchQuery || statusFilter || dateFilter ? 'No programs match your filters' :
-        'No programs yet. Click "Add Program" to create your first tech program.' }}</p>
+      <p class="empty-text">{{ searchQuery || statusFilter ? 'No courses match your filters' :
+        'No courses yet. Click "Add Course" to create your first course.' }}</p>
     </div>
 
     <!-- Modal -->
@@ -125,7 +121,7 @@
       <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal-container">
           <div class="modal-header">
-            <h3 class="modal-title">{{ editingProgramId ? 'Edit Program' : 'Add Program' }}</h3>
+            <h3 class="modal-title">{{ editingCourseId ? 'Edit Course' : 'Add Course' }}</h3>
             <button @click="closeModal" class="close-button">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -139,37 +135,64 @@
               <h4 class="section-title">📋 Basic Information</h4>
             </div>
 
-            <!-- Program Title -->
+            <!-- Course Title -->
             <div class="form-group">
-              <label class="form-label">Program Title <span class="required">*</span></label>
-              <input v-model="formData.name" type="text" required class="form-input"
-                placeholder="e.g., Full Stack Web Development" />
+              <label class="form-label">Course Title <span class="required">*</span></label>
+              <input v-model="formData.title" type="text" required class="form-input"
+                placeholder="e.g., Advanced Web Development" />
             </div>
 
-            <!-- Slogan/Short Name -->
+            <!-- Slogan -->
             <div class="form-group">
-              <label class="form-label">Slogan/Short Name <span class="required">*</span></label>
-              <input v-model="formData.shortname" type="text" required class="form-input"
-                placeholder="e.g., FSWD, WebDev Pro" />
+              <label class="form-label">Slogan/Tagline</label>
+              <input v-model="formData.slogan" type="text" class="form-input"
+                placeholder="e.g., Master modern web technologies" />
             </div>
 
-            <!-- Description/Purpose -->
+            <!-- Description -->
             <div class="form-group">
-              <label class="form-label">Description/Purpose <span class="required">*</span></label>
+              <label class="form-label">Description <span class="required">*</span></label>
               <textarea v-model="formData.description" required rows="4" class="form-input"
-                placeholder="Describe what this program offers and its objectives..."></textarea>
+                placeholder="Describe this course..."></textarea>
             </div>
 
-            <!-- Sponsor/Host -->
+            <!-- Category -->
             <div class="form-group">
-              <label class="form-label">Sponsor/Host</label>
-              <input v-model="formData.sponsor" type="text" class="form-input"
-                placeholder="e.g., Tech Academy, Company Name" />
+              <label class="form-label">Category</label>
+              <input v-model="formData.category" type="text" class="form-input"
+                placeholder="e.g., Web Development, Design, etc." />
             </div>
 
-            <!-- Banner Image -->
+            <!-- Target Age Groups -->
             <div class="form-group">
-              <label class="form-label">Banner Image <span class="required">*</span></label>
+              <label class="form-label">Target Age Groups <span class="required">*</span></label>
+              <div class="age-group-checkboxes">
+                <label class="checkbox-option">
+                  <input type="checkbox" value="5-8" v-model="formData.ageGroups" />
+                  <span class="checkbox-label">5-8 years</span>
+                </label>
+                <label class="checkbox-option">
+                  <input type="checkbox" value="8-12" v-model="formData.ageGroups" />
+                  <span class="checkbox-label">8-12 years</span>
+                </label>
+                <label class="checkbox-option">
+                  <input type="checkbox" value="12-16" v-model="formData.ageGroups" />
+                  <span class="checkbox-label">12-16 years</span>
+                </label>
+                <label class="checkbox-option">
+                  <input type="checkbox" value="16-18" v-model="formData.ageGroups" />
+                  <span class="checkbox-label">16-18 years</span>
+                </label>
+                <label class="checkbox-option">
+                  <input type="checkbox" value="18+" v-model="formData.ageGroups" />
+                  <span class="checkbox-label">18+ years</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Course Image -->
+            <div class="form-group">
+              <label class="form-label">Course Image</label>
               <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
                 <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" class="hidden" />
                 <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +200,7 @@
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p class="upload-text">Click to upload or drag and drop</p>
-                <p class="upload-hint">PNG, JPG up to 10MB (Recommended: 1200x400px)</p>
+                <p class="upload-hint">PNG, JPG up to 10MB</p>
               </div>
 
               <!-- Image Preview -->
@@ -189,6 +212,48 @@
                   </svg>
                 </button>
               </div>
+            </div>
+
+            <!-- Section: Schedule -->
+            <div class="section-header">
+              <h4 class="section-title">📆 Schedule</h4>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Start Date -->
+              <div class="form-group">
+                <label class="form-label">Start Date</label>
+                <input v-model="formData.startDate" type="date" class="form-input" />
+              </div>
+
+              <!-- End Date -->
+              <div class="form-group">
+                <label class="form-label">End Date</label>
+                <input v-model="formData.endDate" type="date" class="form-input" />
+              </div>
+
+              <!-- Start Time -->
+              <div class="form-group">
+                <label class="form-label">Start Time</label>
+                <input v-model="formData.startTime" type="time" class="form-input" />
+              </div>
+
+              <!-- End Time -->
+              <div class="form-group">
+                <label class="form-label">End Time</label>
+                <input v-model="formData.endTime" type="time" class="form-input" />
+              </div>
+            </div>
+
+            <!-- Section: Online Meeting -->
+            <div class="section-header">
+              <h4 class="section-title">🎥 Online Meeting</h4>
+            </div>
+
+            <!-- Zoom URL -->
+            <div class="form-group">
+              <label class="form-label">Zoom URL</label>
+              <input v-model="formData.zoomUrl" type="url" class="form-input" placeholder="https://zoom.us/j/..." />
             </div>
 
             <!-- Submit Buttons -->
@@ -210,8 +275,8 @@
       </div>
     </Transition>
 
-    <!-- Floating Action Button (Add Program) -->
-    <button @click="openModal" class="floating-action-button" title="Add new program">
+    <!-- Floating Action Button (Add Course) -->
+    <button @click="openModal" class="floating-action-button" title="Add new course">
       <svg class="fab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
       </svg>
@@ -222,7 +287,7 @@
       <div v-if="showFilterModal" class="modal-overlay" @click.self="showFilterModal = false">
         <div class="filter-modal">
           <div class="filter-modal-header">
-            <h3 class="filter-modal-title">Filter Programs</h3>
+            <h3 class="filter-modal-title">Filter Courses</h3>
             <button @click="showFilterModal = false" class="filter-close-button">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -253,36 +318,6 @@
                     Draft
                   </span>
                 </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="statusFilter" value="archived" name="status" />
-                  <span class="flex items-center gap-2">
-                    <span class="inline-block w-2 h-2 bg-gray-500 rounded-full"></span>
-                    Archived
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Filter by Date -->
-            <div class="filter-section">
-              <h4 class="filter-section-title">Date Created</h4>
-              <div class="filter-options">
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="dateFilter" value="" name="date" />
-                  <span>All Dates</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="dateFilter" value="today" name="date" />
-                  <span>Today</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="dateFilter" value="week" name="date" />
-                  <span>This Week</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="dateFilter" value="month" name="date" />
-                  <span>This Month</span>
-                </label>
               </div>
             </div>
           </div>
@@ -300,143 +335,117 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'vue-toast-notification';
-import type { Program } from '@/api/models';
+import type { ProgramCourse } from '@/api/models';
 
-const toast = useToast();
 const router = useRouter();
+const route = useRoute();
+const toast = useToast();
 
 const showModal = ref(false);
-const showDeleteModal = ref(false);
 const showFilterModal = ref(false);
-const programToDelete = ref<number | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const imagePreview = ref<string>('');
 const imageFile = ref<File | null>(null);
-const programsList = ref<Program[]>([]);
+const coursesList = ref<ProgramCourse[]>([]);
 const activeMenu = ref<number | null>(null);
-const editingProgramId = ref<number | null>(null);
+const editingCourseId = ref<number | null>(null);
 const isSubmitting = ref(false);
-const originalImageFileName = ref('');
 const statusLoadingId = ref<number | null>(null);
 const deleteLoadingId = ref<number | null>(null);
 
 // Filter states
 const searchQuery = ref('');
-const dateFilter = ref('');
 const statusFilter = ref('');
 
+const programSlug = computed(() => route.params.slug as string);
+const programName = computed(() => (route.query.name as string) || 'Program Courses');
+
 const formData = ref({
-  name: '',
-  shortname: '',
+  title: '',
+  slogan: '',
   description: '',
-  sponsor: '',
+  category: '',
+  ageGroups: [] as string[],
+  startDate: '',
+  endDate: '',
+  startTime: '',
+  endTime: '',
+  zoomUrl: '',
 });
 
-// Fetch programs from API
-const dummyPrograms: Program[] = [
+// Dummy courses data
+const dummyCourses: ProgramCourse[] = [
   {
     id: 1,
-    slug: 'kids-coding-bootcamp',
-    name: 'Kids Coding Bootcamp',
-    shortname: 'KCB',
-    description: 'Intensive 4-week summer program teaching kids ages 8-14 the fundamentals of coding through fun, interactive projects and games.',
-    sponsor: 'TechKids Academy',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: false,
-    trialType: 'days',
-    trialValue: 7,
+    slug: 'web-fundamentals',
+    programId: 1,
+    title: 'Web Fundamentals',
+    slogan: 'Learn the basics of web development',
+    description: 'Start your journey with HTML, CSS, and JavaScript fundamentals. Perfect for beginners.',
+    category: 'Web Development',
+    image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
     status: 'published',
     startDate: '2025-06-01',
-    endDate: '2025-06-28',
+    endDate: '2025-06-14',
+    startTime: '10:00',
+    endTime: '12:00',
+    zoomUrl: 'https://zoom.us/j/123456789',
     createdAt: new Date().toISOString(),
-    isActive: 1,
-    courses: [],
+    ageGroups: ['8-12', '12-16'],
   },
   {
     id: 2,
-    slug: 'easter-coding-fest',
-    name: 'Easter Coding Fest',
-    shortname: 'ECF',
-    description: 'Holiday special! Three-day coding festival with workshops, competitions, and prizes. Perfect for beginners and advanced learners.',
-    sponsor: 'CodeFest Community',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1526374965328-7f5ae4e8a365?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: true,
+    slug: 'react-mastery',
+    programId: 1,
+    title: 'React Mastery',
+    slogan: 'Build modern interactive applications',
+    description: 'Master React.js and learn to build dynamic, responsive web applications.',
+    category: 'Frontend Framework',
+    image_url: 'https://images.unsplash.com/photo-1526374965328-7f5ae4e8a365?w=1200&h=400&fit=crop',
     status: 'published',
-    startDate: '2025-04-14',
-    endDate: '2025-04-16',
+    startDate: '2025-06-15',
+    endDate: '2025-06-28',
+    startTime: '14:00',
+    endTime: '16:00',
+    zoomUrl: 'https://zoom.us/j/987654321',
     createdAt: new Date(Date.now() - 86400000).toISOString(),
-    isActive: 1,
-    courses: [],
+    ageGroups: ['16-18'],
   },
   {
     id: 3,
-    slug: 'summer-tech-camp',
-    name: 'Summer Tech Camp',
-    shortname: 'STC',
-    description: 'All-inclusive 6-week summer camp combining coding, design, and robotics. Residential and day options available.',
-    sponsor: 'Tech Summer Camps',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: false,
-    trialType: 'watches',
-    trialValue: 5,
+    slug: 'backend-nodejs',
+    programId: 1,
+    title: 'Backend with Node.js',
+    slogan: 'Server-side development with JavaScript',
+    description: 'Learn server-side programming using Node.js, Express, and databases.',
+    category: 'Backend Development',
+    image_url: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&h=400&fit=crop',
     status: 'draft',
     startDate: '2025-07-01',
-    endDate: '2025-08-12',
+    endDate: '2025-07-14',
+    startTime: '10:00',
+    endTime: '12:00',
     createdAt: new Date(Date.now() - 259200000).toISOString(),
-    isActive: 1,
-    courses: [],
-  },
-  {
-    id: 4,
-    slug: 'winter-robotics-challenge',
-    name: 'Winter Robotics Challenge',
-    shortname: 'WRC',
-    description: 'Competitive robotics program during winter break. Build, program, and test robots in weekly challenges.',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: false,
-    trialType: 'days',
-    trialValue: 14,
-    status: 'published',
-    startDate: '2025-12-20',
-    endDate: '2026-01-10',
-    createdAt: new Date(Date.now() - 604800000).toISOString(),
-    isActive: 1,
-    courses: [],
-  },
-  {
-    id: 5,
-    slug: 'spring-coding-sprint',
-    name: 'Spring Coding Sprint',
-    shortname: 'SCS',
-    description: 'Fast-paced 3-week intensive program designed to accelerate your coding skills. Limited spots available.',
-    sponsor: 'Code Accelerators',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: true,
-    status: 'published',
-    startDate: '2025-03-15',
-    endDate: '2025-04-04',
-    createdAt: new Date(Date.now() - 1209600000).toISOString(),
-    isActive: 1,
-    courses: [],
+    ageGroups: ['18+'],
   },
 ];
 
-const fetchPrograms = async () => {
+const fetchCourses = () => {
   try {
-    // Using dummy data instead of API call
-    programsList.value = dummyPrograms;
-    console.log('Loaded dummy programs:', dummyPrograms);
+    // Filter dummy courses by program slug
+    coursesList.value = dummyCourses.filter(c => c.programId === 1);
+    console.log('Loaded dummy courses:', coursesList.value);
   } catch (error: unknown) {
-    console.error('Failed to fetch programs:', error);
-    const message = error instanceof Error ? error.message : 'Failed to load programs';
+    console.error('Failed to fetch courses:', error);
+    const message = error instanceof Error ? error.message : 'Failed to load courses';
     toast.error(message);
   }
 };
 
 const loadImage = (image: string) => {
-  if (!image) return 'https://via.placeholder.com/1200x400?text=Program+Banner';
+  if (!image) return 'https://via.placeholder.com/1200x400?text=Course+Banner';
   if (image.startsWith('data:') || image.startsWith('http')) {
     return image;
   }
@@ -449,43 +458,23 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-// Filtered programs based on search and filters
-const filteredProgramsList = computed(() => {
-  let filtered = [...programsList.value];
+// Filtered courses based on search and filters
+const filteredCoursesList = computed(() => {
+  let filtered = [...coursesList.value];
 
   // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(prog =>
-      prog.name.toLowerCase().includes(query) ||
-      prog.shortname.toLowerCase().includes(query) ||
-      (prog.description && prog.description.toLowerCase().includes(query))
+    filtered = filtered.filter(course =>
+      course.title?.toLowerCase().includes(query) ||
+      course.slogan?.toLowerCase().includes(query) ||
+      (course.description && course.description.toLowerCase().includes(query))
     );
   }
 
   // Apply status filter
   if (statusFilter.value) {
-    filtered = filtered.filter(prog => prog.status === statusFilter.value);
-  }
-
-  // Apply date filter
-  if (dateFilter.value) {
-    const now = new Date();
-    filtered = filtered.filter(prog => {
-      if (!prog.createdAt) return false;
-      const progDate = new Date(prog.createdAt);
-      switch (dateFilter.value) {
-        case 'today':
-          return progDate.toDateString() === now.toDateString();
-        case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return progDate >= weekAgo;
-        case 'month':
-          return progDate.getMonth() === now.getMonth() && progDate.getFullYear() === now.getFullYear();
-        default:
-          return true;
-      }
-    });
+    filtered = filtered.filter(course => course.status === statusFilter.value);
   }
 
   return filtered;
@@ -495,26 +484,21 @@ const filteredProgramsList = computed(() => {
 const activeFiltersCount = computed(() => {
   let count = 0;
   if (statusFilter.value) count++;
-  if (dateFilter.value) count++;
   return count;
 });
 
-// Load data on component mount
 onMounted(() => {
-  fetchPrograms();
+  fetchCourses();
 });
 
 const isFormValid = computed(() => {
-  const basicValid = formData.value.name.trim() !== '' &&
-    formData.value.shortname.trim() !== '' &&
+  return formData.value.title.trim() !== '' &&
     formData.value.description.trim() !== '' &&
-    (imageFile.value !== null || (editingProgramId.value && imagePreview.value));
-
-  return basicValid;
+    formData.value.ageGroups.length > 0;
 });
 
 const openModal = () => {
-  editingProgramId.value = null;
+  editingCourseId.value = null;
   showModal.value = true;
 };
 
@@ -525,14 +509,20 @@ const closeModal = () => {
 
 const resetForm = () => {
   formData.value = {
-    name: '',
-    shortname: '',
+    title: '',
+    slogan: '',
     description: '',
-    sponsor: '',
+    category: '',
+    ageGroups: [],
+    startDate: '',
+    endDate: '',
+    startTime: '',
+    endTime: '',
+    zoomUrl: '',
   };
   imagePreview.value = '';
   imageFile.value = null;
-  editingProgramId.value = null;
+  editingCourseId.value = null;
 };
 
 const triggerFileInput = () => {
@@ -574,7 +564,7 @@ const removeImage = () => {
   }
 };
 
-const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
+const handleSubmit = async (status: 'published' | 'draft') => {
   if (!isFormValid.value || isSubmitting.value) return;
 
   isSubmitting.value = true;
@@ -583,126 +573,112 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (editingProgramId.value !== null) {
-      // Update existing program locally
-      const programIndex = programsList.value.findIndex(p => p.id === editingProgramId.value);
-      if (programIndex > -1) {
-        const updatedProgram = {
-          ...programsList.value[programIndex],
-          name: formData.value.name,
-          shortname: formData.value.shortname,
+    if (editingCourseId.value !== null) {
+      // Update existing course locally
+      const courseIndex = coursesList.value.findIndex(c => c.id === editingCourseId.value);
+      if (courseIndex > -1) {
+        const updatedCourse: ProgramCourse = {
+          ...coursesList.value[courseIndex],
+          title: formData.value.title,
+          slogan: formData.value.slogan || undefined,
           description: formData.value.description,
-          sponsor: formData.value.sponsor || undefined,
+          category: formData.value.category || undefined,
+          ageGroups: formData.value.ageGroups,
+          startDate: formData.value.startDate || undefined,
+          endDate: formData.value.endDate || undefined,
+          startTime: formData.value.startTime || undefined,
+          endTime: formData.value.endTime || undefined,
+          zoomUrl: formData.value.zoomUrl || undefined,
           status,
-        } as Program;
+        };
 
-        // Update banner image if new one is selected
+        // Update image if new one is selected
         if (imageFile.value) {
-          updatedProgram.bannerImage = {
-            fileName: URL.createObjectURL(imageFile.value),
-          };
+          updatedCourse.image_url = URL.createObjectURL(imageFile.value);
         }
 
-        programsList.value[programIndex] = updatedProgram;
-        toast.success('Program updated successfully');
+        coursesList.value[courseIndex] = updatedCourse;
+        toast.success('Course updated successfully');
         closeModal();
       }
     } else {
-      // Create new program locally
-      const newProgram = {
-        id: Math.max(...programsList.value.map(p => p.id), 0) + 1,
-        slug: formData.value.name.toLowerCase().replace(/\s+/g, '-'),
-        name: formData.value.name,
-        shortname: formData.value.shortname,
+      // Create new course locally
+      const newCourse: ProgramCourse = {
+        id: Math.max(...coursesList.value.map(c => c.id), 0) + 1,
+        programId: 1,
+        title: formData.value.title,
+        slogan: formData.value.slogan || undefined,
         description: formData.value.description,
-        sponsor: formData.value.sponsor || undefined,
-        bannerImage: imageFile.value ? {
-          fileName: URL.createObjectURL(imageFile.value),
-        } : { fileName: '' },
-        isFree: true,
+        category: formData.value.category || undefined,
+        ageGroups: formData.value.ageGroups,
+        image_url: imageFile.value ? URL.createObjectURL(imageFile.value) : undefined,
+        startDate: formData.value.startDate || undefined,
+        endDate: formData.value.endDate || undefined,
+        startTime: formData.value.startTime || undefined,
+        endTime: formData.value.endTime || undefined,
+        zoomUrl: formData.value.zoomUrl || undefined,
         status,
         createdAt: new Date().toISOString(),
-        courses: [],
-        isActive: 1,
-      } as Program;
+      };
 
-      programsList.value.unshift(newProgram);
-      toast.success('Program created successfully');
+      coursesList.value.unshift(newCourse);
+      toast.success('Course created successfully');
       closeModal();
     }
   } catch (error: unknown) {
-    console.error('Failed to submit program:', error);
-    const message = error instanceof Error ? error.message : 'Failed to save program';
+    console.error('Failed to submit course:', error);
+    const message = error instanceof Error ? error.message : 'Failed to save course';
     toast.error(message);
   } finally {
     isSubmitting.value = false;
   }
 };
 
-const toggleMenu = (programId: number) => {
-  activeMenu.value = activeMenu.value === programId ? null : programId;
+const toggleMenu = (courseId: number) => {
+  activeMenu.value = activeMenu.value === courseId ? null : courseId;
 };
 
 const closeMenuOutside = () => {
   activeMenu.value = null;
 };
 
-const editProgram = (prog: Program) => {
-  editingProgramId.value = prog.id;
+const editCourse = (course: ProgramCourse) => {
+  editingCourseId.value = course.id;
   formData.value = {
-    name: prog.name,
-    shortname: prog.shortname,
-    description: prog.description || '',
-    sponsor: prog.sponsor || '',
+    title: course.title || '',
+    slogan: course.slogan || '',
+    description: course.description || '',
+    category: course.category || '',
+    ageGroups: course.ageGroups || [],
+    startDate: course.startDate || '',
+    endDate: course.endDate || '',
+    startTime: course.startTime || '',
+    endTime: course.endTime || '',
+    zoomUrl: course.zoomUrl || '',
   };
-  originalImageFileName.value = prog.bannerImage?.fileName || '';
-  imagePreview.value = prog.bannerImage?.fileName || '';
+  imagePreview.value = course.image_url || '';
   imageFile.value = null;
   activeMenu.value = null;
   showModal.value = true;
 };
 
-const duplicateProgram = (prog: Program) => {
-  editingProgramId.value = null;
-  formData.value = {
-    name: prog.name + ' (Copy)',
-    shortname: prog.shortname + ' Copy',
-    description: prog.description || '',
-    sponsor: prog.sponsor || '',
-  };
-  originalImageFileName.value = '';
-  imagePreview.value = prog.bannerImage?.fileName || '';
-  imageFile.value = null;
-  activeMenu.value = null;
-  showModal.value = true;
-};
-
-const togglePublishStatus = async (programId: number) => {
-  if (statusLoadingId.value === programId) return;
-  statusLoadingId.value = programId;
+const togglePublishStatus = async (courseId: number) => {
+  if (statusLoadingId.value === courseId) return;
+  statusLoadingId.value = courseId;
 
   try {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    const prog = programsList.value.find(p => p.id === programId);
-    if (prog) {
-      let newStatus: 'draft' | 'published' | 'archived';
-
-      if (prog.status === 'draft') {
-        newStatus = 'published';
-      } else if (prog.status === 'published') {
-        newStatus = 'archived';
-      } else {
-        newStatus = 'published';
-      }
-
-      prog.status = newStatus;
-      toast.success(`Program ${newStatus} successfully`);
+    const course = coursesList.value.find(c => c.id === courseId);
+    if (course) {
+      const newStatus = course.status === 'published' ? 'draft' : 'published';
+      course.status = newStatus;
+      toast.success(`Course ${newStatus} successfully`);
     }
   } catch (error: unknown) {
-    console.error('Failed to update program status:', error);
-    const message = error instanceof Error ? error.message : 'Failed to update program status';
+    console.error('Failed to update course status:', error);
+    const message = error instanceof Error ? error.message : 'Failed to update course status';
     toast.error(message);
   } finally {
     activeMenu.value = null;
@@ -710,43 +686,67 @@ const togglePublishStatus = async (programId: number) => {
   }
 };
 
-const deleteProgram = (programId: number) => {
-  programToDelete.value = programId;
-  showDeleteModal.value = true;
-  activeMenu.value = null;
+const deleteCourse = (courseId: number) => {
+  if (!confirm('Are you sure you want to delete this course?')) {
+    activeMenu.value = null;
+    return;
+  }
+
+  deleteLoadingId.value = courseId;
+
+  try {
+    const index = coursesList.value.findIndex(c => c.id === courseId);
+    if (index > -1) {
+      coursesList.value.splice(index, 1);
+      toast.success('Course deleted successfully');
+      activeMenu.value = null;
+    }
+  } catch (error: unknown) {
+    console.error('Failed to delete course:', error);
+    const message = error instanceof Error ? error.message : 'Failed to delete course';
+    toast.error(message);
+  } finally {
+    deleteLoadingId.value = null;
+  }
 };
 
 const clearAllFilters = () => {
   searchQuery.value = '';
-  dateFilter.value = '';
   statusFilter.value = '';
 };
 
-const getStatusClass = (status: string) => {
+const getStatusClass = (status: string | undefined) => {
   switch (status) {
     case 'published':
       return 'status-published';
     case 'draft':
       return 'status-draft';
-    case 'archived':
-      return 'status-archived';
     default:
-      return '';
+      return 'status-draft';
   }
 };
 
-const viewProgram = (prog: Program) => {
+const goBack = () => {
+  router.back();
+};
+
+const navigateToCohorts = (course: ProgramCourse) => {
   router.push({
-    name: 'Program Courses',
-    params: { slug: prog.slug },
-    query: { name: prog.name }
+    name: 'Program Course Cohorts',
+    params: {
+      courseSlug: course.slug || course.id?.toString(),
+    },
+    query: {
+      courseName: course.title,
+      courseId: course.id,
+    },
   });
 };
 </script>
 
 <style scoped>
 /* Main Container */
-.program-library {
+.program-course-library {
   min-height: 100vh;
   position: relative;
   padding-bottom: 2rem;
@@ -765,6 +765,29 @@ const viewProgram = (prog: Program) => {
 
 .header-left {
   flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.back-button {
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-top: 0.25rem;
+}
+
+.back-button:hover {
+  background: #f9fafb;
+  border-color: #4f46e5;
+  color: #4f46e5;
 }
 
 .header-title {
@@ -905,8 +928,8 @@ const viewProgram = (prog: Program) => {
   background: #fafafa;
 }
 
-/* Programs Grid */
-.programs-grid {
+/* Courses Grid */
+.courses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
@@ -986,13 +1009,8 @@ const viewProgram = (prog: Program) => {
   }
 }
 
-/* Grid Layout */
-.grid {
-  display: grid;
-}
-
-/* Program Card */
-.program-card {
+/* Course Card */
+.course-card {
   background: white;
   border-radius: 0.75rem;
   overflow: hidden;
@@ -1017,13 +1035,13 @@ const viewProgram = (prog: Program) => {
   }
 }
 
-.program-card:hover {
+.course-card:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
   transform: translateY(-6px);
   border-color: #4f46e5;
 }
 
-.program-image-container {
+.course-image-container {
   position: relative;
   width: 100%;
   height: 160px;
@@ -1031,13 +1049,13 @@ const viewProgram = (prog: Program) => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.program-image {
+.course-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.program-status-badge {
+.course-status-badge {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
@@ -1059,39 +1077,21 @@ const viewProgram = (prog: Program) => {
   color: white;
 }
 
-.status-archived {
-  background: rgba(107, 114, 128, 0.9);
-  color: white;
-}
-
-.program-paid-badge {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: rgba(99, 102, 241, 0.9);
-  color: white;
-  backdrop-filter: blur(8px);
-}
-
-.program-content {
+.course-content {
   padding: 1rem;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.program-header-row {
+.course-header-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.5rem;
 }
 
-.program-title {
+.course-title {
   font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
@@ -1099,7 +1099,7 @@ const viewProgram = (prog: Program) => {
   flex: 1;
 }
 
-.program-shortname {
+.course-slogan {
   font-size: 0.875rem;
   color: #6366f1;
   font-weight: 600;
@@ -1110,31 +1110,20 @@ const viewProgram = (prog: Program) => {
   width: fit-content;
 }
 
-.program-sponsor {
-  font-size: 0.8125rem;
-  color: #7c3aed;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  background: #f3e8ff;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  width: fit-content;
-}
-
-.program-text {
+.course-text {
   color: #6b7280;
   line-height: 1.5;
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;
 }
 
-.program-meta {
+.course-meta {
   margin-top: auto;
   padding-top: 0.75rem;
   border-top: 1px solid #e5e7eb;
@@ -1145,38 +1134,28 @@ const viewProgram = (prog: Program) => {
   flex-wrap: wrap;
 }
 
-.program-date {
+.course-category {
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 600;
+  background: #6366f1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.course-date {
   font-size: 0.75rem;
   color: #6b7280;
   font-weight: 500;
 }
 
-.program-trial {
+.course-zoom {
   font-size: 0.75rem;
-  color: #10b981;
+  color: #3b82f6;
   font-weight: 700;
-  background: #d1fae5;
+  background: #dbeafe;
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
-}
-
-.view-button {
-  padding: 0.5rem 0.75rem;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  margin-left: auto;
-}
-
-.view-button:hover {
-  background: #4338ca;
-  transform: translateX(2px);
 }
 
 /* Empty State */
@@ -1311,38 +1290,6 @@ const viewProgram = (prog: Program) => {
   transition: all 0.2s;
 }
 
-.form-input:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-.cost-input-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.currency-symbol {
-  position: absolute;
-  left: 0.75rem;
-  font-weight: 600;
-  color: #374151;
-  font-size: 1rem;
-  pointer-events: none;
-}
-
-.cost-input {
-  padding-left: 2rem;
-}
-
-.cost-hint {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-  margin-bottom: 0;
-}
-
 /* Age Group Checkboxes */
 .age-group-checkboxes {
   display: grid;
@@ -1381,115 +1328,10 @@ const viewProgram = (prog: Program) => {
   color: #111827;
 }
 
-/* Toggle Button */
-.toggle-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.toggle-button {
-  position: relative;
-  width: 3.5rem;
-  height: 2rem;
-  background: #10b981;
-  border-radius: 9999px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.toggle-button:hover {
-  background: #059669;
-}
-
-.toggle-active {
-  background: #10b981 !important;
-}
-
-.toggle-active:hover {
-  background: #059669 !important;
-}
-
-.toggle-button:not(.toggle-active) {
-  background: #d1d5db;
-}
-
-.toggle-button:not(.toggle-active):hover {
-  background: #9ca3af;
-}
-
-.toggle-slider {
-  position: absolute;
-  top: 0.25rem;
-  left: 0.25rem;
-  width: 1.5rem;
-  height: 1.5rem;
-  background: white;
-  border-radius: 9999px;
-  transition: transform 0.3s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.toggle-active .toggle-slider {
-  transform: translateX(1.5rem);
-}
-
-.toggle-label {
-  font-size: 0.875rem;
-  color: #374151;
-  font-weight: 500;
-}
-
-/* Trial Section */
-.trial-section {
-  background: #f9fafb;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-}
-
-.trial-type-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.radio-option {
-  position: relative;
-  cursor: pointer;
-}
-
-.radio-option input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: 2px solid #d1d5db;
-  border-radius: 0.5rem;
-  background: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  transition: all 0.2s;
-}
-
-.radio-option input[type="radio"]:checked+.radio-label {
-  border-color: #6366f1;
-  background: #eef2ff;
-  color: #6366f1;
-}
-
-.radio-option:hover .radio-label {
-  border-color: #6366f1;
+.form-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* Upload Area */
@@ -1674,6 +1516,36 @@ const viewProgram = (prog: Program) => {
   background: #fef2f2;
 }
 
+/* Grid Utilities */
+.grid {
+  display: grid;
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.items-center {
+  display: flex;
+  align-items: center;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+.flex {
+  display: flex;
+}
+
 /* Dropdown Transitions */
 .dropdown-enter-active,
 .dropdown-leave-active {
@@ -1705,80 +1577,6 @@ const viewProgram = (prog: Program) => {
 .modal-enter-from .modal-container,
 .modal-leave-to .modal-container {
   transform: scale(0.95);
-}
-
-/* Delete Modal */
-.delete-modal {
-  background: white;
-  border-radius: 0.75rem;
-  width: 90%;
-  max-width: 20rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.delete-modal-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.delete-modal-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.delete-modal-body {
-  padding: 1rem 1.25rem;
-}
-
-.delete-modal-text {
-  color: #374151;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  margin: 0 0 0.5rem 0;
-}
-
-.delete-modal-hint {
-  color: #6b7280;
-  font-size: 0.8125rem;
-  margin: 0;
-}
-
-.delete-modal-footer {
-  display: flex;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  justify-content: flex-end;
-}
-
-.delete-modal-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  border: none;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.delete-modal-cancel {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.delete-modal-cancel:hover {
-  background: #e5e7eb;
-}
-
-.delete-modal-delete {
-  background: #ef4444;
-  color: white;
-}
-
-.delete-modal-delete:hover:not(:disabled) {
-  background: #dc2626;
 }
 
 /* Filter Modal */
@@ -1911,46 +1709,5 @@ const viewProgram = (prog: Program) => {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateX(10px);
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-active .modal-container,
-.modal-leave-active .modal-container {
-  transition: transform 0.3s ease;
-}
-
-.modal-enter-from .modal-container,
-.modal-leave-to .modal-container {
-  transform: scale(0.95);
-}
-
-.modal-enter-active .filter-modal,
-.modal-leave-active .filter-modal {
-  transition: transform 0.3s ease;
-}
-
-.modal-enter-from .filter-modal,
-.modal-leave-to .filter-modal {
-  transform: scale(0.95);
 }
 </style>

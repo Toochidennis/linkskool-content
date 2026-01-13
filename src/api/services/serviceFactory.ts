@@ -18,3 +18,4 @@ export const advertisementService = serviceFactory<any>("advertisements");
 export const videoLibraryService = serviceFactory<any>("video-library");
 export const levelService = serviceFactory<any>("levels");
 export const programService = serviceFactory<any>("programs");
+export const lessonService = serviceFactory<any>("lessons");

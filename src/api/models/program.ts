@@ -2,6 +2,7 @@ import type { Course } from "./course";
 
 export interface Program {
   id: number;
+  slug: string;
   name: string;
   shortname: string;
   expanded?: boolean;
@@ -10,12 +11,14 @@ export interface Program {
   displayOrder?: number;
   description?: string;
   sponsor?: string;
+  ageGroups?: string[];
   bannerImage?: {
     fileName: string;
-    filePath: string;
-    fileSize: number;
+    filePath?: string;
+    fileSize?: number;
   };
   isFree: boolean;
+  cost?: number;
   trialType?: 'watches' | 'days';
   trialValue?: number;
   startDate?: string;

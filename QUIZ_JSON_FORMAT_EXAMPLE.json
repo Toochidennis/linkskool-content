@@ -1,0 +1,136 @@
+{
+  "metadata": {
+    "title": "Module 1: JavaScript Basics Quiz",
+    "description": "Test your knowledge of JavaScript fundamentals",
+    "duration": 1800,
+    "passingScore": 70,
+    "totalQuestions": 5,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "version": "1.0"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "type": "multiple_choice",
+      "question": "What is the correct way to declare a variable in JavaScript?",
+      "points": 10,
+      "options": [
+        {
+          "id": "a",
+          "text": "var name = 'John';"
+        },
+        {
+          "id": "b",
+          "text": "variable name = 'John';"
+        },
+        {
+          "id": "c",
+          "text": "v name = 'John';"
+        },
+        {
+          "id": "d",
+          "text": "declare name = 'John';"
+        }
+      ],
+      "correctAnswer": "a",
+      "explanation": "The 'var', 'let', and 'const' keywords are used to declare variables in JavaScript. 'var' was the original method, though 'let' and 'const' are preferred in modern JavaScript."
+    },
+    {
+      "id": 2,
+      "type": "multiple_choice",
+      "question": "Which of the following is NOT a JavaScript data type?",
+      "points": 10,
+      "options": [
+        {
+          "id": "a",
+          "text": "String"
+        },
+        {
+          "id": "b",
+          "text": "Number"
+        },
+        {
+          "id": "c",
+          "text": "Boolean"
+        },
+        {
+          "id": "d",
+          "text": "Character"
+        }
+      ],
+      "correctAnswer": "d",
+      "explanation": "JavaScript has: String, Number, Boolean, null, undefined, Symbol, and Object. There is no 'Character' type - JavaScript uses strings instead."
+    },
+    {
+      "id": 3,
+      "type": "true_false",
+      "question": "JavaScript is a strongly typed language.",
+      "points": 10,
+      "correctAnswer": false,
+      "explanation": "JavaScript is dynamically typed. Types are determined at runtime and can change. Unlike languages such as Java or C, you don't need to explicitly declare the data type."
+    },
+    {
+      "id": 4,
+      "type": "short_answer",
+      "question": "Write a function that adds two numbers together.",
+      "points": 20,
+      "acceptableAnswers": [
+        "function add(a, b) { return a + b; }",
+        "const add = (a, b) => a + b",
+        "function add(a, b) {\\n  return a + b;\\n}",
+        "const add = function(a, b) { return a + b; }"
+      ],
+      "explanation": "Functions can be declared using 'function' keyword or as arrow functions. Both syntaxes are valid."
+    },
+    {
+      "id": 5,
+      "type": "matching",
+      "question": "Match the method to its description",
+      "points": 20,
+      "pairs": [
+        {
+          "id": 1,
+          "left": "map()",
+          "right": "Transform each element in an array"
+        },
+        {
+          "id": 2,
+          "left": "filter()",
+          "right": "Remove elements that don't match a condition"
+        },
+        {
+          "id": 3,
+          "left": "reduce()",
+          "right": "Combine all array elements into one value"
+        }
+      ],
+      "correctMatches": [
+        {
+          "left": "map()",
+          "right": "Transform each element in an array"
+        },
+        {
+          "left": "filter()",
+          "right": "Remove elements that don't match a condition"
+        },
+        {
+          "left": "reduce()",
+          "right": "Combine all array elements into one value"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "shuffleQuestions": false,
+    "shuffleOptions": true,
+    "showTimer": true,
+    "showFeedback": true,
+    "feedbackTiming": "after_quiz",
+    "allowReview": true,
+    "randomizeQuestions": false,
+    "randomizeAnswers": true,
+    "sendEmail": true,
+    "emailOnSubmit": true,
+    "emailAddress": "instructor@linkskool.com"
+  }
+}
