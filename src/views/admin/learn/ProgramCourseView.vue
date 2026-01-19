@@ -99,8 +99,6 @@
           <p class="course-text">{{ course.description }}</p>
           <div class="course-meta">
             <span v-if="course.category" class="course-category">{{ course.category }}</span>
-            <span v-if="course.startDate" class="course-date">📅 {{ formatDate(course.startDate) }}</span>
-            <span v-if="course.zoomUrl" class="course-zoom">🎥 Zoom</span>
           </div>
         </div>
       </div>
@@ -212,48 +210,6 @@
                   </svg>
                 </button>
               </div>
-            </div>
-
-            <!-- Section: Schedule -->
-            <div class="section-header">
-              <h4 class="section-title">📆 Schedule</h4>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <!-- Start Date -->
-              <div class="form-group">
-                <label class="form-label">Start Date</label>
-                <input v-model="formData.startDate" type="date" class="form-input" />
-              </div>
-
-              <!-- End Date -->
-              <div class="form-group">
-                <label class="form-label">End Date</label>
-                <input v-model="formData.endDate" type="date" class="form-input" />
-              </div>
-
-              <!-- Start Time -->
-              <div class="form-group">
-                <label class="form-label">Start Time</label>
-                <input v-model="formData.startTime" type="time" class="form-input" />
-              </div>
-
-              <!-- End Time -->
-              <div class="form-group">
-                <label class="form-label">End Time</label>
-                <input v-model="formData.endTime" type="time" class="form-input" />
-              </div>
-            </div>
-
-            <!-- Section: Online Meeting -->
-            <div class="section-header">
-              <h4 class="section-title">🎥 Online Meeting</h4>
-            </div>
-
-            <!-- Zoom URL -->
-            <div class="form-group">
-              <label class="form-label">Zoom URL</label>
-              <input v-model="formData.zoomUrl" type="url" class="form-input" placeholder="https://zoom.us/j/..." />
             </div>
 
             <!-- Submit Buttons -->
@@ -368,11 +324,6 @@ const formData = ref({
   description: '',
   category: '',
   ageGroups: [] as string[],
-  startDate: '',
-  endDate: '',
-  startTime: '',
-  endTime: '',
-  zoomUrl: '',
 });
 
 // Dummy courses data
@@ -387,11 +338,6 @@ const dummyCourses: ProgramCourse[] = [
     category: 'Web Development',
     image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
     status: 'published',
-    startDate: '2025-06-01',
-    endDate: '2025-06-14',
-    startTime: '10:00',
-    endTime: '12:00',
-    zoomUrl: 'https://zoom.us/j/123456789',
     createdAt: new Date().toISOString(),
     ageGroups: ['8-12', '12-16'],
   },
@@ -405,11 +351,6 @@ const dummyCourses: ProgramCourse[] = [
     category: 'Frontend Framework',
     image_url: 'https://images.unsplash.com/photo-1526374965328-7f5ae4e8a365?w=1200&h=400&fit=crop',
     status: 'published',
-    startDate: '2025-06-15',
-    endDate: '2025-06-28',
-    startTime: '14:00',
-    endTime: '16:00',
-    zoomUrl: 'https://zoom.us/j/987654321',
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     ageGroups: ['16-18'],
   },
@@ -423,10 +364,6 @@ const dummyCourses: ProgramCourse[] = [
     category: 'Backend Development',
     image_url: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&h=400&fit=crop',
     status: 'draft',
-    startDate: '2025-07-01',
-    endDate: '2025-07-14',
-    startTime: '10:00',
-    endTime: '12:00',
     createdAt: new Date(Date.now() - 259200000).toISOString(),
     ageGroups: ['18+'],
   },
@@ -514,11 +451,6 @@ const resetForm = () => {
     description: '',
     category: '',
     ageGroups: [],
-    startDate: '',
-    endDate: '',
-    startTime: '',
-    endTime: '',
-    zoomUrl: '',
   };
   imagePreview.value = '';
   imageFile.value = null;
@@ -584,11 +516,6 @@ const handleSubmit = async (status: 'published' | 'draft') => {
           description: formData.value.description,
           category: formData.value.category || undefined,
           ageGroups: formData.value.ageGroups,
-          startDate: formData.value.startDate || undefined,
-          endDate: formData.value.endDate || undefined,
-          startTime: formData.value.startTime || undefined,
-          endTime: formData.value.endTime || undefined,
-          zoomUrl: formData.value.zoomUrl || undefined,
           status,
         };
 
@@ -612,11 +539,6 @@ const handleSubmit = async (status: 'published' | 'draft') => {
         category: formData.value.category || undefined,
         ageGroups: formData.value.ageGroups,
         image_url: imageFile.value ? URL.createObjectURL(imageFile.value) : undefined,
-        startDate: formData.value.startDate || undefined,
-        endDate: formData.value.endDate || undefined,
-        startTime: formData.value.startTime || undefined,
-        endTime: formData.value.endTime || undefined,
-        zoomUrl: formData.value.zoomUrl || undefined,
         status,
         createdAt: new Date().toISOString(),
       };
@@ -650,11 +572,6 @@ const editCourse = (course: ProgramCourse) => {
     description: course.description || '',
     category: course.category || '',
     ageGroups: course.ageGroups || [],
-    startDate: course.startDate || '',
-    endDate: course.endDate || '',
-    startTime: course.startTime || '',
-    endTime: course.endTime || '',
-    zoomUrl: course.zoomUrl || '',
   };
   imagePreview.value = course.image_url || '';
   imageFile.value = null;
@@ -1139,21 +1056,6 @@ const navigateToCohorts = (course: ProgramCourse) => {
   color: #fff;
   font-weight: 600;
   background: #6366f1;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-}
-
-.course-date {
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.course-zoom {
-  font-size: 0.75rem;
-  color: #3b82f6;
-  font-weight: 700;
-  background: #dbeafe;
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
 }

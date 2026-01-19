@@ -3,8 +3,8 @@
     <!-- Modern Header with Title, Description, Search & Filter -->
     <div class="header-section">
       <div class="header-left">
-        <h1 class="header-title">Tech Programs</h1>
-        <p class="header-subtitle">Manage and organize all your technology programs and courses</p>
+        <h1 class="header-title">Programs</h1>
+        <p class="header-subtitle">Manage and organize all your programs and courses</p>
       </div>
 
       <div class="header-right">
@@ -40,12 +40,9 @@
     <div v-if="filteredProgramsList.length > 0" class="programs-grid" @click="closeMenuOutside">
       <div v-for="program in filteredProgramsList" :key="program.id" class="program-card" @click="viewProgram(program)">
         <div class="program-image-container">
-          <img :src="loadImage(program.bannerImage?.fileName || '')" :alt="program.name" class="program-image" />
+          <img :src="loadImage(program.imageUrl || '')" :alt="program.name" class="program-image" />
           <div class="program-status-badge" :class="getStatusClass(program.status)">
             {{ program.status }}
-          </div>
-          <div v-if="!program.isFree" class="program-paid-badge">
-            💳 Paid
           </div>
         </div>
         <div class="program-content">
@@ -98,13 +95,11 @@
             </div>
           </div>
           <p class="program-shortname">{{ program.shortname }}</p>
-          <p v-if="program.sponsor" class="program-sponsor">🏢 {{ program.sponsor }}</p>
+          <p v-if="program.sponsor" class="program-sponsor"> {{ program.sponsor }}</p>
           <p class="program-text">{{ program.description }}</p>
           <div class="program-meta">
-            <span v-if="program.startDate" class="program-date">📅 {{ formatDate(program.startDate) }}</span>
-            <span v-if="!program.isFree && program.trialType" class="program-trial">
-              🎁 {{ program.trialValue }} {{ program.trialType === 'watches' ? 'free views' : 'day trial' }}
-            </span>
+            <span class="program-date">📚 {{ program.courseCount }}
+              {{ program.courseCount === 1 ? 'Course' : 'Courses' }}</span>
           </div>
         </div>
       </div>
@@ -116,8 +111,13 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
       </svg>
-      <p class="empty-text">{{ searchQuery || statusFilter || dateFilter ? 'No programs match your filters' :
-        'No programs yet. Click "Add Program" to create your first tech program.' }}</p>
+      <p class="empty-text">
+        {{
+          searchQuery || statusFilter || dateFilter
+            ? 'No programs match your filters'
+            : 'No programs yet. Click "Add Program" to create your first tech program.'
+        }}
+      </p>
     </div>
 
     <!-- Modal -->
@@ -136,21 +136,21 @@
           <div class="modal-body">
             <!-- Section: Basic Information -->
             <div class="section-header">
-              <h4 class="section-title">📋 Basic Information</h4>
+              <h4 class="section-title">Basic Information</h4>
             </div>
 
             <!-- Program Title -->
             <div class="form-group">
               <label class="form-label">Program Title <span class="required">*</span></label>
               <input v-model="formData.name" type="text" required class="form-input"
-                placeholder="e.g., Full Stack Web Development" />
+                placeholder="e.g., Kids Coding Bootcamp" />
             </div>
 
             <!-- Slogan/Short Name -->
             <div class="form-group">
               <label class="form-label">Slogan/Short Name <span class="required">*</span></label>
               <input v-model="formData.shortname" type="text" required class="form-input"
-                placeholder="e.g., FSWD, WebDev Pro" />
+                placeholder="e.g., KCB, WebDev Pro" />
             </div>
 
             <!-- Description/Purpose -->
@@ -164,7 +164,7 @@
             <div class="form-group">
               <label class="form-label">Sponsor/Host</label>
               <input v-model="formData.sponsor" type="text" class="form-input"
-                placeholder="e.g., Tech Academy, Company Name" />
+                placeholder="e.g., Digital Dreams Limited, Company Name" />
             </div>
 
             <!-- Banner Image -->
@@ -288,8 +288,31 @@
           </div>
 
           <div class="filter-modal-footer">
-            <button @click="showFilterModal = false" class="filter-btn-secondary">
-              Done
+            <button @click="showFilterModal = false" class="filter-btn-secondary">Done</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Delete Confirmation Modal -->
+    <Transition name="modal">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
+        <div class="delete-modal">
+          <div class="delete-modal-header">
+            <h3 class="delete-modal-title">Delete Program</h3>
+          </div>
+          <div class="delete-modal-body">
+            <p class="delete-modal-text">Are you sure you want to delete this program?</p>
+            <p class="delete-modal-hint">This action cannot be undone.</p>
+          </div>
+          <div class="delete-modal-footer">
+            <button @click="showDeleteModal = false" class="delete-modal-btn delete-modal-cancel"
+              :disabled="deleteLoadingId === programToDelete">
+              Cancel
+            </button>
+            <button @click="confirmDelete" class="delete-modal-btn delete-modal-delete"
+              :disabled="deleteLoadingId === programToDelete">
+              {{ deleteLoadingId === programToDelete ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -299,229 +322,142 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useToast } from 'vue-toast-notification';
-import type { Program } from '@/api/models';
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toast-notification'
+import type { Program } from '@/api/models'
+import { programService } from '@/api/services/serviceFactory'
 
-const toast = useToast();
-const router = useRouter();
+const toast = useToast()
+const router = useRouter()
 
-const showModal = ref(false);
-const showDeleteModal = ref(false);
-const showFilterModal = ref(false);
-const programToDelete = ref<number | null>(null);
-const fileInput = ref<HTMLInputElement | null>(null);
-const imagePreview = ref<string>('');
-const imageFile = ref<File | null>(null);
-const programsList = ref<Program[]>([]);
-const activeMenu = ref<number | null>(null);
-const editingProgramId = ref<number | null>(null);
-const isSubmitting = ref(false);
-const originalImageFileName = ref('');
-const statusLoadingId = ref<number | null>(null);
-const deleteLoadingId = ref<number | null>(null);
+const showModal = ref(false)
+const showDeleteModal = ref(false)
+const showFilterModal = ref(false)
+const programToDelete = ref<number | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const imagePreview = ref<string>('')
+const imageFile = ref<File | null>(null)
+const programsList = ref<Program[]>([])
+const activeMenu = ref<number | null>(null)
+const editingProgramId = ref<number | null>(null)
+const isSubmitting = ref(false)
+const originalImageFileName = ref('')
+const statusLoadingId = ref<number | null>(null)
+const deleteLoadingId = ref<number | null>(null)
 
 // Filter states
-const searchQuery = ref('');
-const dateFilter = ref('');
-const statusFilter = ref('');
+const searchQuery = ref('')
+const dateFilter = ref('')
+const statusFilter = ref('')
 
 const formData = ref({
   name: '',
   shortname: '',
   description: '',
   sponsor: '',
-});
+})
 
 // Fetch programs from API
-const dummyPrograms: Program[] = [
-  {
-    id: 1,
-    slug: 'kids-coding-bootcamp',
-    name: 'Kids Coding Bootcamp',
-    shortname: 'KCB',
-    description: 'Intensive 4-week summer program teaching kids ages 8-14 the fundamentals of coding through fun, interactive projects and games.',
-    sponsor: 'TechKids Academy',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: false,
-    trialType: 'days',
-    trialValue: 7,
-    status: 'published',
-    startDate: '2025-06-01',
-    endDate: '2025-06-28',
-    createdAt: new Date().toISOString(),
-    isActive: 1,
-    courses: [],
-  },
-  {
-    id: 2,
-    slug: 'easter-coding-fest',
-    name: 'Easter Coding Fest',
-    shortname: 'ECF',
-    description: 'Holiday special! Three-day coding festival with workshops, competitions, and prizes. Perfect for beginners and advanced learners.',
-    sponsor: 'CodeFest Community',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1526374965328-7f5ae4e8a365?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: true,
-    status: 'published',
-    startDate: '2025-04-14',
-    endDate: '2025-04-16',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    isActive: 1,
-    courses: [],
-  },
-  {
-    id: 3,
-    slug: 'summer-tech-camp',
-    name: 'Summer Tech Camp',
-    shortname: 'STC',
-    description: 'All-inclusive 6-week summer camp combining coding, design, and robotics. Residential and day options available.',
-    sponsor: 'Tech Summer Camps',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: false,
-    trialType: 'watches',
-    trialValue: 5,
-    status: 'draft',
-    startDate: '2025-07-01',
-    endDate: '2025-08-12',
-    createdAt: new Date(Date.now() - 259200000).toISOString(),
-    isActive: 1,
-    courses: [],
-  },
-  {
-    id: 4,
-    slug: 'winter-robotics-challenge',
-    name: 'Winter Robotics Challenge',
-    shortname: 'WRC',
-    description: 'Competitive robotics program during winter break. Build, program, and test robots in weekly challenges.',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: false,
-    trialType: 'days',
-    trialValue: 14,
-    status: 'published',
-    startDate: '2025-12-20',
-    endDate: '2026-01-10',
-    createdAt: new Date(Date.now() - 604800000).toISOString(),
-    isActive: 1,
-    courses: [],
-  },
-  {
-    id: 5,
-    slug: 'spring-coding-sprint',
-    name: 'Spring Coding Sprint',
-    shortname: 'SCS',
-    description: 'Fast-paced 3-week intensive program designed to accelerate your coding skills. Limited spots available.',
-    sponsor: 'Code Accelerators',
-    bannerImage: { fileName: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&h=400&fit=crop', filePath: '', fileSize: 0 },
-    isFree: true,
-    status: 'published',
-    startDate: '2025-03-15',
-    endDate: '2025-04-04',
-    createdAt: new Date(Date.now() - 1209600000).toISOString(),
-    isActive: 1,
-    courses: [],
-  },
-];
-
 const fetchPrograms = async () => {
   try {
-    // Using dummy data instead of API call
-    programsList.value = dummyPrograms;
-    console.log('Loaded dummy programs:', dummyPrograms);
+    const response = await programService.get()
+    if (response.data) {
+      programsList.value = Array.isArray(response.data) ? response.data : []
+    }
+    console.log('Loaded programs from backend')
   } catch (error: unknown) {
-    console.error('Failed to fetch programs:', error);
-    const message = error instanceof Error ? error.message : 'Failed to load programs';
-    toast.error(message);
+    console.error('Failed to fetch programs:', error)
+    const message = error instanceof Error ? error.message : 'Failed to load programs'
+    toast.error(message)
   }
-};
+}
 
 const loadImage = (image: string) => {
-  if (!image) return 'https://via.placeholder.com/1200x400?text=Program+Banner';
+  if (!image) return 'https://via.placeholder.com/1200x400?text=Program+Banner'
   if (image.startsWith('data:') || image.startsWith('http')) {
-    return image;
+    return image
   }
-  return import.meta.env.VITE_ASSETS_BASE_URL + '/' + image;
-};
-
-const formatDate = (dateString: string) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
+  return import.meta.env.VITE_ASSETS_BASE_URL + '/' + image
+}
 
 // Filtered programs based on search and filters
 const filteredProgramsList = computed(() => {
-  let filtered = [...programsList.value];
+  let filtered = [...programsList.value]
 
   // Apply search filter
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(prog =>
-      prog.name.toLowerCase().includes(query) ||
-      prog.shortname.toLowerCase().includes(query) ||
-      (prog.description && prog.description.toLowerCase().includes(query))
-    );
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(
+      (prog) =>
+        prog.name.toLowerCase().includes(query) ||
+        prog.shortname.toLowerCase().includes(query) ||
+        (prog.description && prog.description.toLowerCase().includes(query)),
+    )
   }
 
   // Apply status filter
   if (statusFilter.value) {
-    filtered = filtered.filter(prog => prog.status === statusFilter.value);
+    filtered = filtered.filter((prog) => prog.status === statusFilter.value)
   }
 
   // Apply date filter
   if (dateFilter.value) {
-    const now = new Date();
-    filtered = filtered.filter(prog => {
-      if (!prog.createdAt) return false;
-      const progDate = new Date(prog.createdAt);
+    const now = new Date()
+    filtered = filtered.filter((prog) => {
+      if (!prog.createdAt) return false
+      const progDate = new Date(prog.createdAt)
       switch (dateFilter.value) {
         case 'today':
-          return progDate.toDateString() === now.toDateString();
+          return progDate.toDateString() === now.toDateString()
         case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return progDate >= weekAgo;
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return progDate >= weekAgo
         case 'month':
-          return progDate.getMonth() === now.getMonth() && progDate.getFullYear() === now.getFullYear();
+          return (
+            progDate.getMonth() === now.getMonth() && progDate.getFullYear() === now.getFullYear()
+          )
         default:
-          return true;
+          return true
       }
-    });
+    })
   }
 
-  return filtered;
-});
+  return filtered
+})
 
 // Count active filters
 const activeFiltersCount = computed(() => {
-  let count = 0;
-  if (statusFilter.value) count++;
-  if (dateFilter.value) count++;
-  return count;
-});
+  let count = 0
+  if (statusFilter.value) count++
+  if (dateFilter.value) count++
+  return count
+})
 
 // Load data on component mount
 onMounted(() => {
-  fetchPrograms();
-});
+  fetchPrograms()
+})
 
 const isFormValid = computed(() => {
-  const basicValid = formData.value.name.trim() !== '' &&
+  const basicValid =
+    formData.value.name.trim() !== '' &&
     formData.value.shortname.trim() !== '' &&
     formData.value.description.trim() !== '' &&
-    (imageFile.value !== null || (editingProgramId.value && imagePreview.value));
+    (imageFile.value !== null || (editingProgramId.value && imagePreview.value))
 
-  return basicValid;
-});
+  return basicValid
+})
 
 const openModal = () => {
-  editingProgramId.value = null;
-  showModal.value = true;
-};
+  editingProgramId.value = null
+  showModal.value = true
+}
 
 const closeModal = () => {
-  showModal.value = false;
-  resetForm();
-};
+  showModal.value = false
+  resetForm()
+}
 
 const resetForm = () => {
   formData.value = {
@@ -529,219 +465,248 @@ const resetForm = () => {
     shortname: '',
     description: '',
     sponsor: '',
-  };
-  imagePreview.value = '';
-  imageFile.value = null;
-  editingProgramId.value = null;
-};
+  }
+  imagePreview.value = ''
+  imageFile.value = null
+  editingProgramId.value = null
+}
 
 const triggerFileInput = () => {
-  fileInput.value?.click();
-};
+  fileInput.value?.click()
+}
 
 const handleFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement;
+  const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
-    addFile(target.files[0]);
+    addFile(target.files[0])
   }
-};
+}
 
 const handleDrop = (event: DragEvent) => {
-  const files = event.dataTransfer?.files;
+  const files = event.dataTransfer?.files
   if (files && files[0]) {
-    addFile(files[0]);
+    addFile(files[0])
   }
-};
+}
 
 const addFile = (file: File) => {
   if (file.type.startsWith('image/')) {
-    imageFile.value = file;
-    const reader = new FileReader();
+    imageFile.value = file
+    const reader = new FileReader()
     reader.onload = (e) => {
-      imagePreview.value = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      imagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
   } else {
-    toast.error('Please upload an image file');
+    toast.error('Please upload an image file')
   }
-};
+}
 
 const removeImage = () => {
-  imagePreview.value = '';
-  imageFile.value = null;
+  imagePreview.value = ''
+  imageFile.value = null
   if (fileInput.value) {
-    fileInput.value.value = '';
+    fileInput.value.value = ''
   }
-};
+}
 
 const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
-  if (!isFormValid.value || isSubmitting.value) return;
+  if (!isFormValid.value || isSubmitting.value) return
 
-  isSubmitting.value = true;
+  isSubmitting.value = true
 
   try {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Get current user from localStorage
+    const userString = localStorage.getItem('user')
+    if (!userString) {
+      toast.error('User data not found. Please login again.')
+      isSubmitting.value = false
+      return
+    }
+
+    const user = JSON.parse(userString)
+    const authorName = user.username || ''
+    const authorId = user.id || 0
+
+    if (!authorName || authorId === 0) {
+      toast.error('Invalid user data. Please login again.')
+      isSubmitting.value = false
+      return
+    }
+
+    // Prepare FormData
+    const payload = new FormData()
+    payload.append('name', formData.value.name)
+    payload.append('description', formData.value.description)
+    payload.append('author_name', authorName)
+    payload.append('author_id', authorId.toString())
+    payload.append('shortname', formData.value.shortname)
+    payload.append('status', status)
+    if (formData.value.sponsor) {
+      payload.append('sponsor', formData.value.sponsor)
+    }
+
+    // Handle image updates
+    if (editingProgramId.value !== null) {
+      // When updating, check if the old image was deleted
+      if (originalImageFileName.value && !imagePreview.value) {
+        // Old image was deleted, send the old URL for backend to handle deletion
+        payload.append('old_image_url', originalImageFileName.value)
+      }
+    }
+
+    if (imageFile.value) {
+      payload.append('image', imageFile.value)
+    }
 
     if (editingProgramId.value !== null) {
-      // Update existing program locally
-      const programIndex = programsList.value.findIndex(p => p.id === editingProgramId.value);
-      if (programIndex > -1) {
-        const updatedProgram = {
-          ...programsList.value[programIndex],
-          name: formData.value.name,
-          shortname: formData.value.shortname,
-          description: formData.value.description,
-          sponsor: formData.value.sponsor || undefined,
-          status,
-        } as Program;
-
-        // Update banner image if new one is selected
-        if (imageFile.value) {
-          updatedProgram.bannerImage = {
-            fileName: URL.createObjectURL(imageFile.value),
-          };
-        }
-
-        programsList.value[programIndex] = updatedProgram;
-        toast.success('Program updated successfully');
-        closeModal();
+      // Update existing program
+      const response = await programService.post(editingProgramId.value.toString(), payload as any)
+      if (response) {
+        toast.success('Program updated successfully')
+        await fetchPrograms()
+        closeModal()
       }
     } else {
-      // Create new program locally
-      const newProgram = {
-        id: Math.max(...programsList.value.map(p => p.id), 0) + 1,
-        slug: formData.value.name.toLowerCase().replace(/\s+/g, '-'),
-        name: formData.value.name,
-        shortname: formData.value.shortname,
-        description: formData.value.description,
-        sponsor: formData.value.sponsor || undefined,
-        bannerImage: imageFile.value ? {
-          fileName: URL.createObjectURL(imageFile.value),
-        } : { fileName: '' },
-        isFree: true,
-        status,
-        createdAt: new Date().toISOString(),
-        courses: [],
-        isActive: 1,
-      } as Program;
-
-      programsList.value.unshift(newProgram);
-      toast.success('Program created successfully');
-      closeModal();
+      // Create new program
+      const response = await programService.post(undefined, payload as any)
+      if (response) {
+        toast.success('Program created successfully')
+        await fetchPrograms()
+        closeModal()
+      }
     }
   } catch (error: unknown) {
-    console.error('Failed to submit program:', error);
-    const message = error instanceof Error ? error.message : 'Failed to save program';
-    toast.error(message);
+    console.error('Failed to submit program:', error)
+    const message = error instanceof Error ? error.message : 'Failed to save program'
+    toast.error(message)
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
-};
+}
 
 const toggleMenu = (programId: number) => {
-  activeMenu.value = activeMenu.value === programId ? null : programId;
-};
+  activeMenu.value = activeMenu.value === programId ? null : programId
+}
 
 const closeMenuOutside = () => {
-  activeMenu.value = null;
-};
+  activeMenu.value = null
+}
 
 const editProgram = (prog: Program) => {
-  editingProgramId.value = prog.id;
+  editingProgramId.value = prog.id
   formData.value = {
     name: prog.name,
     shortname: prog.shortname,
     description: prog.description || '',
     sponsor: prog.sponsor || '',
-  };
-  originalImageFileName.value = prog.bannerImage?.fileName || '';
-  imagePreview.value = prog.bannerImage?.fileName || '';
-  imageFile.value = null;
-  activeMenu.value = null;
-  showModal.value = true;
-};
+  }
+  originalImageFileName.value = prog.imageUrl || ''
+  imagePreview.value = prog.imageUrl || ''
+  imageFile.value = null
+  activeMenu.value = null
+  showModal.value = true
+}
 
 const duplicateProgram = (prog: Program) => {
-  editingProgramId.value = null;
+  editingProgramId.value = null
   formData.value = {
     name: prog.name + ' (Copy)',
     shortname: prog.shortname + ' Copy',
     description: prog.description || '',
     sponsor: prog.sponsor || '',
-  };
-  originalImageFileName.value = '';
-  imagePreview.value = prog.bannerImage?.fileName || '';
-  imageFile.value = null;
-  activeMenu.value = null;
-  showModal.value = true;
-};
+  }
+  originalImageFileName.value = ''
+  imagePreview.value = prog.imageUrl || ''
+  imageFile.value = null
+  activeMenu.value = null
+  showModal.value = true
+}
 
 const togglePublishStatus = async (programId: number) => {
-  if (statusLoadingId.value === programId) return;
-  statusLoadingId.value = programId;
+  if (statusLoadingId.value === programId) return
+  statusLoadingId.value = programId
 
   try {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const prog = programsList.value.find(p => p.id === programId);
+    const prog = programsList.value.find((p) => p.id === programId)
     if (prog) {
-      let newStatus: 'draft' | 'published' | 'archived';
+      let newStatus: 'draft' | 'published' | 'archived'
 
       if (prog.status === 'draft') {
-        newStatus = 'published';
+        newStatus = 'published'
       } else if (prog.status === 'published') {
-        newStatus = 'archived';
+        newStatus = 'archived'
       } else {
-        newStatus = 'published';
+        newStatus = 'published'
       }
 
-      prog.status = newStatus;
-      toast.success(`Program ${newStatus} successfully`);
+      // Update via API
+      await programService.put(`${programId.toString()}/status`, { status: newStatus })
+
+      prog.status = newStatus
+      toast.success(`Program ${newStatus} successfully`)
     }
   } catch (error: unknown) {
-    console.error('Failed to update program status:', error);
-    const message = error instanceof Error ? error.message : 'Failed to update program status';
-    toast.error(message);
+    console.error('Failed to update program status:', error)
+    const message = error instanceof Error ? error.message : 'Failed to update program status'
+    toast.error(message)
   } finally {
-    activeMenu.value = null;
-    statusLoadingId.value = null;
+    activeMenu.value = null
+    statusLoadingId.value = null
   }
-};
+}
 
 const deleteProgram = (programId: number) => {
-  programToDelete.value = programId;
-  showDeleteModal.value = true;
-  activeMenu.value = null;
-};
+  programToDelete.value = programId
+  showDeleteModal.value = true
+  activeMenu.value = null
+}
+
+const confirmDelete = async () => {
+  if (!programToDelete.value || deleteLoadingId.value === programToDelete.value) return
+  deleteLoadingId.value = programToDelete.value
+
+  try {
+    await programService.delete(programToDelete.value.toString())
+    programsList.value = programsList.value.filter((p) => p.id !== programToDelete.value)
+    toast.success('Program deleted successfully')
+    showDeleteModal.value = false
+    programToDelete.value = null
+  } catch (error: unknown) {
+    console.error('Failed to delete program:', error)
+    const message = error instanceof Error ? error.message : 'Failed to delete program'
+    toast.error(message)
+  } finally {
+    deleteLoadingId.value = null
+  }
+}
 
 const clearAllFilters = () => {
-  searchQuery.value = '';
-  dateFilter.value = '';
-  statusFilter.value = '';
-};
+  searchQuery.value = ''
+  dateFilter.value = ''
+  statusFilter.value = ''
+}
 
 const getStatusClass = (status: string) => {
   switch (status) {
     case 'published':
-      return 'status-published';
+      return 'status-published'
     case 'draft':
-      return 'status-draft';
+      return 'status-draft'
     case 'archived':
-      return 'status-archived';
+      return 'status-archived'
     default:
-      return '';
+      return ''
   }
-};
+}
 
 const viewProgram = (prog: Program) => {
   router.push({
     name: 'Program Courses',
     params: { slug: prog.slug },
-    query: { name: prog.name }
-  });
-};
+    query: { name: prog.name },
+  })
+}
 </script>
 
 <style scoped>
@@ -828,7 +793,9 @@ const viewProgram = (prog: Program) => {
 .search-input:focus {
   outline: none;
   border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(79, 70, 229, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Filter Button */
@@ -855,7 +822,9 @@ const viewProgram = (prog: Program) => {
 .filter-button.filter-active {
   border-color: #4f46e5;
   background: #f0f4ff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(79, 70, 229, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .filter-icon {
@@ -940,7 +909,9 @@ const viewProgram = (prog: Program) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4), 0 0 0 0 rgba(79, 70, 229, 0.2);
+  box-shadow:
+    0 10px 30px rgba(79, 70, 229, 0.4),
+    0 0 0 0 rgba(79, 70, 229, 0.2);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 40;
   animation: floatIn 0.5s ease-out 0.2s both;
@@ -960,7 +931,9 @@ const viewProgram = (prog: Program) => {
 
 .floating-action-button:hover {
   transform: scale(1.1) translateY(-4px);
-  box-shadow: 0 15px 40px rgba(79, 70, 229, 0.5), 0 0 0 0 rgba(79, 70, 229, 0.2);
+  box-shadow:
+    0 15px 40px rgba(79, 70, 229, 0.5),
+    0 0 0 0 rgba(79, 70, 229, 0.2);
 }
 
 .floating-action-button:active {
@@ -1064,19 +1037,6 @@ const viewProgram = (prog: Program) => {
   color: white;
 }
 
-.program-paid-badge {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: rgba(99, 102, 241, 0.9);
-  color: white;
-  backdrop-filter: blur(8px);
-}
-
 .program-content {
   padding: 1rem;
   flex: 1;
@@ -1149,15 +1109,6 @@ const viewProgram = (prog: Program) => {
   font-size: 0.75rem;
   color: #6b7280;
   font-weight: 500;
-}
-
-.program-trial {
-  font-size: 0.75rem;
-  color: #10b981;
-  font-weight: 700;
-  background: #d1fae5;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
 }
 
 .view-button {
@@ -1361,7 +1312,7 @@ const viewProgram = (prog: Program) => {
   user-select: none;
 }
 
-.checkbox-option input[type="checkbox"] {
+.checkbox-option input[type='checkbox'] {
   width: 1.25rem;
   height: 1.25rem;
   accent-color: #6366f1;
@@ -1462,7 +1413,7 @@ const viewProgram = (prog: Program) => {
   cursor: pointer;
 }
 
-.radio-option input[type="radio"] {
+.radio-option input[type='radio'] {
   position: absolute;
   opacity: 0;
   cursor: pointer;
@@ -1482,7 +1433,7 @@ const viewProgram = (prog: Program) => {
   transition: all 0.2s;
 }
 
-.radio-option input[type="radio"]:checked+.radio-label {
+.radio-option input[type='radio']:checked+.radio-label {
   border-color: #6366f1;
   background: #eef2ff;
   color: #6366f1;
@@ -1639,7 +1590,9 @@ const viewProgram = (prog: Program) => {
   margin-top: 0.25rem;
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   border: 1px solid #e5e7eb;
   min-width: 10rem;
   z-index: 10;
@@ -1677,7 +1630,9 @@ const viewProgram = (prog: Program) => {
 /* Dropdown Transitions */
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .dropdown-enter-from,
@@ -1855,7 +1810,7 @@ const viewProgram = (prog: Program) => {
   cursor: pointer;
 }
 
-.filter-checkbox input[type="radio"] {
+.filter-checkbox input[type='radio'] {
   width: 1.25rem;
   height: 1.25rem;
   accent-color: #4f46e5;
@@ -1915,7 +1870,9 @@ const viewProgram = (prog: Program) => {
 
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .dropdown-enter-from,

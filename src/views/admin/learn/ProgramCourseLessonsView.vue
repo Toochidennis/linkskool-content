@@ -5,7 +5,12 @@
       <div class="header-content">
         <button class="back-btn" @click="goBack">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M19 12H5M12 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path
+              d="M19 12H5M12 19l-7-7 7-7"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
         </button>
         <div class="header-info">
@@ -41,7 +46,8 @@
         <div v-if="lessons.length === 0" class="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path
-              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"
+            />
           </svg>
           <h3>No lessons yet</h3>
           <p>Create your first lesson to get started</p>
@@ -49,44 +55,86 @@
         </div>
 
         <div v-else class="lessons-grid" @dragover.prevent @drop="handleDrop">
-          <div v-for="(lesson, index) in lessons" :key="lesson.lessonId || lesson.localId" class="lesson-item"
-            draggable="true" @dragstart="handleDragStart($event, index)" @dragend="handleDragEnd" :data-index="index">
-            <div class="lesson-card" :class="{
-              'is-edited': editedLessons.has(String(lesson.lessonId)),
-              'is-final': lesson.schedule.isFinalLesson,
-              'is-collapsed': collapsedCards.has(String(lesson.lessonId)),
-            }" @click="handleCardClick(String(lesson.lessonId), $event)">
+          <div
+            v-for="(lesson, index) in lessons"
+            :key="lesson.lessonId || lesson.localId"
+            class="lesson-item"
+            draggable="true"
+            @dragstart="handleDragStart($event, index)"
+            @dragend="handleDragEnd"
+            :data-index="index"
+          >
+            <div
+              class="lesson-card"
+              :class="{
+                'is-edited': editedLessons.has(String(lesson.lessonId)),
+                'is-final': lesson.schedule.isFinalLesson,
+                'is-collapsed': collapsedCards.has(String(lesson.lessonId)),
+              }"
+              @click="handleCardClick(String(lesson.lessonId), $event)"
+            >
               <!-- Card Header -->
               <div class="lesson-card-header">
                 <div class="lesson-header-info">
-                  <div class="lesson-badge" :class="lesson.schedule.isFinalLesson ? 'final' : 'regular'">
+                  <div
+                    class="lesson-badge"
+                    :class="lesson.schedule.isFinalLesson ? 'final' : 'regular'"
+                  >
                     {{ lesson.schedule.isFinalLesson ? '🎓 Final' : `Lesson ${index + 1}` }}
                   </div>
                   <h3 class="lesson-title" v-if="collapsedCards.has(String(lesson.lessonId))">
                     {{ lesson.title || 'Untitled Lesson' }}
                   </h3>
                 </div>
+                <div class="lesson-display-order">
+                  <label class="order-label">Order:</label>
+                  <input
+                    v-model.number="lesson.displayOrder"
+                    type="number"
+                    class="order-input"
+                    min="1"
+                    @change="markEdited(lesson)"
+                    @click.stop
+                  />
+                </div>
                 <div class="lesson-card-actions">
-                  <button class="icon-btn collapse-btn" @click="toggleCollapse(String(lesson.lessonId), $event)"
-                    :title="collapsedCards.has(String(lesson.lessonId)) ? 'Expand' : 'Collapse'">
-                    <svg v-if="collapsedCards.has(String(lesson.lessonId))" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor">
+                  <button
+                    class="icon-btn collapse-btn"
+                    @click="toggleCollapse(String(lesson.lessonId), $event)"
+                    :title="collapsedCards.has(String(lesson.lessonId)) ? 'Expand' : 'Collapse'"
+                  >
+                    <svg
+                      v-if="collapsedCards.has(String(lesson.lessonId))"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="18 15 12 9 6 15"></polyline>
                     </svg>
                   </button>
-                  <button class="icon-btn duplicate-btn" @click="duplicateLesson(lesson, $event)" title="Duplicate">
+                  <button
+                    class="icon-btn duplicate-btn"
+                    @click="duplicateLesson(lesson, $event)"
+                    title="Duplicate"
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
                   </button>
-                  <button class="icon-btn delete-btn" @click="deleteLesson(lesson, $event)" title="Delete">
+                  <button
+                    class="icon-btn delete-btn"
+                    @click="deleteLesson(lesson, $event)"
+                    title="Delete"
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      ></path>
                       <line x1="10" y1="11" x2="10" y2="17"></line>
                       <line x1="14" y1="11" x2="14" y2="17"></line>
                     </svg>
@@ -100,7 +148,8 @@
                 <div class="preview-stats">
                   <div class="stat-item">
                     <span class="stat-label">Status:</span>
-                    <span class="stat-value">{{ editedLessons.has(String(lesson.lessonId)) ? '✏️ Unsaved' : '✅ Saved'
+                    <span class="stat-value">{{
+                      editedLessons.has(String(lesson.lessonId)) ? '✏️ Unsaved' : '✅ Saved'
                     }}</span>
                   </div>
                   <div class="stat-item">
@@ -111,12 +160,15 @@
                 <div class="preview-meta">
                   <span v-if="lesson.videoUrl" class="meta-tag video">📹 Video</span>
                   <span v-if="lesson.recordedVideoUrl" class="meta-tag recorded">🎥 Recorded</span>
-                  <span v-if="lesson.materialFiles?.length" class="meta-tag material">📄 {{ lesson.materialFiles.length
-                  }} File(s)</span>
+                  <span v-if="lesson.materialFile" class="meta-tag material">📄 Material File</span>
                   <span v-if="lesson.writeupContent" class="meta-tag writeup">📝 Write-up</span>
-                  <span v-if="lesson.assignment.instructions" class="meta-tag assignment">✍️ Assignment</span>
+                  <span v-if="lesson.assignment.instructions" class="meta-tag assignment"
+                    >✍️ Assignment</span
+                  >
                   <span v-if="lesson.quiz.jsonFile" class="meta-tag quiz">❓ Quiz</span>
-                  <span v-if="lesson.schedule.isFinalLesson" class="meta-tag final-badge">🎓 Final Lesson</span>
+                  <span v-if="lesson.schedule.isFinalLesson" class="meta-tag final-badge"
+                    >🎓 Final Lesson</span
+                  >
                 </div>
               </div>
 
@@ -124,17 +176,25 @@
               <div v-else class="lesson-form">
                 <!-- Form Action Buttons (Top) -->
                 <div class="form-actions-top">
-                  <button v-if="editedLessons.has(String(lesson.lessonId))" class="btn-save"
-                    @click="saveLesson(lesson, $event)">
+                  <button
+                    v-if="editedLessons.has(String(lesson.lessonId))"
+                    class="btn-save"
+                    @click="saveLesson(lesson, $event)"
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <path
+                        d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                      ></path>
                       <polyline points="17 21 17 13 7 13 7 21"></polyline>
                       <polyline points="7 3 7 8 15 8"></polyline>
                     </svg>
                     Save Changes
                   </button>
-                  <button v-if="editedLessons.has(String(lesson.lessonId))" class="btn-discard"
-                    @click="discardChanges(lesson, $event)">
+                  <button
+                    v-if="editedLessons.has(String(lesson.lessonId))"
+                    class="btn-discard"
+                    @click="discardChanges(lesson, $event)"
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <circle cx="12" cy="12" r="10"></circle>
                       <line x1="8" y1="12" x2="16" y2="12"></line>
@@ -151,8 +211,13 @@
                         Lesson Title
                         <span class="required">*</span>
                       </label>
-                      <input v-model="lesson.title" type="text" class="form-input" placeholder="Enter lesson title..."
-                        @change="markEdited(lesson)" />
+                      <input
+                        v-model="lesson.title"
+                        type="text"
+                        class="form-input"
+                        placeholder="Enter lesson title..."
+                        @change="markEdited(lesson)"
+                      />
                     </div>
                   </div>
 
@@ -162,9 +227,13 @@
                         Description
                         <span class="required">*</span>
                       </label>
-                      <textarea v-model="lesson.description" class="form-textarea"
-                        placeholder="Brief description of the lesson..." rows="3"
-                        @change="markEdited(lesson)"></textarea>
+                      <textarea
+                        v-model="lesson.description"
+                        class="form-textarea"
+                        placeholder="Brief description of the lesson..."
+                        rows="3"
+                        @change="markEdited(lesson)"
+                      ></textarea>
                     </div>
                   </div>
                 </div>
@@ -176,8 +245,16 @@
                     <div class="form-group full">
                       <label class="form-label">Goal</label>
                       <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.goal" placeholder="What is the main goal of this lesson?"
-                          @update:model-value="(value) => { lesson.goal = value; }" @blur="markEdited(lesson)" />
+                        <RichTextEditor
+                          :model-value="lesson.goal"
+                          placeholder="What is the main goal of this lesson?"
+                          @update:model-value="
+                            (value) => {
+                              lesson.goal = value
+                            }
+                          "
+                          @blur="markEdited(lesson)"
+                        />
                       </div>
                       <p class="form-hint">Use formatting for better presentation</p>
                     </div>
@@ -187,9 +264,16 @@
                     <div class="form-group full">
                       <label class="form-label">Objectives</label>
                       <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.objectives"
+                        <RichTextEditor
+                          :model-value="lesson.objectives"
                           placeholder="Enter learning objectives... (bullet points, bold, italic, etc.)"
-                          @update:model-value="(value) => { lesson.objectives = value; }" @blur="markEdited(lesson)" />
+                          @update:model-value="
+                            (value) => {
+                              lesson.objectives = value
+                            }
+                          "
+                          @blur="markEdited(lesson)"
+                        />
                       </div>
                       <p class="form-hint">Use formatting for better presentation</p>
                     </div>
@@ -202,8 +286,13 @@
                   <div class="form-row">
                     <div class="form-group full">
                       <label class="form-label">Video URL</label>
-                      <input v-model="lesson.videoUrl" type="url" class="form-input"
-                        placeholder="https://youtube.com/... or https://vimeo.com/..." @change="markEdited(lesson)" />
+                      <input
+                        v-model="lesson.videoUrl"
+                        type="url"
+                        class="form-input"
+                        placeholder="https://youtube.com/... or https://vimeo.com/..."
+                        @change="markEdited(lesson)"
+                      />
                       <p class="form-hint">Link to YouTube, Vimeo, or other video platform</p>
                     </div>
                   </div>
@@ -211,21 +300,31 @@
                   <div class="form-row">
                     <div class="form-group full">
                       <label class="form-label">Recorded Video URL</label>
-                      <input v-model="lesson.recordedVideoUrl" type="url" class="form-input"
-                        placeholder="Link to recorded session..." @change="markEdited(lesson)" />
+                      <input
+                        v-model="lesson.recordedVideoUrl"
+                        type="url"
+                        class="form-input"
+                        placeholder="Link to recorded session..."
+                        @change="markEdited(lesson)"
+                      />
                       <p class="form-hint">Optional: Link to recorded lesson session</p>
                     </div>
                   </div>
 
                   <div class="form-row">
                     <div class="form-group full">
-                      <label class="form-label">📎 Material Files (PDF, Max 10MB)</label>
-                      <FileUploadZone accept=".pdf" :max-size="10485760" multiple
-                        @files-selected="(files) => handleMaterialUpload(lesson, files)" />
-                      <div v-if="lesson.materialFiles?.length" class="file-list">
-                        <div v-for="(file, idx) in lesson.materialFiles" :key="idx" class="file-item">
-                          <span class="file-name">📄 {{ file.file_name }}</span>
-                          <button class="btn-remove" @click="removeMaterialFile(lesson, idx)">Remove</button>
+                      <label class="form-label">📎 Material File (PDF, Max 5MB)</label>
+                      <FileUploadZone
+                        accept=".pdf"
+                        :max-size="5242880"
+                        @files-selected="(files) => handleMaterialUpload(lesson, files)"
+                      />
+                      <div v-if="lesson.materialFile" class="file-list">
+                        <div class="file-item">
+                          <span class="file-name">📄 {{ lesson.materialFile.file_name }}</span>
+                          <button class="btn-remove" @click="removeMaterialFile(lesson)">
+                            Remove
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -235,10 +334,16 @@
                     <div class="form-group full">
                       <label class="form-label">Material Write-up (Alternative to Video)</label>
                       <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.writeupContent"
+                        <RichTextEditor
+                          :model-value="lesson.writeupContent"
                           placeholder="Write detailed material content, notes, or reading materials..."
-                          @update:model-value="(value) => { lesson.writeupContent = value; }"
-                          @blur="markEdited(lesson)" />
+                          @update:model-value="
+                            (value) => {
+                              lesson.writeupContent = value
+                            }
+                          "
+                          @blur="markEdited(lesson)"
+                        />
                       </div>
                       <p class="form-hint">Use formatting for structured content</p>
                     </div>
@@ -252,23 +357,34 @@
                     <div class="form-group full">
                       <label class="form-label">Assignment Instructions</label>
                       <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.assignment.instructions"
+                        <RichTextEditor
+                          :model-value="lesson.assignment.instructions"
                           placeholder="Provide detailed assignment instructions..."
-                          @update:model-value="(value) => { lesson.assignment.instructions = value; }"
-                          @blur="markEdited(lesson)" />
+                          @update:model-value="
+                            (value) => {
+                              lesson.assignment.instructions = value
+                            }
+                          "
+                          @blur="markEdited(lesson)"
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div class="form-row">
                     <div class="form-group full">
-                      <label class="form-label">📤 Assignment Upload (PDF, Max 10MB)</label>
-                      <FileUploadZone accept=".pdf" :max-size="10485760"
-                        @files-selected="(files) => handleAssignmentUpload(lesson, files)" />
-                      <div v-if="lesson.assignment.files?.length" class="file-list">
-                        <div v-for="(file, idx) in lesson.assignment.files" :key="idx" class="file-item">
-                          <span class="file-name">📄 {{ file.file_name }}</span>
-                          <button class="btn-remove" @click="removeAssignmentFile(lesson, idx)">Remove</button>
+                      <label class="form-label">📤 Assignment File (PDF, Max 5MB)</label>
+                      <FileUploadZone
+                        accept=".pdf"
+                        :max-size="5242880"
+                        @files-selected="(files) => handleAssignmentUpload(lesson, files)"
+                      />
+                      <div v-if="lesson.assignment.file" class="file-list">
+                        <div class="file-item">
+                          <span class="file-name">📄 {{ lesson.assignment.file.file_name }}</span>
+                          <button class="btn-remove" @click="removeAssignmentFile(lesson)">
+                            Remove
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -281,8 +397,11 @@
                   <div class="form-row">
                     <div class="form-group full">
                       <label class="form-label">📋 Upload Quiz (JSON Format)</label>
-                      <FileUploadZone accept=".json" :max-size="10485760"
-                        @files-selected="(files) => handleQuizUpload(lesson, files)" />
+                      <FileUploadZone
+                        accept=".json"
+                        :max-size="5242880"
+                        @files-selected="(files) => handleQuizUpload(lesson, files)"
+                      />
                       <p class="form-hint">Upload quiz in JSON format only</p>
                       <div v-if="lesson.quiz.jsonFile" class="file-list">
                         <div class="file-item">
@@ -300,10 +419,16 @@
                   <div class="form-row">
                     <div class="form-group">
                       <label class="checkbox-label">
-                        <input v-model="lesson.schedule.isFinalLesson" type="checkbox" @change="markEdited(lesson)" />
+                        <input
+                          v-model="lesson.schedule.isFinalLesson"
+                          type="checkbox"
+                          @change="markEdited(lesson)"
+                        />
                         <span>Mark as Final Lesson</span>
                       </label>
-                      <p class="form-hint">Final lessons only require title, description, video URL, and certificate</p>
+                      <p class="form-hint">
+                        Final lessons only require title, description, video URL, and certificate
+                      </p>
                     </div>
                   </div>
 
@@ -311,16 +436,21 @@
                   <div v-if="lesson.schedule.isFinalLesson" class="form-row">
                     <div class="form-group full">
                       <label class="form-label">
-                        🎖️ Certificate Template (SVG, Max 10MB)
+                        🎖️ Certificate Template (SVG, Max 5MB)
                         <span class="required">*</span>
                       </label>
-                      <FileUploadZone accept=".svg" :max-size="10485760"
-                        @files-selected="(files) => handleCertificateUpload(lesson, files)" />
+                      <FileUploadZone
+                        accept=".svg"
+                        :max-size="5242880"
+                        @files-selected="(files) => handleCertificateUpload(lesson, files)"
+                      />
                       <p class="form-hint">SVG format only for scalability and professionalism</p>
                       <div v-if="lesson.certificateFile" class="file-list">
                         <div class="file-item">
                           <span class="file-name">🎖️ {{ lesson.certificateFile.file_name }}</span>
-                          <button class="btn-remove" @click="removeCertificateFile(lesson)">Remove</button>
+                          <button class="btn-remove" @click="removeCertificateFile(lesson)">
+                            Remove
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -330,43 +460,37 @@
                   <div class="form-row">
                     <div v-if="!lesson.schedule.isFinalLesson" class="form-group">
                       <label class="form-label">Lesson Date</label>
-                      <input v-model="lesson.schedule.startDate" type="date" class="form-input"
-                        @change="markEdited(lesson)" />
+                      <input
+                        v-model="lesson.schedule.startDate"
+                        type="date"
+                        class="form-input"
+                        @change="markEdited(lesson)"
+                      />
                     </div>
                     <div v-else class="form-group">
                       <label class="form-label">
                         Completion Date
                         <span class="required">*</span>
                       </label>
-                      <input v-model="lesson.schedule.startDate" type="date" class="form-input"
-                        @change="markEdited(lesson)" />
+                      <input
+                        v-model="lesson.schedule.startDate"
+                        type="date"
+                        class="form-input"
+                        @change="markEdited(lesson)"
+                      />
                     </div>
                   </div>
 
-                  <!-- Assignment Schedule (Regular Lessons Only) -->
+                  <!-- Assignment Due Date (Regular Lessons Only) -->
                   <div v-if="!lesson.schedule.isFinalLesson" class="form-row">
                     <div class="form-group">
-                      <label class="form-label">Assignment Start Date</label>
-                      <input v-model="lesson.assignment.schedule.startDate" type="date" class="form-input"
-                        @change="markEdited(lesson)" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Assignment Start Time</label>
-                      <input v-model="lesson.assignment.schedule.startTime" type="time" class="form-input"
-                        @change="markEdited(lesson)" />
-                    </div>
-                  </div>
-
-                  <div v-if="!lesson.schedule.isFinalLesson" class="form-row">
-                    <div class="form-group">
-                      <label class="form-label">Assignment End Date</label>
-                      <input v-model="lesson.assignment.schedule.endDate" type="date" class="form-input"
-                        @change="markEdited(lesson)" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Assignment End Time</label>
-                      <input v-model="lesson.assignment.schedule.endTime" type="time" class="form-input"
-                        @change="markEdited(lesson)" />
+                      <label class="form-label">Assignment Due Date</label>
+                      <input
+                        v-model="lesson.assignment.dueDate"
+                        type="date"
+                        class="form-input"
+                        @change="markEdited(lesson)"
+                      />
                     </div>
                   </div>
                 </div>
@@ -419,35 +543,27 @@ const createEmptyLesson = (): Lesson => {
   return {
     lessonId: `temp-${Date.now()}`,
     courseId: courseId.value,
+    displayOrder: lessons.value.length + 1,
     title: '',
     description: '',
     goal: '',
     objectives: '',
     videoUrl: '',
     recordedVideoUrl: '',
-    materialFiles: [],
+    materialFile: null,
     writeupContent: '',
     assignment: {
       instructions: '',
-      files: [],
-      schedule: {
-        startDate: today as string,
-        endDate: today as string,
-        startTime: '09:00',
-        endTime: '17:00',
-        isFinalLesson: false
-      }
+      file: null,
+      dueDate: today as string,
     },
     quiz: {
-      jsonFile: null
+      jsonFile: null,
     },
     schedule: {
       startDate: today as string,
-      endDate: today as string,
-      startTime: '09:00',
-      endTime: '17:00',
-      isFinalLesson: false
-    }
+      isFinalLesson: false,
+    },
   }
 }
 
@@ -615,43 +731,45 @@ const deleteLesson = (lesson: Lesson, event: Event) => {
 }
 
 const handleMaterialUpload = async (lesson: Lesson, files: File[]) => {
-  for (const file of files) {
-    if (!file.name.endsWith('.pdf')) {
-      alert('Only PDF files are allowed for materials')
-      return
-    }
-    if (file.size > 10485760) {
-      alert('File size must not exceed 10MB')
-      return
-    }
+  const file = files[0]
+  if (!file) return
 
-    const base64 = await fileToBase64(file)
-    lesson.materialFiles.push({
-      file_name: file.name,
-      type: 'pdf',
-      file: base64
-    })
+  if (!file.name.endsWith('.pdf')) {
+    alert('Only PDF files are allowed for materials')
+    return
+  }
+  if (file.size > 5242880) {
+    alert('File size must not exceed 5MB')
+    return
+  }
+
+  const base64 = await fileToBase64(file)
+  lesson.materialFile = {
+    file_name: file.name,
+    type: 'pdf',
+    file: base64,
   }
   markEdited(lesson)
 }
 
 const handleAssignmentUpload = async (lesson: Lesson, files: File[]) => {
-  for (const file of files) {
-    if (!file.name.endsWith('.pdf')) {
-      alert('Only PDF files are allowed for assignments')
-      return
-    }
-    if (file.size > 10485760) {
-      alert('File size must not exceed 10MB')
-      return
-    }
+  const file = files[0]
+  if (!file) return
 
-    const base64 = await fileToBase64(file)
-    lesson.assignment.files.push({
-      file_name: file.name,
-      type: 'pdf',
-      file: base64
-    })
+  if (!file.name.endsWith('.pdf')) {
+    alert('Only PDF files are allowed for assignments')
+    return
+  }
+  if (file.size > 5242880) {
+    alert('File size must not exceed 5MB')
+    return
+  }
+
+  const base64 = await fileToBase64(file)
+  lesson.assignment.file = {
+    file_name: file.name,
+    type: 'pdf',
+    file: base64,
   }
   markEdited(lesson)
 }
@@ -667,7 +785,7 @@ const handleQuizUpload = async (lesson: Lesson, files: File[]) => {
   lesson.quiz.jsonFile = {
     file_name: file.name,
     type: 'json',
-    file: base64
+    file: base64,
   }
   markEdited(lesson)
 }
@@ -678,8 +796,8 @@ const handleCertificateUpload = async (lesson: Lesson, files: File[]) => {
     alert('Only SVG files are allowed for certificates')
     return
   }
-  if (file.size > 10485760) {
-    alert('File size must not exceed 10MB')
+  if (file.size > 5242880) {
+    alert('File size must not exceed 5MB')
     return
   }
 
@@ -687,18 +805,18 @@ const handleCertificateUpload = async (lesson: Lesson, files: File[]) => {
   lesson.certificateFile = {
     file_name: file.name,
     type: 'svg',
-    file: base64
+    file: base64,
   }
   markEdited(lesson)
 }
 
-const removeMaterialFile = (lesson: Lesson, index: number) => {
-  lesson.materialFiles.splice(index, 1)
+const removeMaterialFile = (lesson: Lesson) => {
+  lesson.materialFile = null
   markEdited(lesson)
 }
 
-const removeAssignmentFile = (lesson: Lesson, index: number) => {
-  lesson.assignment.files.splice(index, 1)
+const removeAssignmentFile = (lesson: Lesson) => {
+  lesson.assignment.file = null
   markEdited(lesson)
 }
 
@@ -740,7 +858,12 @@ const goBack = () => {
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 * {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
 }
 
 .lesson-container {
@@ -978,7 +1101,7 @@ const goBack = () => {
   animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.lesson-item[draggable="true"] {
+.lesson-item[draggable='true'] {
   cursor: move;
   user-select: none;
 }
@@ -1075,6 +1198,37 @@ const goBack = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.lesson-display-order {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px;
+}
+
+.order-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.order-input {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.order-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .lesson-card-actions {

@@ -15,19 +15,19 @@
         </div>
       </div>
       <div class="header-actions">
-        <div class="chip-group">
-          <button v-for="item in statusLegend" :key="item.value" class="chip"
-            :class="{ active: statusFilter === item.value }"
-            @click="statusFilter = statusFilter === item.value ? '' : item.value">
-            <span class="dot" :class="item.value" />
-            {{ item.label }}
-          </button>
-        </div>
+        <button class="filter-btn" :class="{ active: statusFilter }" @click="showFilterModal = true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span v-if="statusFilter" class="filter-badge">1</span>
+        </button>
         <button class="primary-btn" @click="openCreateModal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M12 5v14m-7-7h14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          New cohort
+          <span style="white-space: nowrap;">New cohort</span>
         </button>
       </div>
     </header>
@@ -271,11 +271,40 @@
               <textarea v-model="form.description" rows="3" placeholder="What makes this cohort unique?" />
             </div>
             <div class="field">
+              <label>What You Will Learn</label>
+              <div class="rich-editor-wrapper">
+                <RichTextEditor :model-value="form.whatYouWillLearn"
+                  placeholder="Add learning points as a bulleted list. Press Enter to add each new point..."
+                  @update:model-value="(value) => { form.whatYouWillLearn = value; }" />
+              </div>
+              <p class="field-hint">Use bullet points (•) for each learning outcome. Each point will be displayed with a
+                checkmark on the frontend.</p>
+            </div>
+            <div class="field">
+              <label>Zoom Link</label>
+              <input v-model="form.zoomUrl" type="url" placeholder="https://zoom.us/j/..." />
+            </div>
+            <div class="field">
               <label>Cover image</label>
-              <div class="upload" @click="triggerUpload" @dragover.prevent @drop.prevent="handleDrop">
+              <div v-if="!imagePreview" class="upload upload-large" @click="triggerUpload" @dragover.prevent
+                @drop.prevent="handleDrop">
                 <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFile" />
-                <p v-if="!form.image">Drop an image or click to upload</p>
-                <p v-else class="hint">Image selected</p>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  style="width: 48px; height: 48px; margin: 0 auto 12px; color: #94a3b8;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p style="font-weight: 600; margin: 0 0 4px 0;">Drop an image or click to upload</p>
+                <p class="hint" style="margin: 0;">PNG, JPG, or GIF (recommended: 1200x600px)</p>
+              </div>
+              <div v-else class="image-preview-container">
+                <img :src="imagePreview" alt="Cover preview" class="preview-image" />
+                <button type="button" @click="removeImage" class="remove-image-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Remove
+                </button>
               </div>
             </div>
 
@@ -354,6 +383,45 @@
         </div>
       </div>
     </transition>
+
+    <!-- Filter Modal -->
+    <transition name="modal">
+      <div v-if="showFilterModal" class="modal-overlay" @click.self="closeFilterModal">
+        <div class="modal filter-modal">
+          <header class="modal-header">
+            <div>
+              <p class="label">Filter Cohorts</p>
+              <h3>Filter by status</h3>
+            </div>
+            <button class="icon" @click="closeFilterModal" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 6l12 12M6 18L18 6" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </header>
+          <div class="modal-body">
+            <div class="filter-options">
+              <label class="filter-option" :class="{ active: statusFilter === '' }">
+                <input type="radio" v-model="statusFilter" value="" name="status-filter" />
+                <span class="radio-custom"></span>
+                <span>All Status</span>
+              </label>
+              <label v-for="item in statusLegend" :key="item.value" class="filter-option"
+                :class="{ active: statusFilter === item.value }">
+                <input type="radio" v-model="statusFilter" :value="item.value" name="status-filter" />
+                <span class="radio-custom"></span>
+                <span class="dot" :class="item.value"></span>
+                <span>{{ item.label }}</span>
+              </label>
+            </div>
+          </div>
+          <footer class="modal-footer">
+            <button class="ghost" @click="clearFilter">Clear</button>
+            <button class="primary-btn" @click="closeFilterModal">Apply</button>
+          </footer>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -361,6 +429,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 
 type CohortStatus = 'active' | 'upcoming' | 'completed' | 'paused'
 
@@ -507,7 +576,9 @@ const showOnlyActive = ref(false)
 const expanded = ref<Set<number>>(new Set([cohorts.value[0]?.id]))
 
 const showModal = ref(false)
+const showFilterModal = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
+const imagePreview = ref<string>('')
 const form = ref({
   title: '',
   code: '',
@@ -516,8 +587,10 @@ const form = ref({
   endDate: '',
   capacity: 40,
   description: '',
+  whatYouWillLearn: '',
   delivery: 'Virtual',
   image: '' as string | File,
+  zoomUrl: '',
   isFree: true,
   cost: undefined as number | undefined,
   trialType: undefined as 'watches' | 'days' | undefined,
@@ -642,6 +715,15 @@ const closeModal = () => {
   showModal.value = false
 }
 
+const closeFilterModal = () => {
+  showFilterModal.value = false
+}
+
+const clearFilter = () => {
+  statusFilter.value = ''
+  showFilterModal.value = false
+}
+
 const resetForm = () => {
   form.value = {
     title: '',
@@ -651,13 +733,16 @@ const resetForm = () => {
     endDate: '',
     capacity: 40,
     description: '',
+    whatYouWillLearn: '',
     delivery: 'Virtual',
     image: '',
+    zoomUrl: '',
     isFree: true,
     cost: undefined,
     trialType: undefined,
     trialValue: undefined,
   }
+  imagePreview.value = ''
 }
 
 const triggerUpload = () => fileInput.value?.click()
@@ -665,12 +750,34 @@ const triggerUpload = () => fileInput.value?.click()
 const handleFile = (e: Event) => {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
-  if (file) form.value.image = file
+  if (file) {
+    form.value.image = file
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      imagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
 }
 
 const handleDrop = (e: DragEvent) => {
   const file = e.dataTransfer?.files?.[0]
-  if (file) form.value.image = file
+  if (file) {
+    form.value.image = file
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      imagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const removeImage = () => {
+  form.value.image = ''
+  imagePreview.value = ''
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
 }
 
 const saveCohort = () => {
@@ -764,35 +871,55 @@ const saveCohort = () => {
 
 .header-actions {
   display: flex;
-  flex-direction: column;
   gap: 0.75rem;
-  align-items: flex-end;
+  align-items: center;
 }
 
-.chip-group {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.chip {
+.filter-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.85rem;
-  border-radius: 999px;
-  background: #f1f5f9;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #fff;
   border: 1px solid #e2e8f0;
-  color: #334155;
-  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.chip.active {
+.filter-btn:hover {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.filter-btn.active {
   background: #e0e7ff;
   border-color: #6366f1;
-  color: #3730a3;
+  color: #6366f1;
+}
+
+.filter-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
 }
 
 .dot {
@@ -1275,6 +1402,65 @@ const saveCohort = () => {
   box-shadow: 0 30px 60px rgba(15, 23, 42, 0.18);
 }
 
+.modal.filter-modal {
+  width: min(480px, 100%);
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.filter-option:hover {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.filter-option.active {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.filter-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.filter-option.active .radio-custom {
+  border-color: #6366f1;
+  background: #6366f1;
+  box-shadow: inset 0 0 0 4px #fff;
+}
+
+.filter-option span {
+  font-weight: 600;
+  color: #334155;
+}
+
 .modal-header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
@@ -1335,6 +1521,27 @@ const saveCohort = () => {
   resize: vertical;
 }
 
+.rich-editor-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.rich-editor-wrapper:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: #fff;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.35rem 0 0 0;
+  line-height: 1.4;
+}
+
 .upload {
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
@@ -1343,6 +1550,68 @@ const saveCohort = () => {
   color: #475569;
   cursor: pointer;
   background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.upload:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.upload-large {
+  padding: 2.5rem 1.5rem;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-preview-container {
+  position: relative;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.preview-image {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(239, 68, 68, 0.95);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.remove-image-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.remove-image-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
 }
 
 .hidden {
