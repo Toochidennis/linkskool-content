@@ -704,7 +704,7 @@ const viewProgram = (prog: Program) => {
   router.push({
     name: 'Program Courses',
     params: { slug: prog.slug },
-    query: { name: prog.name },
+    query: { name: prog.name, id: prog.id.toString() },
   })
 }
 </script>

@@ -48,7 +48,7 @@
       <div v-for="course in filteredCoursesList" :key="course.id" class="course-card" @click.stop
         @click="navigateToCohorts(course)">
         <div class="course-image-container">
-          <img :src="loadImage(course.image_url || '')" :alt="course.title" class="course-image" />
+          <img :src="loadImage(course.imageUrl || '')" :alt="course.title" class="course-image" />
           <div class="course-status-badge" :class="getStatusClass(course.status || 'draft')">
             {{ course.status || 'draft' }}
           </div>
@@ -57,8 +57,8 @@
           <div class="course-header-row">
             <h3 class="course-title">{{ course.title }}</h3>
             <!-- Three Dot Menu -->
-            <div class="menu-container">
-              <button @click="toggleMenu(course.id)" class="menu-button">
+            <div class="menu-container" @click.stop>
+              <button @click.stop="toggleMenu(course.id)" class="menu-button">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -66,14 +66,21 @@
               </button>
               <Transition name="dropdown">
                 <div v-if="activeMenu === course.id" class="menu-dropdown">
-                  <button @click="editCourse(course)" class="menu-item">
+                  <button @click.stop="editCourse(course)" class="menu-item">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     Edit
                   </button>
-                  <button @click="togglePublishStatus(course.id)" class="menu-item"
+                  <button @click.stop="duplicateCourse(course)" class="menu-item">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Duplicate
+                  </button>
+                  <button @click.stop="togglePublishStatus(course.id)" class="menu-item"
                     :disabled="statusLoadingId === course.id"
                     :class="statusLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +89,7 @@
                     </svg>
                     {{ course.status === 'published' ? 'Archive' : 'Publish' }}
                   </button>
-                  <button @click="deleteCourse(course.id)" class="menu-item menu-item-danger"
+                  <button @click.stop="deleteCourse(course.id)" class="menu-item menu-item-danger"
                     :disabled="deleteLoadingId === course.id"
                     :class="deleteLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,6 +106,9 @@
           <p class="course-text">{{ course.description }}</p>
           <div class="course-meta">
             <span v-if="course.category" class="course-category">{{ course.category }}</span>
+            <span v-if="getAgeRating(course.ageGroups)" class="course-age-rating">
+              Rated {{ getAgeRating(course.ageGroups) }}
+            </span>
           </div>
         </div>
       </div>
@@ -110,8 +120,13 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
       </svg>
-      <p class="empty-text">{{ searchQuery || statusFilter ? 'No courses match your filters' :
-        'No courses yet. Click "Add Course" to create your first course.' }}</p>
+      <p class="empty-text">
+        {{
+          searchQuery || statusFilter
+            ? 'No courses match your filters'
+            : 'No courses yet. Click "Add Course" to create your first course.'
+        }}
+      </p>
     </div>
 
     <!-- Modal -->
@@ -130,7 +145,7 @@
           <div class="modal-body">
             <!-- Section: Basic Information -->
             <div class="section-header">
-              <h4 class="section-title">📋 Basic Information</h4>
+              <h4 class="section-title">Basic Information</h4>
             </div>
 
             <!-- Course Title -->
@@ -154,36 +169,13 @@
                 placeholder="Describe this course..."></textarea>
             </div>
 
-            <!-- Category -->
-            <div class="form-group">
-              <label class="form-label">Category</label>
-              <input v-model="formData.category" type="text" class="form-input"
-                placeholder="e.g., Web Development, Design, etc." />
-            </div>
-
             <!-- Target Age Groups -->
             <div class="form-group">
               <label class="form-label">Target Age Groups <span class="required">*</span></label>
               <div class="age-group-checkboxes">
-                <label class="checkbox-option">
-                  <input type="checkbox" value="5-8" v-model="formData.ageGroups" />
-                  <span class="checkbox-label">5-8 years</span>
-                </label>
-                <label class="checkbox-option">
-                  <input type="checkbox" value="8-12" v-model="formData.ageGroups" />
-                  <span class="checkbox-label">8-12 years</span>
-                </label>
-                <label class="checkbox-option">
-                  <input type="checkbox" value="12-16" v-model="formData.ageGroups" />
-                  <span class="checkbox-label">12-16 years</span>
-                </label>
-                <label class="checkbox-option">
-                  <input type="checkbox" value="16-18" v-model="formData.ageGroups" />
-                  <span class="checkbox-label">16-18 years</span>
-                </label>
-                <label class="checkbox-option">
-                  <input type="checkbox" value="18+" v-model="formData.ageGroups" />
-                  <span class="checkbox-label">18+ years</span>
+                <label v-for="option in ageRangeOptions" :key="option.key" class="checkbox-option">
+                  <input type="checkbox" :value="option.key" v-model="selectedAgeRangeKeys" />
+                  <span class="checkbox-label">{{ option.label }}</span>
                 </label>
               </div>
             </div>
@@ -279,8 +271,31 @@
           </div>
 
           <div class="filter-modal-footer">
-            <button @click="showFilterModal = false" class="filter-btn-secondary">
-              Done
+            <button @click="showFilterModal = false" class="filter-btn-secondary">Done</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Delete Confirmation Modal -->
+    <Transition name="modal">
+      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
+        <div class="delete-confirm-modal">
+          <div class="delete-icon-container">
+            <svg class="delete-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="delete-title">Delete Course</h3>
+          <p class="delete-message">
+            Are you sure you want to delete this course? This action cannot be undone.
+          </p>
+          <div class="delete-actions">
+            <button @click="showDeleteConfirm = false" class="delete-btn-cancel">Cancel</button>
+            <button @click="confirmDelete" :disabled="deleteLoadingId !== null"
+              :class="deleteLoadingId !== null ? 'opacity-50 cursor-not-allowed' : ''" class="delete-btn-danger">
+              {{ deleteLoadingId !== null ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -290,362 +305,512 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { useToast } from 'vue-toast-notification';
-import type { ProgramCourse } from '@/api/models';
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useToast } from 'vue-toast-notification'
+import { programService } from '@/api/services/serviceFactory'
+import type { ProgramCourse } from '@/api/models'
 
-const router = useRouter();
-const route = useRoute();
-const toast = useToast();
+const router = useRouter()
+const route = useRoute()
+const toast = useToast()
 
-const showModal = ref(false);
-const showFilterModal = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
-const imagePreview = ref<string>('');
-const imageFile = ref<File | null>(null);
-const coursesList = ref<ProgramCourse[]>([]);
-const activeMenu = ref<number | null>(null);
-const editingCourseId = ref<number | null>(null);
-const isSubmitting = ref(false);
-const statusLoadingId = ref<number | null>(null);
-const deleteLoadingId = ref<number | null>(null);
+const showModal = ref(false)
+const showDeleteConfirm = ref(false)
+const showFilterModal = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const imagePreview = ref<string>('')
+const imageFile = ref<File | null>(null)
+const originalImageFileName = ref<string>('')
+const coursesList = ref<ProgramCourse[]>([])
+const activeMenu = ref<number | null>(null)
+const editingCourseId = ref<number | null>(null)
+const courseToDelete = ref<number | null>(null)
+const isSubmitting = ref(false)
+const isLoading = ref(false)
+const statusLoadingId = ref<number | null>(null)
+const deleteLoadingId = ref<number | null>(null)
+
+const ageRangeOptions = [
+  { key: '5-8', label: '5-8 years', min: 5, max: 8 },
+  { key: '8-12', label: '8-12 years', min: 8, max: 12 },
+  { key: '12-16', label: '12-16 years', min: 12, max: 16 },
+  { key: '16-18', label: '16-18 years', min: 16, max: 18 },
+  { key: '18-plus', label: '18+ years', min: 18, max: null },
+]
 
 // Filter states
-const searchQuery = ref('');
-const statusFilter = ref('');
+const searchQuery = ref('')
+const statusFilter = ref('')
 
-const programSlug = computed(() => route.params.slug as string);
-const programName = computed(() => (route.query.name as string) || 'Program Courses');
+const programName = computed(() => (route.query.name as string) || 'Program Courses')
+const programId = computed(() => parseInt(route.query.id as string, 10) || 0)
 
 const formData = ref({
   title: '',
   slogan: '',
   description: '',
-  category: '',
-  ageGroups: [] as string[],
-});
+  ageGroups: [] as Array<{ key: string; label: string; min: number; max: number | null }>,
+})
 
-// Dummy courses data
-const dummyCourses: ProgramCourse[] = [
-  {
-    id: 1,
-    slug: 'web-fundamentals',
-    programId: 1,
-    title: 'Web Fundamentals',
-    slogan: 'Learn the basics of web development',
-    description: 'Start your journey with HTML, CSS, and JavaScript fundamentals. Perfect for beginners.',
-    category: 'Web Development',
-    image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
-    status: 'published',
-    createdAt: new Date().toISOString(),
-    ageGroups: ['8-12', '12-16'],
-  },
-  {
-    id: 2,
-    slug: 'react-mastery',
-    programId: 1,
-    title: 'React Mastery',
-    slogan: 'Build modern interactive applications',
-    description: 'Master React.js and learn to build dynamic, responsive web applications.',
-    category: 'Frontend Framework',
-    image_url: 'https://images.unsplash.com/photo-1526374965328-7f5ae4e8a365?w=1200&h=400&fit=crop',
-    status: 'published',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    ageGroups: ['16-18'],
-  },
-  {
-    id: 3,
-    slug: 'backend-nodejs',
-    programId: 1,
-    title: 'Backend with Node.js',
-    slogan: 'Server-side development with JavaScript',
-    description: 'Learn server-side programming using Node.js, Express, and databases.',
-    category: 'Backend Development',
-    image_url: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&h=400&fit=crop',
-    status: 'draft',
-    createdAt: new Date(Date.now() - 259200000).toISOString(),
-    ageGroups: ['18+'],
-  },
-];
+const unmappedAgeGroups = ref<
+  Array<{ key: string; label: string; min: number; max: number | null }>
+>([])
 
-const fetchCourses = () => {
-  try {
-    // Filter dummy courses by program slug
-    coursesList.value = dummyCourses.filter(c => c.programId === 1);
-    console.log('Loaded dummy courses:', coursesList.value);
-  } catch (error: unknown) {
-    console.error('Failed to fetch courses:', error);
-    const message = error instanceof Error ? error.message : 'Failed to load courses';
-    toast.error(message);
+const selectedAgeRangeKeys = computed({
+  get: () => {
+    const matchedKeys = formData.value.ageGroups
+      .map((ag) => ag.key)
+      .filter((key): key is string => Boolean(key))
+
+    return matchedKeys
+  },
+  set: (newKeys: string[]) => {
+    const uniqueKeys = Array.from(new Set(newKeys))
+    const mappedSelections = uniqueKeys
+      .map((key) => ageRangeOptions.find((opt) => opt.key === key))
+      .filter((opt): opt is (typeof ageRangeOptions)[number] => Boolean(opt))
+      .map((opt) => ({ ...opt }))
+
+    formData.value.ageGroups = [...mappedSelections, ...unmappedAgeGroups.value]
+  },
+})
+
+const normalizeAgeGroup = (ageGroup: Record<string, unknown> | string) => {
+  if (
+    typeof ageGroup === 'object' &&
+    ageGroup !== null &&
+    'min' in ageGroup &&
+    'max' in ageGroup &&
+    'key' in ageGroup &&
+    'label' in ageGroup
+  ) {
+    const min = Number((ageGroup as Record<string, unknown>).min)
+    const rawMax = (ageGroup as Record<string, unknown>).max
+    const max = rawMax === null || rawMax === undefined ? null : Number(rawMax)
+
+    if (Number.isFinite(min) && (max === null || Number.isFinite(max))) {
+      return {
+        key: String((ageGroup as Record<string, unknown>).key),
+        label: String((ageGroup as Record<string, unknown>).label),
+        min,
+        max: max === null ? null : Number(max),
+      }
+    }
   }
-};
+
+  if (typeof ageGroup === 'object' && ageGroup !== null && 'min' in ageGroup && 'max' in ageGroup) {
+    const min = Number((ageGroup as Record<string, unknown>).min)
+    const rawMax = (ageGroup as Record<string, unknown>).max
+    const max = rawMax === null || rawMax === undefined ? null : Number(rawMax)
+
+    if (Number.isFinite(min) && (max === null || Number.isFinite(max))) {
+      const optionMatch = ageRangeOptions.find((opt) => opt.min === min && opt.max === max)
+      if (optionMatch) return { ...optionMatch }
+      return { key: `${min}-${max ?? 'plus'}`, label: `${min}-${max ?? 'plus'}`, min, max }
+    }
+  }
+
+  if (typeof ageGroup === 'string') {
+    const [minStr, maxStr] = ageGroup.split('-')
+    const min = Number(minStr)
+    const maxValue =
+      maxStr === undefined || maxStr === '' || maxStr === 'null' ? null : Number(maxStr)
+
+    if (Number.isFinite(min) && (maxValue === null || Number.isFinite(maxValue))) {
+      const optionMatch = ageRangeOptions.find((opt) => opt.min === min && opt.max === maxValue)
+      if (optionMatch) return { ...optionMatch }
+      return {
+        key: `${min}-${maxValue ?? 'plus'}`,
+        label: `${min}-${maxValue ?? 'plus'}`,
+        min,
+        max: maxValue,
+      }
+    }
+  }
+
+  return null
+}
+
+const splitMappedAgeGroups = (ageGroups: Array<Record<string, unknown> | string>) => {
+  const mapped: Array<{ key: string; label: string; min: number; max: number | null }> = []
+  const unmapped: Array<{ key: string; label: string; min: number; max: number | null }> = []
+
+  ageGroups.forEach((ag) => {
+    const normalized = normalizeAgeGroup(ag)
+    if (!normalized) return
+
+    const optionMatch = ageRangeOptions.find(
+      (opt) => opt.min === normalized.min && opt.max === normalized.max,
+    )
+
+    if (optionMatch) {
+      mapped.push({ ...optionMatch })
+    } else {
+      unmapped.push(normalized)
+    }
+  })
+
+  return { mapped, unmapped }
+}
+
+const fetchCourses = async () => {
+  isLoading.value = true
+  try {
+    if (programId.value === 0) {
+      toast.error('Program ID not found')
+      return
+    }
+
+    // Fetch courses for this program
+    const coursesResponse = await programService.get(`${programId.value}/courses`)
+    const courses = coursesResponse.data;
+    coursesList.value = (courses as ProgramCourse[]).filter(
+      (c: ProgramCourse) => c.programId === programId.value,
+    )
+  } catch (error: unknown) {
+    console.error('Failed to fetch courses:', error)
+    const message = error instanceof Error ? error.message : 'Failed to load courses'
+    toast.error(message)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const loadImage = (image: string) => {
-  if (!image) return 'https://via.placeholder.com/1200x400?text=Course+Banner';
+  if (!image) return 'https://via.placeholder.com/1200x400?text=Course+Banner'
   if (image.startsWith('data:') || image.startsWith('http')) {
-    return image;
+    return image
   }
-  return import.meta.env.VITE_ASSETS_BASE_URL + '/' + image;
-};
-
-const formatDate = (dateString: string) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
+  return import.meta.env.VITE_ASSETS_BASE_URL + '/' + image
+}
 
 // Filtered courses based on search and filters
 const filteredCoursesList = computed(() => {
-  let filtered = [...coursesList.value];
+  let filtered = [...coursesList.value]
 
   // Apply search filter
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(course =>
-      course.title?.toLowerCase().includes(query) ||
-      course.slogan?.toLowerCase().includes(query) ||
-      (course.description && course.description.toLowerCase().includes(query))
-    );
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(
+      (course) =>
+        course.title?.toLowerCase().includes(query) ||
+        course.slogan?.toLowerCase().includes(query) ||
+        (course.description && course.description.toLowerCase().includes(query)),
+    )
   }
 
   // Apply status filter
   if (statusFilter.value) {
-    filtered = filtered.filter(course => course.status === statusFilter.value);
+    filtered = filtered.filter((course) => course.status === statusFilter.value)
   }
 
-  return filtered;
-});
+  return filtered
+})
 
 // Count active filters
 const activeFiltersCount = computed(() => {
-  let count = 0;
-  if (statusFilter.value) count++;
-  return count;
-});
+  let count = 0
+  if (statusFilter.value) count++
+  return count
+})
 
 onMounted(() => {
-  fetchCourses();
-});
+  fetchCourses()
+})
 
 const isFormValid = computed(() => {
-  return formData.value.title.trim() !== '' &&
+  return (
+    formData.value.title.trim() !== '' &&
     formData.value.description.trim() !== '' &&
-    formData.value.ageGroups.length > 0;
-});
+    formData.value.ageGroups.length > 0 &&
+    formData.value.ageGroups.every(
+      (ag) =>
+        typeof ag.key === 'string' &&
+        ag.key.length > 0 &&
+        typeof ag.label === 'string' &&
+        ag.label.length > 0 &&
+        Number.isFinite(ag.min) &&
+        ag.min >= 0 &&
+        (ag.max === null || (Number.isFinite(ag.max) && ag.max >= ag.min)),
+    )
+  )
+})
 
 const openModal = () => {
-  editingCourseId.value = null;
-  showModal.value = true;
-};
+  resetForm()
+  showModal.value = true
+}
 
 const closeModal = () => {
-  showModal.value = false;
-  resetForm();
-};
+  showModal.value = false
+  resetForm()
+}
 
 const resetForm = () => {
   formData.value = {
     title: '',
     slogan: '',
     description: '',
-    category: '',
     ageGroups: [],
-  };
-  imagePreview.value = '';
-  imageFile.value = null;
-  editingCourseId.value = null;
-};
+  }
+  unmappedAgeGroups.value = []
+  imagePreview.value = ''
+  imageFile.value = null
+  originalImageFileName.value = ''
+  editingCourseId.value = null
+}
 
 const triggerFileInput = () => {
-  fileInput.value?.click();
-};
+  fileInput.value?.click()
+}
 
 const handleFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement;
+  const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
-    addFile(target.files[0]);
+    addFile(target.files[0])
   }
-};
+}
 
 const handleDrop = (event: DragEvent) => {
-  const files = event.dataTransfer?.files;
+  const files = event.dataTransfer?.files
   if (files && files[0]) {
-    addFile(files[0]);
+    addFile(files[0])
   }
-};
+}
 
 const addFile = (file: File) => {
   if (file.type.startsWith('image/')) {
-    imageFile.value = file;
-    const reader = new FileReader();
+    imageFile.value = file
+    const reader = new FileReader()
     reader.onload = (e) => {
-      imagePreview.value = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      imagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
   } else {
-    toast.error('Please upload an image file');
+    toast.error('Please upload an image file')
   }
-};
+}
 
 const removeImage = () => {
-  imagePreview.value = '';
-  imageFile.value = null;
+  imagePreview.value = ''
+  imageFile.value = null
   if (fileInput.value) {
-    fileInput.value.value = '';
+    fileInput.value.value = ''
   }
-};
+}
 
 const handleSubmit = async (status: 'published' | 'draft') => {
-  if (!isFormValid.value || isSubmitting.value) return;
+  if (!isFormValid.value || isSubmitting.value) return
 
-  isSubmitting.value = true;
+  isSubmitting.value = true
 
   try {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Get user data from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const authorName = user.username || ''
+    const authorId = user.id || 0
+
+    const payload = new FormData()
+    payload.append('title', formData.value.title)
+    payload.append('slogan', formData.value.slogan || '')
+    payload.append('description', formData.value.description)
+    payload.append('status', status)
+    payload.append('program_id', programId.value.toString())
+    payload.append('author_name', authorName)
+    payload.append('author_id', authorId.toString())
+
+    // Add age_groups as array fields (no stringification)
+    formData.value.ageGroups.forEach((ag, index) => {
+      payload.append(`age_groups[${index}][key]`, ag.key)
+      payload.append(`age_groups[${index}][label]`, ag.label)
+      payload.append(`age_groups[${index}][min]`, String(ag.min))
+      if (ag.max !== null) {
+        payload.append(`age_groups[${index}][max]`, String(ag.max))
+      }
+    })
+
+    // Add image if provided
+    if (imageFile.value) {
+      payload.append('image', imageFile.value)
+    }
+
+    // Track if image was deleted for updates
+    if (originalImageFileName.value && !imagePreview.value && editingCourseId.value) {
+      payload.append('old_image_url', originalImageFileName.value)
+    }
 
     if (editingCourseId.value !== null) {
-      // Update existing course locally
-      const courseIndex = coursesList.value.findIndex(c => c.id === editingCourseId.value);
-      if (courseIndex > -1) {
-        const updatedCourse: ProgramCourse = {
-          ...coursesList.value[courseIndex],
-          title: formData.value.title,
-          slogan: formData.value.slogan || undefined,
-          description: formData.value.description,
-          category: formData.value.category || undefined,
-          ageGroups: formData.value.ageGroups,
-          status,
-        };
-
-        // Update image if new one is selected
-        if (imageFile.value) {
-          updatedCourse.image_url = URL.createObjectURL(imageFile.value);
-        }
-
-        coursesList.value[courseIndex] = updatedCourse;
-        toast.success('Course updated successfully');
-        closeModal();
-      }
+      // Update existing course
+      await programService.post(
+        `${programId.value}/courses/${editingCourseId.value}`,
+        payload as unknown as Record<string, unknown>,
+      )
+      toast.success('Course updated successfully')
     } else {
-      // Create new course locally
-      const newCourse: ProgramCourse = {
-        id: Math.max(...coursesList.value.map(c => c.id), 0) + 1,
-        programId: 1,
-        title: formData.value.title,
-        slogan: formData.value.slogan || undefined,
-        description: formData.value.description,
-        category: formData.value.category || undefined,
-        ageGroups: formData.value.ageGroups,
-        image_url: imageFile.value ? URL.createObjectURL(imageFile.value) : undefined,
-        status,
-        createdAt: new Date().toISOString(),
-      };
-
-      coursesList.value.unshift(newCourse);
-      toast.success('Course created successfully');
-      closeModal();
+      // Create new course
+      await programService.post(
+        `${programId.value}/courses`,
+        payload as unknown as Record<string, unknown>,
+      )
+      toast.success('Course created successfully')
     }
+
+    await fetchCourses()
+    closeModal()
   } catch (error: unknown) {
-    console.error('Failed to submit course:', error);
-    const message = error instanceof Error ? error.message : 'Failed to save course';
-    toast.error(message);
+    console.error('Failed to submit course:', error)
+    const message = error instanceof Error ? error.message : 'Failed to save course'
+    toast.error(message)
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
-};
+}
 
 const toggleMenu = (courseId: number) => {
-  activeMenu.value = activeMenu.value === courseId ? null : courseId;
-};
+  activeMenu.value = activeMenu.value === courseId ? null : courseId
+}
 
 const closeMenuOutside = () => {
-  activeMenu.value = null;
-};
+  activeMenu.value = null
+}
 
 const editCourse = (course: ProgramCourse) => {
-  editingCourseId.value = course.id;
+  editingCourseId.value = course.id
+  const { mapped, unmapped } = splitMappedAgeGroups(
+    course.ageGroups && Array.isArray(course.ageGroups) ? course.ageGroups : [],
+  )
+
   formData.value = {
     title: course.title || '',
     slogan: course.slogan || '',
     description: course.description || '',
-    category: course.category || '',
-    ageGroups: course.ageGroups || [],
-  };
-  imagePreview.value = course.image_url || '';
-  imageFile.value = null;
-  activeMenu.value = null;
-  showModal.value = true;
-};
+    ageGroups: [...mapped, ...unmapped],
+  }
+  unmappedAgeGroups.value = unmapped
+  originalImageFileName.value = course.imageUrl || ''
+  imagePreview.value = course.imageUrl || ''
+  imageFile.value = null
+  activeMenu.value = null
+  showModal.value = true
+}
+
+const duplicateCourse = (course: ProgramCourse) => {
+  editingCourseId.value = null
+  const { mapped, unmapped } = splitMappedAgeGroups(
+    course.ageGroups && Array.isArray(course.ageGroups) ? course.ageGroups : [],
+  )
+
+  formData.value = {
+    title: course.title ? course.title + ' (Copy)' : '(Copy)',
+    slogan: course.slogan || '',
+    description: course.description || '',
+    ageGroups: [...mapped, ...unmapped],
+  }
+  unmappedAgeGroups.value = unmapped
+  originalImageFileName.value = ''
+  imagePreview.value = course.imageUrl || ''
+  imageFile.value = null
+  activeMenu.value = null
+  showModal.value = true
+}
 
 const togglePublishStatus = async (courseId: number) => {
-  if (statusLoadingId.value === courseId) return;
-  statusLoadingId.value = courseId;
+  if (statusLoadingId.value === courseId) return
+  statusLoadingId.value = courseId
 
   try {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const course = coursesList.value.find(c => c.id === courseId);
+    const course = coursesList.value.find((c) => c.id === courseId)
     if (course) {
-      const newStatus = course.status === 'published' ? 'draft' : 'published';
-      course.status = newStatus;
-      toast.success(`Course ${newStatus} successfully`);
+      const newStatus = course.status === 'published' ? 'draft' : 'published'
+
+      await programService.put(`${programId.value}/courses/${courseId}/status`, {
+        status: newStatus,
+      })
+      course.status = newStatus
+      toast.success(`Course ${newStatus} successfully`)
     }
   } catch (error: unknown) {
-    console.error('Failed to update course status:', error);
-    const message = error instanceof Error ? error.message : 'Failed to update course status';
-    toast.error(message);
+    console.error('Failed to update course status:', error)
+    const message = error instanceof Error ? error.message : 'Failed to update course status'
+    toast.error(message)
   } finally {
-    activeMenu.value = null;
-    statusLoadingId.value = null;
+    activeMenu.value = null
+    statusLoadingId.value = null
   }
-};
+}
 
 const deleteCourse = (courseId: number) => {
-  if (!confirm('Are you sure you want to delete this course?')) {
-    activeMenu.value = null;
-    return;
-  }
+  courseToDelete.value = courseId
+  showDeleteConfirm.value = true
+  activeMenu.value = null
+}
 
-  deleteLoadingId.value = courseId;
+const confirmDelete = async () => {
+  if (courseToDelete.value === null || deleteLoadingId.value !== null) return
+
+  deleteLoadingId.value = courseToDelete.value
 
   try {
-    const index = coursesList.value.findIndex(c => c.id === courseId);
+    await programService.delete(`${programId.value}/courses/${courseToDelete.value}`)
+    const index = coursesList.value.findIndex((c) => c.id === courseToDelete.value)
     if (index > -1) {
-      coursesList.value.splice(index, 1);
-      toast.success('Course deleted successfully');
-      activeMenu.value = null;
+      coursesList.value.splice(index, 1)
     }
+    toast.success('Course deleted successfully')
   } catch (error: unknown) {
-    console.error('Failed to delete course:', error);
-    const message = error instanceof Error ? error.message : 'Failed to delete course';
-    toast.error(message);
+    console.error('Failed to delete course:', error)
+    const message = error instanceof Error ? error.message : 'Failed to delete course'
+    toast.error(message)
   } finally {
-    deleteLoadingId.value = null;
+    deleteLoadingId.value = null
+    showDeleteConfirm.value = false
+    courseToDelete.value = null
   }
-};
+}
 
 const clearAllFilters = () => {
-  searchQuery.value = '';
-  statusFilter.value = '';
-};
+  searchQuery.value = ''
+  statusFilter.value = ''
+}
 
 const getStatusClass = (status: string | undefined) => {
   switch (status) {
     case 'published':
-      return 'status-published';
+      return 'status-published'
     case 'draft':
-      return 'status-draft';
+      return 'status-draft'
     default:
-      return 'status-draft';
+      return 'status-draft'
   }
-};
+}
+
+const getAgeRating = (ageGroups: unknown): string | null => {
+  if (!ageGroups || !Array.isArray(ageGroups) || ageGroups.length === 0) {
+    return null
+  }
+
+  // Get the last item in the age groups array
+  const lastGroup = ageGroups[ageGroups.length - 1] as Record<string, unknown>
+
+  // Get max value, fallback to min if max is null
+  const max = lastGroup.max ?? lastGroup.min
+
+  if (max === null || max === undefined) {
+    return null
+  }
+
+  const maxValue = Number(max)
+  if (maxValue === 18 || maxValue > 18) {
+    return '18+'
+  }
+
+  return `${maxValue}+`
+}
 
 const goBack = () => {
-  router.back();
-};
+  router.back()
+}
 
 const navigateToCohorts = (course: ProgramCourse) => {
   router.push({
@@ -657,8 +822,8 @@ const navigateToCohorts = (course: ProgramCourse) => {
       courseName: course.title,
       courseId: course.id,
     },
-  });
-};
+  })
+}
 </script>
 
 <style scoped>
@@ -768,7 +933,9 @@ const navigateToCohorts = (course: ProgramCourse) => {
 .search-input:focus {
   outline: none;
   border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(79, 70, 229, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Filter Button */
@@ -795,7 +962,9 @@ const navigateToCohorts = (course: ProgramCourse) => {
 .filter-button.filter-active {
   border-color: #4f46e5;
   background: #f0f4ff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(79, 70, 229, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .filter-icon {
@@ -880,7 +1049,9 @@ const navigateToCohorts = (course: ProgramCourse) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4), 0 0 0 0 rgba(79, 70, 229, 0.2);
+  box-shadow:
+    0 10px 30px rgba(79, 70, 229, 0.4),
+    0 0 0 0 rgba(79, 70, 229, 0.2);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 40;
   animation: floatIn 0.5s ease-out 0.2s both;
@@ -900,7 +1071,9 @@ const navigateToCohorts = (course: ProgramCourse) => {
 
 .floating-action-button:hover {
   transform: scale(1.1) translateY(-4px);
-  box-shadow: 0 15px 40px rgba(79, 70, 229, 0.5), 0 0 0 0 rgba(79, 70, 229, 0.2);
+  box-shadow:
+    0 15px 40px rgba(79, 70, 229, 0.5),
+    0 0 0 0 rgba(79, 70, 229, 0.2);
 }
 
 .floating-action-button:active {
@@ -930,7 +1103,7 @@ const navigateToCohorts = (course: ProgramCourse) => {
 .course-card {
   background: white;
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid #e5e7eb;
@@ -1056,6 +1229,15 @@ const navigateToCohorts = (course: ProgramCourse) => {
   color: #fff;
   font-weight: 600;
   background: #6366f1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.course-age-rating {
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 600;
+  background: #ef4444;
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
 }
@@ -1210,7 +1392,7 @@ const navigateToCohorts = (course: ProgramCourse) => {
   user-select: none;
 }
 
-.checkbox-option input[type="checkbox"] {
+.checkbox-option input[type='checkbox'] {
   width: 1.25rem;
   height: 1.25rem;
   accent-color: #6366f1;
@@ -1356,6 +1538,7 @@ const navigateToCohorts = (course: ProgramCourse) => {
 /* Menu Dropdown */
 .menu-container {
   position: relative;
+  overflow: visible;
 }
 
 .menu-button {
@@ -1383,10 +1566,12 @@ const navigateToCohorts = (course: ProgramCourse) => {
   margin-top: 0.25rem;
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   border: 1px solid #e5e7eb;
   min-width: 10rem;
-  z-index: 10;
+  z-index: 50;
   overflow: hidden;
 }
 
@@ -1451,7 +1636,9 @@ const navigateToCohorts = (course: ProgramCourse) => {
 /* Dropdown Transitions */
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .dropdown-enter-from,
@@ -1555,7 +1742,7 @@ const navigateToCohorts = (course: ProgramCourse) => {
   cursor: pointer;
 }
 
-.filter-checkbox input[type="radio"] {
+.filter-checkbox input[type='radio'] {
   width: 1.25rem;
   height: 1.25rem;
   accent-color: #4f46e5;
@@ -1595,6 +1782,166 @@ const navigateToCohorts = (course: ProgramCourse) => {
 
 .filter-btn-secondary:hover {
   background: #4338ca;
+}
+
+/* Age Groups Styles */
+.age-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin-bottom: 0.875rem;
+}
+
+.age-group-input {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.875rem;
+}
+
+.age-group-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.age-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.age-input-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.age-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.age-separator {
+  color: #d1d5db;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.remove-age-group-btn {
+  padding: 0.5rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-age-group-btn:hover {
+  background: #fca5a5;
+}
+
+.btn-add-age-group {
+  padding: 0.625rem 1rem;
+  background: #f3f4f6;
+  color: #4f46e5;
+  border: 1px dashed #d1d5db;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-age-group:hover {
+  background: #e5e7eb;
+  border-color: #4f46e5;
+}
+
+/* Delete Confirmation Modal Styles */
+.delete-confirm-modal {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 90%;
+  max-width: 28rem;
+  text-align: center;
+}
+
+.delete-icon-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: #dc2626;
+}
+
+.delete-icon {
+  width: 4rem;
+  height: 4rem;
+  stroke-width: 1.5;
+}
+
+.delete-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.delete-message {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 0.875rem;
+  justify-content: center;
+}
+
+.delete-btn-cancel {
+  padding: 0.625rem 1.5rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.delete-btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.delete-btn-danger {
+  padding: 0.625rem 1.5rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.delete-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
 }
 
 /* Smooth Transition Animations */
