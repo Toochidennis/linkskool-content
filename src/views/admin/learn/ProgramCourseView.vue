@@ -464,7 +464,7 @@ const fetchCourses = async () => {
 
     // Fetch courses for this program
     const coursesResponse = await programService.get(`${programId.value}/courses`)
-    const courses = coursesResponse.data;
+    const courses = coursesResponse.data
     coursesList.value = (courses as ProgramCourse[]).filter(
       (c: ProgramCourse) => c.programId === programId.value,
     )
@@ -821,6 +821,7 @@ const navigateToCohorts = (course: ProgramCourse) => {
     query: {
       courseName: course.title,
       courseId: course.id,
+      programId: programId.value,
     },
   })
 }

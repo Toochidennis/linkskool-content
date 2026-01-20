@@ -2,16 +2,13 @@
   <div class="cohorts-page">
     <header class="page-header">
       <div class="header-left">
-        <button class="back-btn" @click="goBack" aria-label="Go back">
+        <button class="back-btn cursor-pointer" @click="goBack" aria-label="Go back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
         <div>
-          <p class="eyebrow">{{ courseName }} · Cohorts</p>
-          <h1 class="page-title">Cohort timeline & health</h1>
-          <p class="page-subtitle">Monitor active and upcoming cohorts, enrollment momentum, and lesson
-            readiness.</p>
+          <p class="page-title">{{ courseName }} · Cohorts</p>
         </div>
       </div>
       <div class="header-actions">
@@ -27,19 +24,19 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M12 5v14m-7-7h14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <span style="white-space: nowrap;">New cohort</span>
+          <span style="white-space: nowrap">New cohort</span>
         </button>
       </div>
     </header>
 
     <section class="top-stats">
       <div class="stat-card">
-        <p class="label">Active cohorts</p>
+        <p class="label">Ongoing cohorts</p>
         <div class="stat-row">
-          <span class="stat-number">{{ stats.active }}</span>
+          <span class="stat-number">{{ stats.ongoing }}</span>
           <span class="pill success">Live</span>
         </div>
-        <p class="hint">{{ stats.active }} currently teaching</p>
+        <p class="hint">{{ stats.ongoing }} currently teaching</p>
       </div>
       <div class="stat-card">
         <p class="label">Upcoming</p>
@@ -89,8 +86,8 @@
       </div>
       <div class="toggle">
         <label>
-          <input type="checkbox" v-model="showOnlyActive" />
-          Show only active
+          <input type="checkbox" v-model="showOnlyOngoing" />
+          Show only ongoing
         </label>
       </div>
     </section>
@@ -101,15 +98,17 @@
           <div class="title-block">
             <span class="pill" :class="cohort.status">{{ cohort.status }}</span>
             <div>
-              <p class="cohort-name">{{ cohort.name }}</p>
-              <p class="cohort-meta">{{ cohort.code }} · {{ renderDateRange(cohort.startDate,
-                cohort.endDate) }}</p>
+              <p class="cohort-name">{{ cohort.title }}</p>
+              <p class="cohort-meta">
+                {{ cohort.code }} · {{ renderDateRange(cohort.startDate, cohort.endDate) }}
+              </p>
             </div>
           </div>
           <div class="header-right">
             <div class="spark">
               <span class="label">Enrolled</span>
-              <p class="strong">{{ cohort.participants }}<span class="muted">/{{ cohort.capacity }}</span>
+              <p class="strong">
+                {{ cohort.participants }}<span class="muted">/{{ cohort.capacity }}</span>
               </p>
             </div>
             <div class="spark">
@@ -134,9 +133,96 @@
         <transition name="fade-slide">
           <div v-if="expanded.has(cohort.id)" class="cohort-body">
             <div class="body-left">
-              <div class="banner" :style="{ backgroundImage: `url(${loadImage(cohort.image)})` }">
+              <div class="banner" :style="{ backgroundImage: `url(${loadImage(cohort.imageUrl)})` }">
+                <div class="menu-container banner-menu-container">
+                  <button class="menu-btn banner-menu-btn" @click.stop="toggleMenu(cohort.id, $event)"
+                    aria-label="Options">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="5" r="2" />
+                      <circle cx="12" cy="12" r="2" />
+                      <circle cx="12" cy="19" r="2" />
+                    </svg>
+                  </button>
+                  <transition name="fade">
+                    <div v-if="activeMenu === cohort.id" class="menu-dropdown menu-dropdown-banner" @click.stop>
+                      <div class="menu-section">
+                        <p class="menu-label">Actions</p>
+                        <button class="menu-item" @click="handleEdit(cohort, $event)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L7.5 20.5 3 21l0.5-4.5 13.232-13.232z"
+                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                          <span>Edit cohort</span>
+                        </button>
+                      </div>
+                      <div class="menu-divider"></div>
+                      <div class="menu-section">
+                        <p class="menu-label">Change Status</p>
+                        <button v-for="status in statusLegend" :key="status.value" class="menu-item"
+                          :class="{ active: cohort.status === status.value }" :disabled="cohort.status === status.value"
+                          @click="changeStatus(cohort, status.value as CohortStatus, $event)">
+                          <span class="dot" :class="status.value"></span>
+                          <span>{{ status.label }}</span>
+                          <svg v-if="cohort.status === status.value" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" class="check-icon">
+                            <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div class="menu-divider"></div>
+                      <button class="menu-item danger" @click="confirmDelete(cohort, $event)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <span>Delete Cohort</span>
+                      </button>
+                    </div>
+                  </transition>
+
+                  <!-- Delete Confirmation Modal -->
+                  <transition name="modal">
+                    <div v-if="showDeleteModal" class="modal-overlay" @click.self="cancelDelete">
+                      <div class="modal delete-modal">
+                        <header class="modal-header">
+                          <div>
+                            <h3>Delete Cohort</h3>
+                          </div>
+                          <button class="icon" @click="cancelDelete" aria-label="Close">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M6 6l12 12M6 18L18 6" stroke-width="2" stroke-linecap="round" />
+                            </svg>
+                          </button>
+                        </header>
+                        <div class="modal-body">
+                          <div class="warning-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="warning-icon">
+                              <path
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="warning-text">
+                              Are you sure you want to delete
+                              <strong>{{ cohortToDelete?.title }}</strong>?
+                            </p>
+                            <p class="warning-sub">
+                              This action cannot be undone. All cohort data, including enrolled
+                              students and progress, will be permanently removed.
+                            </p>
+                          </div>
+                        </div>
+                        <footer class="modal-footer">
+                          <button class="ghost" @click="cancelDelete">Cancel</button>
+                          <button class="danger-btn" @click="deleteCohort">Delete Cohort</button>
+                        </footer>
+                      </div>
+                    </div>
+                  </transition>
+                </div>
                 <div class="overlay">
-                  <p class="overlay-title">{{ cohort.name }}</p>
+                  <p class="overlay-title">{{ cohort.title }}</p>
                   <p class="overlay-sub">{{ cohort.description }}</p>
                 </div>
               </div>
@@ -145,7 +231,8 @@
                   <p class="label">Instruction team</p>
                   <div class="avatars">
                     <span v-for="person in cohort.instructors" :key="person" class="avatar">{{
-                      initials(person) }}</span>
+                      initials(person)
+                      }}</span>
                   </div>
                 </div>
                 <div class="metric">
@@ -188,13 +275,10 @@
               </div>
               <div class="pill-row">
                 <span class="pill subtle">{{ cohort.delivery }}</span>
-                <span class="pill subtle">{{ cohort.timezone }}</span>
+                <!-- <span class="pill subtle">{{ cohort.timezone }}</span> -->
               </div>
               <div class="cta-row">
-                <button class="ghost" @click="duplicateCohort(cohort)">Duplicate</button>
-                <button class="primary-btn" @click="openLessons(cohort)">
-                  Go to lessons
-                </button>
+                <button class="primary-btn" @click="openLessons(cohort)">Go to lessons</button>
               </div>
             </div>
           </div>
@@ -235,10 +319,9 @@
               <div>
                 <label>Status</label>
                 <select v-model="form.status">
-                  <option value="active">Active</option>
                   <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
                   <option value="completed">Completed</option>
-                  <option value="paused">Paused</option>
                 </select>
               </div>
             </div>
@@ -260,9 +343,9 @@
               <div>
                 <label>Delivery</label>
                 <select v-model="form.delivery">
-                  <option value="Virtual">Virtual</option>
-                  <option value="Hybrid">Hybrid</option>
-                  <option value="Onsite">Onsite</option>
+                  <option value="virtual">Virtual</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="onsite">Onsite</option>
                 </select>
               </div>
             </div>
@@ -275,14 +358,20 @@
               <div class="rich-editor-wrapper">
                 <RichTextEditor :model-value="form.whatYouWillLearn"
                   placeholder="Add learning points as a bulleted list. Press Enter to add each new point..."
-                  @update:model-value="(value) => { form.whatYouWillLearn = value; }" />
+                  @update:model-value="
+                    (value) => {
+                      form.whatYouWillLearn = value
+                    }
+                  " />
               </div>
-              <p class="field-hint">Use bullet points (•) for each learning outcome. Each point will be displayed with a
-                checkmark on the frontend.</p>
+              <p class="field-hint">
+                Use bullet points (•) for each learning outcome. Each point will be displayed with a
+                checkmark on the frontend.
+              </p>
             </div>
             <div class="field">
               <label>Zoom Link</label>
-              <input v-model="form.zoomUrl" type="url" placeholder="https://zoom.us/j/..." />
+              <input v-model="form.zoomLink" type="url" placeholder="https://zoom.us/j/..." />
             </div>
             <div class="field">
               <label>Cover image</label>
@@ -290,12 +379,12 @@
                 @drop.prevent="handleDrop">
                 <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFile" />
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  style="width: 48px; height: 48px; margin: 0 auto 12px; color: #94a3b8;">
+                  style="width: 48px; height: 48px; margin: 0 auto 12px; color: #94a3b8">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p style="font-weight: 600; margin: 0 0 4px 0;">Drop an image or click to upload</p>
-                <p class="hint" style="margin: 0;">PNG, JPG, or GIF (recommended: 1200x600px)</p>
+                <p style="font-weight: 600; margin: 0 0 4px 0">Drop an image or click to upload</p>
+                <p class="hint" style="margin: 0">PNG, JPG, or GIF (recommended: 1200x600px)</p>
               </div>
               <div v-else class="image-preview-container">
                 <img :src="imagePreview" alt="Cover preview" class="preview-image" />
@@ -309,21 +398,35 @@
             </div>
 
             <!-- Pricing & Access Section -->
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem;">
-              <p style="font-weight: 700; margin-bottom: 1rem; color: #0f172a;">💰 Pricing & Access</p>
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem">
+              <p style="font-weight: 700; margin-bottom: 1rem; color: #0f172a">Pricing & Access</p>
 
               <!-- Free/Paid Toggle -->
               <div class="field">
                 <label>Access Type</label>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                  <button type="button" @click="form.isFree = !form.isFree"
-                    style="position: relative; width: 3.5rem; height: 2rem; background: currentColor; border-radius: 999px; border: none; cursor: pointer;"
-                    :style="form.isFree ? 'background: #10b981;' : 'background: #d1d5db;'">
-                    <span
-                      style="position: absolute; top: 0.25rem; left: 0.25rem; width: 1.5rem; height: 1.5rem; background: white; border-radius: 999px; transition: transform 0.3s;"
-                      :style="form.isFree ? 'transform: translateX(1.5rem);' : 'transform: translateX(0);'"></span>
+                <div style="display: flex; align-items: center; gap: 1rem">
+                  <button type="button" @click="form.isFree = !form.isFree" style="
+                      position: relative;
+                      width: 3.5rem;
+                      height: 2rem;
+                      background: currentColor;
+                      border-radius: 999px;
+                      border: none;
+                      cursor: pointer;
+                    " :style="form.isFree ? 'background: #10b981;' : 'background: #d1d5db;'">
+                    <span style="
+                        position: absolute;
+                        top: 0.25rem;
+                        left: 0.25rem;
+                        width: 1.5rem;
+                        height: 1.5rem;
+                        background: white;
+                        border-radius: 999px;
+                        transition: transform 0.3s;
+                      " :style="form.isFree ? 'transform: translateX(1.5rem);' : 'transform: translateX(0);'
+                        "></span>
                   </button>
-                  <span style="font-size: 0.875rem; color: #374151; font-weight: 500;">
+                  <span style="font-size: 0.875rem; color: #374151; font-weight: 500">
                     {{ form.isFree ? 'Free Cohort' : 'Paid Cohort' }}
                   </span>
                 </div>
@@ -332,53 +435,95 @@
               <!-- Cost Input (Only if Paid) -->
               <div v-if="!form.isFree" class="field">
                 <label>Cost/Amount</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                  <span
-                    style="position: absolute; left: 0.75rem; font-weight: 600; color: #374151; pointer-events: none;">₦</span>
-                  <input v-model.number="form.cost" type="number" min="0" step="0.01" style="padding-left: 2rem;"
+                <div style="position: relative; display: flex; align-items: center">
+                  <span style="
+                      position: absolute;
+                      left: 0.75rem;
+                      font-weight: 600;
+                      color: #374151;
+                      pointer-events: none;
+                    ">₦</span>
+                  <input v-model.number="form.cost" type="number" min="0" step="0.01" style="padding-left: 2rem"
                     placeholder="0.00" />
                 </div>
-                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">Enter the price for this cohort</p>
+                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem">
+                  Enter the price for this cohort
+                </p>
               </div>
 
               <!-- Trial Settings (Only if Paid) -->
-              <div v-if="!form.isFree" style="margin-top: 1rem;">
-                <label style="font-weight: 700; color: #334155; display: block; margin-bottom: 0.75rem;">Free Trial
+              <div v-if="!form.isFree" style="margin-top: 1rem">
+                <label style="font-weight: 700; color: #334155; display: block; margin-bottom: 0.75rem">Free Trial
                   Setup</label>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
-                  <label style="position: relative; cursor: pointer;">
-                    <input type="radio" v-model="form.trialType" value="watches" name="trial-type"
-                      style="position: absolute; opacity: 0;" />
-                    <span
-                      style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border: 2px solid #d1d5db; border-radius: 0.5rem; background: white; font-size: 0.875rem; font-weight: 600; color: #374151; transition: all 0.2s;"
-                      :style="form.trialType === 'watches' ? 'border-color: #6366f1; background: #eef2ff; color: #6366f1;' : ''">
-                      📺 By Views
+                <div style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.75rem;
+                    margin-bottom: 1rem;
+                  ">
+                  <label style="position: relative; cursor: pointer">
+                    <input type="radio" v-model="form.trialType" value="views" name="trial-type"
+                      style="position: absolute; opacity: 0" />
+                    <span style="
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        padding: 0.75rem 1rem;
+                        border: 2px solid #d1d5db;
+                        border-radius: 0.5rem;
+                        background: white;
+                        font-size: 0.875rem;
+                        font-weight: 600;
+                        color: #374151;
+                        transition: all 0.2s;
+                      " :style="form.trialType === 'views'
+                          ? 'border-color: #6366f1; background: #eef2ff; color: #6366f1;'
+                          : ''
+                        ">
+                      By Views
                     </span>
                   </label>
 
-                  <label style="position: relative; cursor: pointer;">
+                  <label style="position: relative; cursor: pointer">
                     <input type="radio" v-model="form.trialType" value="days" name="trial-type"
-                      style="position: absolute; opacity: 0;" />
-                    <span
-                      style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border: 2px solid #d1d5db; border-radius: 0.5rem; background: white; font-size: 0.875rem; font-weight: 600; color: #374151; transition: all 0.2s;"
-                      :style="form.trialType === 'days' ? 'border-color: #6366f1; background: #eef2ff; color: #6366f1;' : ''">
-                      📅 By Days
+                      style="position: absolute; opacity: 0" />
+                    <span style="
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        padding: 0.75rem 1rem;
+                        border: 2px solid #d1d5db;
+                        border-radius: 0.5rem;
+                        background: white;
+                        font-size: 0.875rem;
+                        font-weight: 600;
+                        color: #374151;
+                        transition: all 0.2s;
+                      " :style="form.trialType === 'days'
+                          ? 'border-color: #6366f1; background: #eef2ff; color: #6366f1;'
+                          : ''
+                        ">
+                      By Days
                     </span>
                   </label>
                 </div>
 
                 <div v-if="form.trialType" class="field">
-                  <label>{{ form.trialType === 'watches' ? 'Number of Free Views' : 'Number of Trial Days' }}</label>
+                  <label>{{
+                    form.trialType === 'views' ? 'Number of Free Views' : 'Number of Trial Days'
+                    }}</label>
                   <input v-model.number="form.trialValue" type="number" min="1"
-                    :placeholder="form.trialType === 'watches' ? 'e.g., 5 videos' : 'e.g., 7 days'" />
+                    :placeholder="form.trialType === 'views' ? 'e.g., 5 videos' : 'e.g., 7 days'" />
                 </div>
               </div>
             </div>
           </div>
           <footer class="modal-footer">
             <button class="ghost" @click="closeModal">Cancel</button>
-            <button class="primary-btn" :disabled="!isFormValid" @click="saveCohort">Save cohort</button>
+            <button class="primary-btn" :disabled="!isFormValid || isSubmitting" @click="saveCohort">
+              {{ isSubmitting ? 'Saving...' : 'Save cohort' }}
+            </button>
           </footer>
         </div>
       </div>
@@ -426,215 +571,93 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useToast } from 'vue-toast-notification'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import { useCohorts, type Cohort, type CohortStatus } from '@/composables/useCohorts'
 
-type CohortStatus = 'active' | 'upcoming' | 'completed' | 'paused'
-
-type Cohort = {
-  id: number
-  name: string
-  code: string
-  image: string
-  startDate: string
-  endDate: string
-  status: CohortStatus
-  statusLabel: string
-  participants: number
-  capacity: number
-  waitlist: number
-  instructors: string[]
-  lessonsReady: number
-  totalLessons: number
-  attendance: number
-  retention: number
-  delivery: string
-  timezone: string
-  description: string
-  isFree: boolean
-  cost?: number
-  trialType?: 'watches' | 'days'
-  trialValue?: number
+const formatTitle = (slug?: string) => {
+  if (!slug) return 'Course'
+  const spaced = slug.replace(/-/g, ' ')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
 const route = useRoute()
 const router = useRouter()
-const toast = useToast()
 
+// Use cohorts composable
+const {
+  cohorts,
+  isSubmitting,
+  form,
+  isFormValid,
+  fetchCohorts: _fetchCohorts,
+  saveCohort: _saveCohort,
+  deleteCohort: _deleteCohort,
+  updateCohortStatus: _updateCohortStatus,
+  resetForm,
+  startEditCohort: _startEditCohort,
+} = useCohorts()
+
+const programId = computed(() => Number(route.query.programId) || 0)
 const courseSlug = computed(() => route.params.courseSlug as string)
 const courseId = computed(() => Number(route.query.courseId) || 0)
-const courseName = computed(() => (route.query.courseName as string) || formatTitle(courseSlug.value))
-
-const cohorts = ref<Cohort[]>([
-  {
-    id: 1,
-    name: 'Spring Builders',
-    code: 'SPR-2026',
-    image: 'https://images.unsplash.com/photo-1489528792649-0cbb86e4aad8?w=1400',
-    startDate: '2026-02-05',
-    endDate: '2026-03-30',
-    status: 'active',
-    statusLabel: 'In progress',
-    participants: 62,
-    capacity: 80,
-    waitlist: 6,
-    instructors: ['Ada Lovelace', 'Ken Ikeda'],
-    lessonsReady: 8,
-    totalLessons: 12,
-    attendance: 91,
-    retention: 88,
-    delivery: 'Hybrid',
-    timezone: 'GMT+1',
-    description: 'Hands-on build focused sprint with weekly demo nights.',
-    isFree: false,
-    cost: 85000,
-    trialType: 'days',
-    trialValue: 7
-  },
-  {
-    id: 2,
-    name: 'Product Design Studio',
-    code: 'PDS-02',
-    image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1400',
-    startDate: '2026-04-10',
-    endDate: '2026-05-25',
-    status: 'upcoming',
-    statusLabel: 'Kickoff scheduled',
-    participants: 34,
-    capacity: 60,
-    waitlist: 0,
-    instructors: ['Chidi Okafor'],
-    lessonsReady: 4,
-    totalLessons: 10,
-    attendance: 0,
-    retention: 0,
-    delivery: 'Virtual',
-    timezone: 'GMT+1',
-    description: 'Design thinking + visual systems with live critiques.',
-    isFree: false,
-    cost: 65000,
-    trialType: 'watches',
-    trialValue: 3
-  },
-  {
-    id: 3,
-    name: 'AI Explorers',
-    code: 'AI-X1',
-    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1400',
-    startDate: '2025-09-01',
-    endDate: '2025-11-15',
-    status: 'completed',
-    statusLabel: 'Wrapped',
-    participants: 58,
-    capacity: 60,
-    waitlist: 0,
-    instructors: ['Mary Shen', 'Ola Yusuf'],
-    lessonsReady: 10,
-    totalLessons: 10,
-    attendance: 87,
-    retention: 83,
-    delivery: 'Hybrid',
-    timezone: 'GMT+1',
-    description: 'Capstone-heavy AI primer with mentoring pods.',
-    isFree: true,
-    cost: undefined,
-    trialType: undefined,
-    trialValue: undefined
-  },
-  {
-    id: 4,
-    name: 'Frontend Lab',
-    code: 'FE-LAB',
-    image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1400',
-    startDate: '2026-01-10',
-    endDate: '2026-02-20',
-    status: 'paused',
-    statusLabel: 'Temporarily paused',
-    participants: 28,
-    capacity: 40,
-    waitlist: 3,
-    instructors: ['Bella Tran'],
-    lessonsReady: 6,
-    totalLessons: 10,
-    attendance: 75,
-    retention: 70,
-    delivery: 'Onsite',
-    timezone: 'GMT+1',
-    description: 'UI engineering drills with pair-programming rotations.',
-    isFree: false,
-    cost: 40000,
-    trialType: 'days',
-    trialValue: 5
-  }
-])
+const courseName = computed(
+  () => (route.query.courseName as string) || formatTitle(courseSlug.value),
+)
 
 const search = ref('')
 const statusFilter = ref<CohortStatus | ''>('')
-const showOnlyActive = ref(false)
-const expanded = ref<Set<number>>(new Set([cohorts.value[0]?.id]))
+const showOnlyOngoing = ref(false)
+const expanded = ref<Set<number>>(new Set())
 
 const showModal = ref(false)
 const showFilterModal = ref(false)
+const activeMenu = ref<number | null>(null)
+const showDeleteModal = ref(false)
+const cohortToDelete = ref<Cohort | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const imagePreview = ref<string>('')
-const form = ref({
-  title: '',
-  code: '',
-  status: 'active' as CohortStatus,
-  startDate: '',
-  endDate: '',
-  capacity: 40,
-  description: '',
-  whatYouWillLearn: '',
-  delivery: 'Virtual',
-  image: '' as string | File,
-  zoomUrl: '',
-  isFree: true,
-  cost: undefined as number | undefined,
-  trialType: undefined as 'watches' | 'days' | undefined,
-  trialValue: undefined as number | undefined,
-})
 
 const statusLegend = [
-  { value: 'active', label: 'Active' },
+  { value: 'ongoing', label: 'Ongoing' },
   { value: 'upcoming', label: 'Upcoming' },
-  { value: 'paused', label: 'Paused' },
-  { value: 'completed', label: 'Completed' }
+  { value: 'completed', label: 'Completed' },
 ]
 
 const filteredCohorts = computed(() => {
   const term = search.value.toLowerCase()
   return cohorts.value.filter((c) => {
-    const matchesTerm = !term || c.name.toLowerCase().includes(term) || c.code.toLowerCase().includes(term)
+    const matchesTerm =
+      !term || c.title?.toLowerCase().includes(term) || c.code?.toLowerCase().includes(term)
     const matchesStatus = !statusFilter.value || c.status === statusFilter.value
-    const matchesActive = !showOnlyActive.value || c.status === 'active'
-    return matchesTerm && matchesStatus && matchesActive
+    const matchesOngoing = !showOnlyOngoing.value || c.status === 'ongoing'
+    return matchesTerm && matchesStatus && matchesOngoing
   })
 })
 
 const stats = computed(() => {
-  const active = cohorts.value.filter((c) => c.status === 'active').length
+  const ongoing = cohorts.value.filter((c) => c.status === 'ongoing').length
   const upcoming = cohorts.value.filter((c) => c.status === 'upcoming').length
   const completed = cohorts.value.filter((c) => c.status === 'completed').length
-  const totalLearners = cohorts.value.reduce((acc, c) => acc + c.participants, 0)
+  const totalLearners = cohorts.value.reduce((acc, c) => acc + (c.participants ?? 0), 0)
   const avgSize = cohorts.value.length ? Math.round(totalLearners / cohorts.value.length) : 0
-  const lessonsReady = cohorts.value.reduce((acc, c) => acc + (c.lessonsReady / c.totalLessons || 0), 0)
-  const lessonProgress = cohorts.value.length ? Math.round((lessonsReady / cohorts.value.length) * 100) : 0
-  return { active, upcoming, completed, totalLearners, avgSize, lessonProgress, lessonsReady: lessonProgress }
-})
-
-const isFormValid = computed(() => {
-  const basic = Boolean(form.value.title.trim() && form.value.code.trim() && form.value.startDate && form.value.endDate)
-  if (!basic) return false
-
-  if (!form.value.isFree) {
-    if (form.value.cost === undefined || form.value.cost <= 0) return false
-    if (form.value.trialType && (!form.value.trialValue || form.value.trialValue <= 0)) return false
+  const lessonsReady = cohorts.value.reduce(
+    (acc, c) => acc + ((c.lessonsReady ?? 0) / (c.totalLessons ?? 1) || 0),
+    0,
+  )
+  const lessonProgress = cohorts.value.length
+    ? Math.round((lessonsReady / cohorts.value.length) * 100)
+    : 0
+  return {
+    ongoing,
+    upcoming,
+    completed,
+    totalLearners,
+    avgSize,
+    lessonProgress,
+    lessonsReady: lessonProgress,
   }
-
-  return true
 })
 
 const toggleExpanded = (id: number) => {
@@ -646,20 +669,22 @@ const toggleExpanded = (id: number) => {
 
 const goBack = () => router.back()
 
-const formatTitle = (slug?: string) => {
-  if (!slug) return 'Course'
-  const spaced = slug.replace(/-/g, ' ')
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
-}
-
-const formatDate = (date: string) => {
+const formatDate = (date?: string) => {
   if (!date) return '—'
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
-const renderDateRange = (start: string, end: string) => `${formatDate(start)} → ${formatDate(end)}`
+const renderDateRange = (start?: string, end?: string) => {
+  if (!start || !end) return '—'
+  return `${formatDate(start)} → ${formatDate(end)}`
+}
 
 const daysLeft = (cohort: Cohort) => {
+  if (!cohort.endDate) return '—'
   const today = new Date()
   const end = new Date(cohort.endDate)
   const diff = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -669,9 +694,11 @@ const daysLeft = (cohort: Cohort) => {
 }
 
 const timelinePosition = (cohort: Cohort) => {
+  if (!cohort.startDate || !cohort.endDate) return 4
   const start = new Date(cohort.startDate).getTime()
   const end = new Date(cohort.endDate).getTime()
   const today = Date.now()
+  if (Number.isNaN(start) || Number.isNaN(end) || start === end) return 4
   if (today <= start) return 4
   if (today >= end) return 96
   return Math.min(96, Math.max(4, ((today - start) / (end - start)) * 100))
@@ -696,23 +723,44 @@ const openLessons = (cohort: Cohort) => {
   router.push({
     name: 'Program Course Lessons',
     params: { courseSlug: courseSlug.value },
-    query: { courseName: courseName.value, courseId: courseId.value, cohortId: cohort.id }
+    query: {
+      courseName: courseName.value,
+      courseId: courseId.value,
+      cohortId: cohort.id,
+      programId: programId.value,
+    },
   })
 }
 
-const duplicateCohort = (cohort: Cohort) => {
-  const copy = { ...cohort, id: Date.now(), name: `${cohort.name} Copy`, code: cohort.code + '-COPY', status: 'upcoming' as CohortStatus }
-  cohorts.value.unshift(copy)
-  toast.success('Cohort duplicated')
+const startEditCohort = (cohort: Cohort) => {
+  _startEditCohort(cohort)
+  imagePreview.value = cohort.imageUrl ? loadImage(cohort.imageUrl) : ''
+  showModal.value = true
 }
 
 const openCreateModal = () => {
   resetForm()
+  imagePreview.value = ''
   showModal.value = true
 }
 
 const closeModal = () => {
   showModal.value = false
+  imagePreview.value = ''
+}
+
+const saveCohort = async () => {
+  const success = await _saveCohort(programId.value, courseId.value, courseName.value)
+  if (success) {
+    closeModal()
+    // Refresh expanded state after fetch
+    expanded.value = cohorts.value.length ? new Set([cohorts.value[0]?.id ?? 0]) : new Set()
+  }
+}
+
+const fetchCohorts = async () => {
+  await _fetchCohorts(programId.value, courseId.value)
+  expanded.value = cohorts.value.length ? new Set([cohorts.value[0]?.id ?? 0]) : new Set()
 }
 
 const closeFilterModal = () => {
@@ -724,25 +772,46 @@ const clearFilter = () => {
   showFilterModal.value = false
 }
 
-const resetForm = () => {
-  form.value = {
-    title: '',
-    code: '',
-    status: 'active',
-    startDate: '',
-    endDate: '',
-    capacity: 40,
-    description: '',
-    whatYouWillLearn: '',
-    delivery: 'Virtual',
-    image: '',
-    zoomUrl: '',
-    isFree: true,
-    cost: undefined,
-    trialType: undefined,
-    trialValue: undefined,
+const toggleMenu = (cohortId: number, event: Event) => {
+  event.stopPropagation()
+  activeMenu.value = activeMenu.value === cohortId ? null : cohortId
+}
+
+const closeMenu = () => {
+  activeMenu.value = null
+}
+
+const confirmDelete = (cohort: Cohort, event: Event) => {
+  event.stopPropagation()
+  cohortToDelete.value = cohort
+  showDeleteModal.value = true
+  closeMenu()
+}
+
+const handleEdit = (cohort: Cohort, event: Event) => {
+  event.stopPropagation()
+  startEditCohort(cohort)
+  closeMenu()
+}
+
+const deleteCohort = async () => {
+  if (!cohortToDelete.value) return
+  const success = await _deleteCohort(programId.value, courseId.value, cohortToDelete.value.id)
+  if (success) {
+    showDeleteModal.value = false
+    cohortToDelete.value = null
   }
-  imagePreview.value = ''
+}
+
+const cancelDelete = () => {
+  showDeleteModal.value = false
+  cohortToDelete.value = null
+}
+
+const changeStatus = async (cohort: Cohort, newStatus: CohortStatus, event: Event) => {
+  event.stopPropagation()
+  await _updateCohortStatus(programId.value, courseId.value, cohort.id, newStatus)
+  closeMenu()
 }
 
 const triggerUpload = () => fileInput.value?.click()
@@ -753,8 +822,8 @@ const handleFile = (e: Event) => {
   if (file) {
     form.value.image = file
     const reader = new FileReader()
-    reader.onload = (e) => {
-      imagePreview.value = e.target?.result as string
+    reader.onload = (ev) => {
+      imagePreview.value = ev.target?.result as string
     }
     reader.readAsDataURL(file)
   }
@@ -765,8 +834,8 @@ const handleDrop = (e: DragEvent) => {
   if (file) {
     form.value.image = file
     const reader = new FileReader()
-    reader.onload = (e) => {
-      imagePreview.value = e.target?.result as string
+    reader.onload = (ev) => {
+      imagePreview.value = ev.target?.result as string
     }
     reader.readAsDataURL(file)
   }
@@ -780,37 +849,14 @@ const removeImage = () => {
   }
 }
 
-const saveCohort = () => {
-  if (!isFormValid.value) return
-  const newCohort: Cohort = {
-    id: Date.now(),
-    name: form.value.title,
-    code: form.value.code,
-    image: typeof form.value.image === 'string' ? form.value.image : URL.createObjectURL(form.value.image),
-    startDate: form.value.startDate,
-    endDate: form.value.endDate,
-    status: form.value.status,
-    statusLabel: form.value.status === 'active' ? 'In progress' : form.value.status === 'upcoming' ? 'Kickoff scheduled' : form.value.status === 'completed' ? 'Wrapped' : 'Paused',
-    participants: 0,
-    capacity: form.value.capacity || 40,
-    waitlist: 0,
-    instructors: [],
-    lessonsReady: 0,
-    totalLessons: 0,
-    attendance: 0,
-    retention: 0,
-    delivery: form.value.delivery,
-    timezone: 'GMT+1',
-    description: form.value.description || 'Cohort details to be added.',
-    isFree: form.value.isFree,
-    cost: !form.value.isFree ? form.value.cost : undefined,
-    trialType: !form.value.isFree ? form.value.trialType : undefined,
-    trialValue: !form.value.isFree ? form.value.trialValue : undefined,
-  }
-  cohorts.value.unshift(newCohort)
-  showModal.value = false
-  toast.success('Cohort created')
-}
+onMounted(() => {
+  fetchCohorts()
+  document.addEventListener('click', closeMenu)
+
+  onUnmounted(() => {
+    document.removeEventListener('click', closeMenu)
+  })
+})
 </script>
 
 <style scoped>
@@ -859,8 +905,8 @@ const saveCohort = () => {
 
 .page-title {
   margin: 0.2rem 0;
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
@@ -1047,6 +1093,7 @@ const saveCohort = () => {
   border-color: #e2e8f0;
 }
 
+.pill.ongoing,
 .pill.active {
   background: #ecfdf3;
   color: #166534;
@@ -1094,6 +1141,11 @@ const saveCohort = () => {
   gap: 1rem;
   align-items: center;
   margin-bottom: 1rem;
+
+  .dot.ongoing {
+    background: #22c55e;
+  }
+
   flex-wrap: wrap;
 }
 
@@ -1144,7 +1196,7 @@ const saveCohort = () => {
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
 }
 
@@ -1211,6 +1263,193 @@ const saveCohort = () => {
   color: #475569;
 }
 
+.menu-container {
+  position: relative;
+}
+
+.menu-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.menu-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.15);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.menu-section {
+  padding: 0.5rem;
+}
+
+.menu-label {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.menu-item:hover:not(:disabled) {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.menu-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.menu-item.active {
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.menu-item.danger {
+  color: #dc2626;
+}
+
+.menu-item.danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.menu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.menu-item .check-icon {
+  margin-left: auto;
+  color: #6366f1;
+  width: 16px;
+  height: 16px;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0.5rem 0;
+}
+
+.delete-modal {
+  max-width: 480px;
+}
+
+.warning-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+}
+
+.warning-icon {
+  width: 48px;
+  height: 48px;
+  color: #dc2626;
+  margin: 0 auto;
+}
+
+.warning-text {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+  text-align: center;
+}
+
+.warning-text strong {
+  font-weight: 800;
+  color: #dc2626;
+}
+
+.warning-sub {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.danger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.2rem;
+  border-radius: 10px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(220, 38, 38, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.danger-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 .cohort-body {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -1227,10 +1466,31 @@ const saveCohort = () => {
 .banner {
   position: relative;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   height: 180px;
   background-size: cover;
   background-position: center;
+}
+
+.banner-menu-container {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+.banner-menu-btn {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.banner-menu-btn:hover {
+  background: #fff !important;
+}
+
+.menu-dropdown-banner {
+  right: 0;
 }
 
 .overlay {
@@ -1435,7 +1695,7 @@ const saveCohort = () => {
   background: #eef2ff;
 }
 
-.filter-option input[type="radio"] {
+.filter-option input[type='radio'] {
   position: absolute;
   opacity: 0;
   pointer-events: none;
