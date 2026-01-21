@@ -10,7 +10,7 @@
         </button>
         <div class="header-info">
           <h1 class="page-title">{{ courseTitle }} Lessons</h1>
-          <p class="page-subtitle">Create and manage course lessons with comprehensive content</p>
+          <p class="page-subtitle">View and manage course lessons with comprehensive content</p>
         </div>
         <div class="header-actions">
           <span v-if="isSaving" class="saving-status">
@@ -23,7 +23,7 @@
             </svg>
             Saved
           </span>
-          <button class="add-lesson-btn" @click="addNewLesson">
+          <button class="add-lesson-btn" @click="openAddModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -45,22 +45,21 @@
           </svg>
           <h3>No lessons yet</h3>
           <p>Create your first lesson to get started</p>
-          <button class="btn-primary" @click="addNewLesson">Create First Lesson</button>
+          <button class="btn-primary" @click="openAddModal">Create First Lesson</button>
         </div>
 
         <div v-else class="lessons-grid" @dragover.prevent @drop="handleDrop">
           <div v-for="(lesson, index) in lessons" :key="lesson.lessonId || lesson.localId" class="lesson-item"
             draggable="true" @dragstart="handleDragStart($event, index)" @dragend="handleDragEnd" :data-index="index">
             <div class="lesson-card" :class="{
-              'is-edited': editedLessons.has(String(lesson.lessonId)),
-              'is-final': lesson.schedule.isFinalLesson,
+              'is-final': lesson.isFinalLesson,
               'is-collapsed': collapsedCards.has(String(lesson.lessonId)),
             }" @click="handleCardClick(String(lesson.lessonId), $event)">
               <!-- Card Header -->
               <div class="lesson-card-header">
                 <div class="lesson-header-info">
-                  <div class="lesson-badge" :class="lesson.schedule.isFinalLesson ? 'final' : 'regular'">
-                    {{ lesson.schedule.isFinalLesson ? ' Final' : `Lesson ${index + 1}` }}
+                  <div class="lesson-badge" :class="lesson.isFinalLesson ? 'final' : 'regular'">
+                    {{ lesson.isFinalLesson ? ' Final' : `Lesson ${index + 1}` }}
                   </div>
                   <h3 class="lesson-title" v-if="collapsedCards.has(String(lesson.lessonId))">
                     {{ lesson.title || 'Untitled Lesson' }}
@@ -68,8 +67,7 @@
                 </div>
                 <div class="lesson-display-order">
                   <label class="order-label">Order:</label>
-                  <input v-model.number="lesson.displayOrder" type="number" class="order-input" min="1"
-                    @change="markEdited(lesson)" @click.stop />
+                  <span class="order-display">{{ lesson.displayOrder }}</span>
                 </div>
                 <div class="lesson-card-actions">
                   <button class="icon-btn collapse-btn" @click="toggleCollapse(String(lesson.lessonId), $event)"
@@ -80,6 +78,12 @@
                     </svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                  </button>
+                  <button class="icon-btn edit-btn" @click="openEditModal(lesson, $event)" title="Edit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                   </button>
                   <button class="icon-btn duplicate-btn" @click="duplicateLesson(lesson, $event)" title="Duplicate">
@@ -99,284 +103,298 @@
                 </div>
               </div>
 
-              <!-- Collapsed Preview -->
+              <!-- Collapsed/Expanded Preview - Always Read-Only -->
               <div v-if="collapsedCards.has(String(lesson.lessonId))" class="lesson-preview">
                 <p class="preview-description">{{ lesson.description || 'No description' }}</p>
                 <div class="preview-stats">
                   <div class="stat-item">
                     <span class="stat-label">Status:</span>
-                    <span class="stat-value">{{
-                      editedLessons.has(String(lesson.lessonId)) ? '✏️ Unsaved' : '✅ Saved'
-                      }}</span>
+                    <span class="stat-value">✅ Saved</span>
                   </div>
                   <div class="stat-item">
                     <span class="stat-label">Date:</span>
-                    <span class="stat-value">📅 {{ formatDate(lesson.schedule.startDate) }}</span>
+                    <span class="stat-value">📅 {{ formatDate(lesson.lessonDate) }}</span>
                   </div>
                 </div>
                 <div class="preview-meta">
-                  <span v-if="lesson.videoUrl" class="meta-tag video">📹 Video</span>
-                  <span v-if="lesson.recordedVideoUrl" class="meta-tag recorded">🎥 Recorded</span>
-                  <span v-if="lesson.materialFile" class="meta-tag material">📄 Material File</span>
+                  <button v-if="lesson.videoUrl" class="meta-tag video" @click="previewVideo(lesson.videoUrl!, $event)">
+                    📹 Video
+                  </button>
+                  <button v-if="lesson.recordedVideoUrl" class="meta-tag recorded"
+                    @click="previewVideo(lesson.recordedVideoUrl!, $event)">
+                    🎥 Recorded
+                  </button>
+                  <button v-if="lesson.materialUrl" class="meta-tag material"
+                    @click="previewMaterial(lesson.materialUrl!, $event)">
+                    📄 Material
+                  </button>
                   <span v-if="lesson.writeupContent" class="meta-tag writeup">📝 Write-up</span>
-                  <span v-if="lesson.assignment.instructions" class="meta-tag assignment">✍️ Assignment</span>
-                  <span v-if="lesson.quiz.jsonFile" class="meta-tag quiz">❓ Quiz</span>
-                  <span v-if="lesson.schedule.isFinalLesson" class="meta-tag final-badge">🎓 Final Lesson</span>
+                  <button v-if="lesson.assignmentUrl" class="meta-tag assignment"
+                    @click="previewAssignment(lesson.assignmentUrl!, $event)">
+                    ✍️ Assignment
+                  </button>
+                  <button v-if="lesson.hasQuiz" class="meta-tag quiz" @click="previewQuiz(lesson.lessonId!, $event)">
+                    ❓ Quiz
+                  </button>
+                  <button v-if="lesson.certificateUrl && lesson.isFinalLesson" class="meta-tag certificate"
+                    @click="previewCertificate(lesson.certificateUrl!, $event)">
+                    🎓 Certificate
+                  </button>
+                  <span v-if="lesson.isFinalLesson" class="meta-tag final-badge">🎓 Final Lesson</span>
                 </div>
               </div>
 
-              <!-- Expanded Form -->
-              <div v-else class="lesson-form">
-                <!-- Form Action Buttons (Top) -->
-                <div class="form-actions-top">
-                  <button v-if="editedLessons.has(String(lesson.lessonId))" class="btn-save"
-                    @click="saveLesson(lesson, $event)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                      <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    Save Changes
-                  </button>
-                  <button v-if="editedLessons.has(String(lesson.lessonId))" class="btn-discard"
-                    @click="discardChanges(lesson, $event)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="8" y1="12" x2="16" y2="12"></line>
-                    </svg>
-                    Discard
-                  </button>
-                </div>
+              <!-- Expanded View - Read-Only Display -->
+              <div v-else class="lesson-detail-view">
                 <!-- Basic Information Section -->
-                <div class="form-section">
+                <div class="view-section">
                   <h4 class="section-title">Basic Information</h4>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label">
-                        Lesson Title
-                        <span class="required">*</span>
-                      </label>
-                      <input v-model="lesson.title" type="text" class="form-input" placeholder="Enter lesson title..."
-                        @change="markEdited(lesson)" />
+                  <div class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Lesson Title</label>
+                      <p class="view-value">{{ lesson.title || 'Untitled' }}</p>
                     </div>
                   </div>
-
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">
-                        Description
-                        <span class="required">*</span>
-                      </label>
-                      <textarea v-model="lesson.description" class="form-textarea"
-                        placeholder="Brief description of the lesson..." rows="3"
-                        @change="markEdited(lesson)"></textarea>
+                  <div class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Description</label>
+                      <p class="view-value">{{ lesson.description || 'No description' }}</p>
                     </div>
                   </div>
                 </div>
 
-                <!-- Goal & Objectives Section -->
-                <div v-if="!lesson.schedule.isFinalLesson" class="form-section">
+                <!-- Learning Outcomes -->
+                <div v-if="!lesson.isFinalLesson && (lesson.goals || lesson.objectives)" class="view-section">
                   <h4 class="section-title">Learning Outcomes</h4>
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Goal</label>
-                      <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.goal" placeholder="What is the main goal of this lesson?"
-                          @update:model-value="
-                            (value) => {
-                              lesson.goal = value
-                            }
-                          " @blur="markEdited(lesson)" />
-                      </div>
-                      <p class="form-hint">Use formatting for better presentation</p>
+                  <div v-if="lesson.goals" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Goal</label>
+                      <div class="view-html" v-html="lesson.goals"></div>
                     </div>
                   </div>
-
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Objectives</label>
-                      <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.objectives"
-                          placeholder="Enter learning objectives... (bullet points, bold, italic, etc.)"
-                          @update:model-value="
-                            (value) => {
-                              lesson.objectives = value
-                            }
-                          " @blur="markEdited(lesson)" />
-                      </div>
-                      <p class="form-hint">Use formatting for better presentation</p>
+                  <div v-if="lesson.objectives" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Objectives</label>
+                      <div class="view-html" v-html="lesson.objectives"></div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Video & Materials Section -->
-                <div v-if="!lesson.schedule.isFinalLesson" class="form-section">
+                <!-- Video & Materials -->
+                <div v-if="
+                  !lesson.isFinalLesson &&
+                  (lesson.videoUrl ||
+                    lesson.recordedVideoUrl ||
+                    lesson.materialFile ||
+                    lesson.writeupContent)
+                " class="view-section">
                   <h4 class="section-title">Video & Materials</h4>
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Video URL</label>
-                      <input v-model="lesson.videoUrl" type="url" class="form-input"
-                        placeholder="https://youtube.com/... or https://vimeo.com/..." @change="markEdited(lesson)" />
-                      <p class="form-hint">Link to YouTube, Vimeo, or other video platform</p>
+                  <div v-if="lesson.videoUrl" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Video URL</label>
+                      <a :href="lesson.videoUrl" target="_blank" class="view-link">{{
+                        lesson.videoUrl
+                        }}</a>
                     </div>
                   </div>
-
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Recorded Video URL</label>
-                      <input v-model="lesson.recordedVideoUrl" type="url" class="form-input"
-                        placeholder="Link to recorded session..." @change="markEdited(lesson)" />
-                      <p class="form-hint">Optional: Link to recorded lesson session</p>
+                  <div v-if="lesson.recordedVideoUrl" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Recorded Video URL</label>
+                      <a :href="lesson.recordedVideoUrl" target="_blank" class="view-link">{{
+                        lesson.recordedVideoUrl
+                        }}</a>
                     </div>
                   </div>
-
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Material File (PDF, Max 5MB)</label>
-                      <FileUploadZone accept=".pdf" :max-size="5242880"
-                        @files-selected="(files) => handleMaterialUpload(lesson, files)" />
-                      <div v-if="lesson.materialFile" class="file-list">
-                        <div class="file-item">
-                          <span class="file-name">{{ lesson.materialFile.file_name }}</span>
-                          <button class="btn-remove" @click="removeMaterialFile(lesson)">
-                            Remove
-                          </button>
+                  <div v-if="lesson.materialUrl" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Material File</label>
+                      <div class="view-file-preview">
+                        <div class="view-file">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                          <span>Material PDF</span>
                         </div>
+                        <button class="btn-preview" @click="previewMaterial(lesson.materialUrl!, $event)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          Preview
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Material Write-up (Alternative to Video)</label>
-                      <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.writeupContent"
-                          placeholder="Write detailed material content, notes, or reading materials..."
-                          @update:model-value="
-                            (value) => {
-                              lesson.writeupContent = value
-                            }
-                          " @blur="markEdited(lesson)" />
+                  <div v-else-if="lesson.materialFile" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Material File</label>
+                      <div class="view-file">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span>{{
+                          (lesson.materialFile as any)?.file_name || lesson.materialFile.name
+                          }}</span>
                       </div>
-                      <p class="form-hint">Use formatting for structured content</p>
+                    </div>
+                  </div>
+                  <div v-if="lesson.writeupContent" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Material Write-up</label>
+                      <div class="view-html" v-html="lesson.writeupContent"></div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Assignment Section -->
-                <div v-if="!lesson.schedule.isFinalLesson" class="form-section">
+                <!-- Assignment -->
+                <div v-if="
+                  !lesson.isFinalLesson &&
+                  (lesson.assignmentInstructions || lesson.assignmentFile)
+                " class="view-section">
                   <h4 class="section-title">Assignment</h4>
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Assignment Instructions</label>
-                      <div class="rich-editor-wrapper">
-                        <RichTextEditor :model-value="lesson.assignment.instructions"
-                          placeholder="Provide detailed assignment instructions..." @update:model-value="
-                            (value) => {
-                              lesson.assignment.instructions = value
-                            }
-                          " @blur="markEdited(lesson)" />
+                  <div v-if="lesson.assignmentInstructions" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Instructions</label>
+                      <div class="view-html" v-html="lesson.assignmentInstructions"></div>
+                    </div>
+                  </div>
+                  <div v-if="lesson.assignmentUrl" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Assignment File</label>
+                      <div class="view-file-preview">
+                        <div class="view-file">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                          <span>Assignment PDF</span>
+                        </div>
+                        <button class="btn-preview" @click="previewAssignment(lesson.assignmentUrl!, $event)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          Preview
+                        </button>
                       </div>
                     </div>
                   </div>
+                  <div v-else-if="lesson.assignmentFile" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Assignment File</label>
+                      <div class="view-file">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span>{{
+                          (lesson.assignmentFile as any)?.file_name || lesson.assignmentFile.name
+                          }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="lesson.assignmentDueDate" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Due Date</label>
+                      <p class="view-value">{{ formatDate(lesson.assignmentDueDate) }}</p>
+                    </div>
+                  </div>
+                </div>
 
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Assignment File (PDF, Max 5MB)</label>
-                      <FileUploadZone accept=".pdf" :max-size="5242880"
-                        @files-selected="(files) => handleAssignmentUpload(lesson, files)" />
-                      <div v-if="lesson.assignment.file" class="file-list">
-                        <div class="file-item">
-                          <span class="file-name">{{ lesson.assignment.file.file_name }}</span>
-                          <button class="btn-remove" @click="removeAssignmentFile(lesson)">
-                            Remove
-                          </button>
+                <!-- Quiz -->
+                <div v-if="!lesson.isFinalLesson && lesson.hasQuiz" class="view-section">
+                  <h4 class="section-title">Quiz</h4>
+                  <div class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Quiz Available</label>
+                      <div class="view-file-preview">
+                        <div class="view-file quiz-badge">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                          </svg>
+                          <span>Quiz Questions</span>
                         </div>
+                        <button class="btn-preview quiz" @click="previewQuiz(lesson.lessonId!, $event)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          Preview Quiz
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Quiz Section -->
-                <div v-if="!lesson.schedule.isFinalLesson" class="form-section">
-                  <h4 class="section-title">❓ Quiz</h4>
-                  <div class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">Upload Quiz (JSON Format)</label>
-                      <FileUploadZone accept=".json" :max-size="5242880"
-                        @files-selected="(files) => handleQuizUpload(lesson, files)" />
-                      <p class="form-hint">Upload quiz in JSON format only</p>
-                      <div v-if="lesson.quiz.jsonFile" class="file-list">
-                        <div class="file-item">
-                          <span class="file-name">{{ lesson.quiz.jsonFile.file_name }}</span>
-                          <button class="btn-remove" @click="removeQuizFile(lesson)">Remove</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Final Lesson Configuration -->
-                <div class="form-section">
+                <!-- Lesson Settings -->
+                <div class="view-section">
                   <h4 class="section-title">Lesson Settings</h4>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="checkbox-label">
-                        <input v-model="lesson.schedule.isFinalLesson" type="checkbox" @change="markEdited(lesson)" />
-                        <span>Mark as Final Lesson</span>
-                      </label>
-                      <p class="form-hint">
-                        Final lessons only require title, description, video URL, and certificate
+                  <div class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Lesson Type</label>
+                      <p class="view-value">
+                        {{ lesson.isFinalLesson ? '🎓 Final Lesson' : '📚 Regular Lesson' }}
                       </p>
                     </div>
                   </div>
-
-                  <!-- Certificate Section (Only for Final Lesson) -->
-                  <div v-if="lesson.schedule.isFinalLesson" class="form-row">
-                    <div class="form-group full">
-                      <label class="form-label">
-                        Certificate Template (SVG, Max 5MB)
-                        <span class="required">*</span>
-                      </label>
-                      <FileUploadZone accept=".svg" :max-size="5242880"
-                        @files-selected="(files) => handleCertificateUpload(lesson, files)" />
-                      <p class="form-hint">SVG format only for scalability and professionalism</p>
-                      <div v-if="lesson.certificateFile" class="file-list">
-                        <div class="file-item">
-                          <span class="file-name">{{ lesson.certificateFile.file_name }}</span>
-                          <button class="btn-remove" @click="removeCertificateFile(lesson)">
-                            Remove
-                          </button>
+                  <div v-if="lesson.isFinalLesson && lesson.certificateUrl" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Certificate Template</label>
+                      <div class="view-file-preview">
+                        <div class="view-file">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                          <span>Certificate SVG</span>
                         </div>
+                        <button class="btn-preview" @click="previewCertificate(lesson.certificateUrl!, $event)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          Preview
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  <!-- Schedule Section - For All Lessons -->
-                  <div class="form-row">
-                    <div v-if="!lesson.schedule.isFinalLesson" class="form-group">
-                      <label class="form-label">Lesson Date</label>
-                      <input v-model="lesson.schedule.startDate" type="date" class="form-input"
-                        @change="markEdited(lesson)" />
-                    </div>
-                    <div v-else class="form-group">
-                      <label class="form-label">
-                        Completion Date
-                        <span class="required">*</span>
-                      </label>
-                      <input v-model="lesson.schedule.startDate" type="date" class="form-input"
-                        @change="markEdited(lesson)" />
+                  <div v-else-if="lesson.isFinalLesson && lesson.certificateFile" class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">Certificate Template</label>
+                      <div class="view-file">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span>{{
+                          (lesson.certificateFile as any)?.file_name || lesson.certificateFile.name
+                          }}</span>
+                      </div>
                     </div>
                   </div>
-
-                  <!-- Assignment Due Date (Regular Lessons Only) -->
-                  <div v-if="!lesson.schedule.isFinalLesson" class="form-row">
-                    <div class="form-group">
-                      <label class="form-label">Assignment Due Date</label>
-                      <input v-model="lesson.assignment.dueDate" type="date" class="form-input"
-                        @change="markEdited(lesson)" />
+                  <div class="view-row">
+                    <div class="view-field">
+                      <label class="view-label">{{
+                        lesson.isFinalLesson ? 'Completion Date' : 'Lesson Date'
+                        }}</label>
+                      <p class="view-value">{{ formatDate(lesson.lessonDate) }}</p>
                     </div>
                   </div>
+                </div>
+
+                <!-- Edit Button at Bottom -->
+                <div class="view-actions">
+                  <button class="btn-edit-full" @click="openEditModal(lesson, $event)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Edit Lesson
+                  </button>
                 </div>
               </div>
             </div>
@@ -384,6 +402,36 @@
         </div>
       </div>
     </div>
+
+    <!-- Lesson Modal -->
+    <LessonModal :show="showModal" :lesson="selectedLesson" :is-edit-mode="isEditMode" @close="closeModal"
+      @save="handleModalSave" />
+
+    <!-- Video Player Overlay -->
+    <Teleport to="body">
+      <div v-if="videoPlayerOpen" class="video-overlay" @click="closeVideoPlayer">
+        <div class="video-modal" @click.stop>
+          <button class="video-close-btn" @click="closeVideoPlayer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <div class="video-container">
+            <!-- YouTube embed -->
+            <iframe v-if="currentVideoType === 'youtube'" :src="currentVideoUrl" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen></iframe>
+            <!-- Regular video -->
+            <video v-else :src="currentVideoUrl" controls autoplay></video>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Quiz Preview Modal -->
+    <QuizPreviewModal :is-open="quizPreviewOpen" :questions="quizQuestions" :loading="quizLoading" :error="quizError"
+      @close="closeQuizPreview" @retry="retryQuizFetch" />
 
     <!-- Saving Indicator -->
     <div v-if="isSaving" class="save-indicator">
@@ -397,15 +445,16 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Lesson } from '@/api/models/lesson'
-import RichTextEditor from '@/components/RichTextEditor.vue'
-import FileUploadZone from '@/components/FileUploadZone.vue'
+import type { QuizQuestion } from '@/api/models/quiz'
+import LessonModal from '@/components/LessonModal.vue'
+import QuizPreviewModal from '@/components/QuizPreviewModal.vue'
 import { useLesson } from '@/composables/useLesson'
 import { useAuthStore } from '@/stores/auth'
+import { programService } from '@/api/services/serviceFactory'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const { lessons, fetchLessons, sendLesson, packageLesson } = useLesson()
 
 function formatCourseSlug(slug: string) {
   if (!slug) return 'Course'
@@ -427,39 +476,14 @@ const cohortId = computed(() => {
   return Number.isFinite(fromQuery) ? fromQuery : 0
 })
 const courseTitle = ref((route.query.courseName as string) || formatCourseSlug(courseSlug.value))
-const editedLessons = ref(new Set<string>())
 const collapsedCards = ref(new Set<string>())
 const isSaving = ref(false)
 const savedIndicator = ref(false)
+const showModal = ref(false)
+const selectedLesson = ref<Lesson | null>(null)
+const isEditMode = ref(false)
 
-const createEmptyLesson = (): Lesson => {
-  const today = new Date().toISOString().split('T')[0] || new Date().toLocaleDateString('en-CA')
-  return {
-    lessonId: `temp-${Date.now()}`,
-    courseId: courseId.value,
-    displayOrder: lessons.value.length + 1,
-    title: '',
-    description: '',
-    goal: '',
-    objectives: '',
-    videoUrl: '',
-    recordedVideoUrl: '',
-    materialFile: null,
-    writeupContent: '',
-    assignment: {
-      instructions: '',
-      file: null,
-      dueDate: today as string,
-    },
-    quiz: {
-      jsonFile: null,
-    },
-    schedule: {
-      startDate: today as string,
-      isFinalLesson: false,
-    },
-  }
-}
+const { lessons, fetchLessons, packageLesson, saveLesson, updateLesson } = useLesson()
 
 onMounted(async () => {
   // Extract course info from route if available
@@ -468,29 +492,118 @@ onMounted(async () => {
   }
 
   // Load lessons from server
-  if (courseId.value > 0) {
+  if (cohortId.value > 0) {
     try {
-      await fetchLessons(courseId.value)
+      await fetchLessons(cohortId.value)
+      // Collapse all cards by default
+      lessons.value.forEach((lesson: Lesson) => {
+        if (lesson.lessonId) {
+          collapsedCards.value.add(String(lesson.lessonId))
+        }
+      })
     } catch (err) {
       console.error('Failed to load lessons:', err)
     }
   }
-
-  // Add default empty lesson on first load
-  if (lessons.value.length === 0) {
-    const defaultLesson = createEmptyLesson()
-    lessons.value.push(defaultLesson)
-  }
 })
 
-const addNewLesson = () => {
-  const newLesson = createEmptyLesson()
-  lessons.value.push(newLesson)
-  collapsedCards.value.delete(String(newLesson.lessonId))
+// Modal functions
+const openAddModal = () => {
+  const today = new Date().toISOString().split('T')[0] || ''
+  selectedLesson.value = {
+    lessonId: `temp-${Date.now()}`,
+    courseId: courseId.value,
+    displayOrder: lessons.value.length + 1,
+    title: '',
+    description: '',
+    goals: '',
+    objectives: '',
+    videoUrl: '',
+    recordedVideoUrl: '',
+    materialFile: null,
+    writeupContent: '',
+    assignmentInstructions: '',
+    assignmentFile: null,
+    assignmentDueDate: today,
+    quiz: null,
+    lessonDate: today,
+    isFinalLesson: false,
+    certificateFile: null,
+  }
+  isEditMode.value = false
+  showModal.value = true
 }
 
-const markEdited = (lesson: Lesson) => {
-  editedLessons.value.add(String(lesson.lessonId))
+const openEditModal = (lesson: Lesson, event: Event) => {
+  event.stopPropagation()
+  selectedLesson.value = JSON.parse(JSON.stringify(lesson))
+  isEditMode.value = true
+  showModal.value = true
+}
+
+const closeModal = () => {
+  showModal.value = false
+  selectedLesson.value = null
+}
+
+const handleModalSave = async (lesson: Lesson) => {
+  // Validate required route parameters
+  if (!programId.value || !cohortId.value || !courseId.value) {
+    alert('Missing required program, cohort, or course information')
+    return
+  }
+
+  // Validate author information
+  if (!authStore.user?.id || !authStore.user?.username) {
+    alert('User information not available. Please log in again.')
+    return
+  }
+
+  try {
+    isSaving.value = true
+
+    // Package the single lesson as FormData
+    const formData = packageLesson(
+      lesson,
+      programId.value,
+      courseId.value,
+      authStore.user.username,
+      authStore.user.id,
+    )
+
+    console.log('Saving lesson data')
+
+    // Send to server - use update for edit mode, save for new lessons
+    let response
+    if (isEditMode.value && lesson.lessonId && !String(lesson.lessonId).startsWith('temp-')) {
+      response = await updateLesson(Number(lesson.lessonId), cohortId.value, formData)
+    } else {
+      response = await saveLesson(cohortId.value, formData)
+    }
+
+    // Update lesson in the list
+    if (isEditMode.value) {
+      const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
+      if (index !== -1) {
+        lessons.value[index] = { ...lesson, lessonId: response.data?.lessonId || lesson.lessonId }
+      }
+    } else {
+      // Add new lesson
+      lessons.value.push({ ...lesson, lessonId: response.data?.lessonId || lesson.lessonId })
+    }
+
+    isSaving.value = false
+    savedIndicator.value = true
+    closeModal()
+
+    setTimeout(() => {
+      savedIndicator.value = false
+    }, 3000)
+  } catch (err) {
+    console.error('Error saving lesson:', err)
+    alert(err instanceof Error ? err.message : 'Failed to save lesson. Please try again.')
+    isSaving.value = false
+  }
 }
 
 let draggedIndex = -1
@@ -536,83 +649,12 @@ const handleDrop = (event: DragEvent) => {
   }
 }
 
-const saveLesson = async (lesson: Lesson, event: Event) => {
-  event.stopPropagation()
-
-  // Validate required fields
-  if (!lesson.title || !lesson.title.trim()) {
-    alert('Lesson title is required')
-    return
-  }
-
-  // Validate material file (compulsory)
-  if (!lesson.materialFile || !lesson.materialFile.file) {
-    alert('Material file is required. Please upload a PDF material file before saving.')
-    return
-  }
-
-  // Validate required route parameters
-  if (!programId.value || !cohortId.value || !courseId.value) {
-    alert('Missing required program, cohort, or course information')
-    return
-  }
-
-  // Validate author information
-  if (!authStore.user?.id || !authStore.user?.username) {
-    alert('User information not available. Please log in again.')
-    return
-  }
-
-  try {
-    isSaving.value = true
-
-    // Package the single lesson as FormData
-    const formData = packageLesson(
-      lesson,
-      programId.value,
-      courseId.value,
-      cohortId.value,
-      authStore.user.username,
-      authStore.user.id,
-    )
-
-    console.log('Saving data ', formData)
-    // Send to server
-    const response = await sendLesson(formData)
-
-    isSaving.value = false
-    savedIndicator.value = true
-    editedLessons.value.delete(String(lesson.lessonId))
-
-    // Update lesson ID if it was a temporary one
-    if (response.data?.lessonId) {
-      lesson.lessonId = response.data.lessonId
-    }
-
-    setTimeout(() => {
-      savedIndicator.value = false
-    }, 3000)
-  } catch (err) {
-    console.error('Error saving lesson:', err)
-    alert(err instanceof Error ? err.message : 'Failed to save lesson')
-    isSaving.value = false
-  }
-}
-
-const discardChanges = (lesson: Lesson, event: Event) => {
-  event.stopPropagation()
-  if (confirm('Are you sure you want to discard changes to this lesson?')) {
-    editedLessons.value.delete(String(lesson.lessonId))
-    // In a real app, you might refetch from server here
-  }
-}
-
 const toggleCollapse = (lessonId: string, event: Event) => {
   event.stopPropagation()
 
   if (collapsedCards.value.has(lessonId)) {
     // Expand this card and collapse others
-    lessons.value.forEach((l) => {
+    lessons.value.forEach((l: Lesson) => {
       const id = String(l.lessonId)
       if (id !== lessonId) {
         collapsedCards.value.add(id)
@@ -631,7 +673,7 @@ const handleCardClick = (lessonId: string, event: Event) => {
       return
     }
 
-    lessons.value.forEach((l) => {
+    lessons.value.forEach((l: Lesson) => {
       const id = String(l.lessonId)
       if (id !== lessonId) {
         collapsedCards.value.add(id)
@@ -646,12 +688,10 @@ const duplicateLesson = (lesson: Lesson, event: Event) => {
 
   const duplicated = JSON.parse(JSON.stringify(lesson))
   duplicated.lessonId = `temp-${Date.now()}`
-  duplicated.localId = undefined
 
-  const index = lessons.value.findIndex((l) => l.lessonId === lesson.lessonId)
+  const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
   if (index !== -1) {
     lessons.value.splice(index + 1, 0, duplicated)
-    markEdited(duplicated)
   }
 }
 
@@ -659,127 +699,144 @@ const deleteLesson = (lesson: Lesson, event: Event) => {
   event.stopPropagation()
 
   if (confirm('Are you sure you want to delete this lesson? This action cannot be undone.')) {
-    const index = lessons.value.findIndex((l) => l.lessonId === lesson.lessonId)
+    const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
     if (index !== -1) {
       lessons.value.splice(index, 1)
-      editedLessons.value.delete(String(lesson.lessonId))
       collapsedCards.value.delete(String(lesson.lessonId))
-      markEdited({} as Lesson)
     }
   }
 }
 
-const handleMaterialUpload = async (lesson: Lesson, files: File[]) => {
-  const file = files[0]
-  if (!file) return
-
-  if (!file.name.endsWith('.pdf')) {
-    alert('Only PDF files are allowed for materials')
-    return
+// Preview functions
+const previewMaterial = (materialUrl: string, event: Event) => {
+  event.stopPropagation()
+  if (materialUrl) {
+    const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || ''
+    const fullUrl = `${assetsBaseUrl}/${materialUrl}`
+    window.open(fullUrl, '_blank')
   }
-  if (file.size > 5242880) {
-    alert('File size must not exceed 5MB')
-    return
-  }
-
-  const base64 = await fileToBase64(file)
-  lesson.materialFile = {
-    file_name: file.name,
-    type: 'pdf',
-    file: base64,
-  }
-  markEdited(lesson)
 }
 
-const handleAssignmentUpload = async (lesson: Lesson, files: File[]) => {
-  const file = files[0]
-  if (!file) return
-
-  if (!file.name.endsWith('.pdf')) {
-    alert('Only PDF files are allowed for assignments')
-    return
+const previewAssignment = (assignmentUrl: string, event: Event) => {
+  event.stopPropagation()
+  if (assignmentUrl) {
+    const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || ''
+    const fullUrl = `${assetsBaseUrl}/${assignmentUrl}`
+    window.open(fullUrl, '_blank')
   }
-  if (file.size > 5242880) {
-    alert('File size must not exceed 5MB')
-    return
-  }
-
-  const base64 = await fileToBase64(file)
-  lesson.assignment.file = {
-    file_name: file.name,
-    type: 'pdf',
-    file: base64,
-  }
-  markEdited(lesson)
 }
 
-const handleQuizUpload = async (lesson: Lesson, files: File[]) => {
-  const file = files[0]
-  if (!file || !file.name.endsWith('.json')) {
-    alert('Only JSON files are allowed for quizzes')
-    return
+const previewCertificate = (certificateUrl: string, event: Event) => {
+  event.stopPropagation()
+  if (certificateUrl) {
+    const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || ''
+    const fullUrl = `${assetsBaseUrl}/${certificateUrl}`
+    window.open(fullUrl, '_blank')
   }
-
-  const base64 = await fileToBase64(file)
-  lesson.quiz.jsonFile = {
-    file_name: file.name,
-    type: 'json',
-    file: base64,
-  }
-  markEdited(lesson)
 }
 
-const handleCertificateUpload = async (lesson: Lesson, files: File[]) => {
-  const file = files[0]
-  if (!file || !file.name.endsWith('.svg')) {
-    alert('Only SVG files are allowed for certificates')
-    return
-  }
-  if (file.size > 5242880) {
-    alert('File size must not exceed 5MB')
-    return
-  }
+const previewQuiz = async (lessonId: number | string, event: Event) => {
+  event.stopPropagation()
 
-  const base64 = await fileToBase64(file)
-  lesson.certificateFile = {
-    file_name: file.name,
-    type: 'svg',
-    file: base64,
-  }
-  markEdited(lesson)
-}
+  quizPreviewOpen.value = true
+  quizLoading.value = true
+  quizError.value = null
+  quizQuestions.value = []
 
-const removeMaterialFile = (lesson: Lesson) => {
-  lesson.materialFile = null
-  markEdited(lesson)
-}
+  try {
+    const response = await programService.get(`cohorts/${cohortId.value}/lessons/${lessonId}/quiz`)
 
-const removeAssignmentFile = (lesson: Lesson) => {
-  lesson.assignment.file = null
-  markEdited(lesson)
-}
-
-const removeQuizFile = (lesson: Lesson) => {
-  lesson.quiz.jsonFile = null
-  markEdited(lesson)
-}
-
-const removeCertificateFile = (lesson: Lesson) => {
-  lesson.certificateFile = undefined
-  markEdited(lesson)
-}
-
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      const base64 = result.split(',')[1] || result
-      resolve(base64)
+    if (response.success && response.data) {
+      // Transform server response to QuizQuestion format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      quizQuestions.value = response.data.map((q: any) => ({
+        questionId: q.questionId || q.question_id,
+        questionText: q.questionText || q.question_text,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        options: q.options.map((opt: any) => ({
+          text: opt.text,
+          optionFiles: opt.optionFiles || opt.option_files || [],
+        })),
+        correct: {
+          text: q.correct.text,
+          order: q.correct.order,
+        },
+      }))
+    } else {
+      quizError.value = 'No quiz questions found'
     }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+  } catch (error) {
+    console.error('Error fetching quiz:', error)
+    quizError.value = 'Failed to load quiz. Please try again.'
+  } finally {
+    quizLoading.value = false
+  }
+}
+
+const closeQuizPreview = () => {
+  quizPreviewOpen.value = false
+  quizQuestions.value = []
+  quizError.value = null
+}
+
+const retryQuizFetch = () => {
+  // Get the current lesson ID and retry
+  const currentLesson = lessons.value.find((l) => l.hasQuiz)
+  if (currentLesson?.lessonId) {
+    previewQuiz(currentLesson.lessonId, new Event('click'))
+  }
+}
+
+// Video player state
+const videoPlayerOpen = ref(false)
+const currentVideoUrl = ref('')
+const currentVideoType = ref<'youtube' | 'regular'>('regular')
+
+// Quiz preview state
+const quizPreviewOpen = ref(false)
+const quizQuestions = ref<QuizQuestion[]>([])
+const quizLoading = ref(false)
+const quizError = ref<string | null>(null)
+
+const isYouTubeUrl = (url: string): boolean => {
+  return url.includes('youtube.com') || url.includes('youtu.be')
+}
+
+const getYouTubeEmbedUrl = (url: string): string => {
+  // Handle youtube.com/watch?v=VIDEO_ID
+  const watchMatch = url.match(/[?&]v=([^&]+)/)
+  if (watchMatch) {
+    return `https://www.youtube.com/embed/${watchMatch[1]}`
+  }
+  // Handle youtu.be/VIDEO_ID
+  const shortMatch = url.match(/youtu\.be\/([^?]+)/)
+  if (shortMatch) {
+    return `https://www.youtube.com/embed/${shortMatch[1]}`
+  }
+  // Already an embed URL
+  if (url.includes('/embed/')) {
+    return url
+  }
+  return url
+}
+
+const previewVideo = (videoUrl: string, event: Event) => {
+  event.stopPropagation()
+  if (!videoUrl) return
+
+  if (isYouTubeUrl(videoUrl)) {
+    currentVideoType.value = 'youtube'
+    currentVideoUrl.value = getYouTubeEmbedUrl(videoUrl)
+  } else {
+    currentVideoType.value = 'regular'
+    currentVideoUrl.value = videoUrl
+  }
+  videoPlayerOpen.value = true
+}
+
+const closeVideoPlayer = () => {
+  videoPlayerOpen.value = false
+  currentVideoUrl.value = ''
 }
 
 const formatDate = (dateString: string): string => {
@@ -1261,6 +1318,49 @@ const goBack = () => {
   font-size: 12px;
   font-weight: 500;
   color: #6b7280;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+/* Clickable meta-tags (buttons) */
+button.meta-tag {
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+}
+
+button.meta-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+button.meta-tag.video:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+button.meta-tag.material:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.3);
+}
+
+button.meta-tag.quiz:hover {
+  border-color: #ec4899;
+  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
+}
+
+button.meta-tag.recorded:hover {
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(147, 197, 253, 0.3);
+}
+
+button.meta-tag.assignment:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(254, 215, 170, 0.3);
+}
+
+button.meta-tag.certificate:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
 }
 
 .meta-tag.video {
@@ -1309,6 +1409,13 @@ const goBack = () => {
   border-color: #d8b4fe;
   color: #581c87;
   background: #faf5ff;
+  font-weight: 600;
+}
+
+.meta-tag.certificate {
+  border-color: #a78bfa;
+  color: #5b21b6;
+  background: #f5f3ff;
   font-weight: 600;
 }
 
@@ -1668,6 +1775,200 @@ const goBack = () => {
   }
 }
 
+/* Read-Only View Styles */
+.lesson-detail-view {
+  padding: 24px;
+  animation: expandForm 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.view-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.view-section:last-child {
+  border-bottom: none;
+}
+
+.view-row {
+  margin-bottom: 16px;
+}
+
+.view-row:last-child {
+  margin-bottom: 0;
+}
+
+.view-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.view-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.view-value {
+  font-size: 14px;
+  color: #374151;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.view-html {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.7;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.view-link {
+  font-size: 14px;
+  color: #667eea;
+  text-decoration: none;
+  word-break: break-all;
+  transition: color 0.2s ease;
+}
+
+.view-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.view-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.view-file svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+.view-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.view-file-preview .view-file {
+  flex: 1;
+  min-width: 200px;
+}
+
+.btn-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-preview:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-preview svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.btn-preview.quiz {
+  background: #f472b6;
+}
+
+.btn-preview.quiz:hover {
+  background: #ec4899;
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+}
+
+.quiz-badge {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #92400e;
+}
+
+.view-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 2px solid #f3f4f6;
+}
+
+.btn-edit-full {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-edit-full:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-edit-full svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.order-display {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  padding: 6px 12px;
+  background: #f0f4ff;
+  border: 1px solid #e0e7ff;
+  border-radius: 6px;
+}
+
+.icon-btn.edit-btn:hover {
+  color: #667eea;
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .header-content {
@@ -1716,6 +2017,116 @@ const goBack = () => {
     width: 100%;
     justify-content: flex-end;
     margin-left: 0;
+  }
+}
+
+/* Video Player Overlay */
+.video-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.video-modal {
+  position: relative;
+  width: 90%;
+  max-width: 1200px;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.video-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.video-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: rotate(90deg);
+}
+
+.video-close-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  /* 16:9 aspect ratio */
+  background: #000;
+}
+
+.video-container iframe,
+.video-container video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+@media (max-width: 768px) {
+  .video-modal {
+    width: 95%;
+    border-radius: 8px;
+  }
+
+  .video-close-btn {
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
   }
 }
 </style>

@@ -1,43 +1,33 @@
-export interface LessonFile {
-  file_name: string
-  old_file_name?: string
-  type: string
-  file: string // base64
-}
-
-export interface LessonSchedule {
-  startDate: string // YYYY-MM-DD
-  isFinalLesson: boolean
-}
-
-export interface LessonAssignment {
-  instructions: string
-  file: LessonFile | null
-  dueDate: string // YYYY-MM-DD
-}
-
-export interface LessonQuiz {
-  jsonFile: LessonFile | null
-  uploadedAt?: string
-}
-
 export interface Lesson {
   lessonId?: number | string
   localId?: string
   courseId: number
+  cohortId?: number
+  programId?: number
+  slug?: string
   displayOrder: number
   title: string
   description: string
-  goal: string // Rich text HTML
+  goals: string // Rich text HTML
   objectives: string // Rich text HTML
   videoUrl: string
   recordedVideoUrl: string
-  materialFile: LessonFile | null // PDF only, max 5MB
+  thumbnail?: string
+  materialFile?: File | null // PDF only, max 5MB
+  materialUrl?: string // URL from server
   writeupContent: string // Rich text HTML content (replaces writeupFiles)
-  assignment: LessonAssignment
-  quiz: LessonQuiz
-  certificateFile?: LessonFile // SVG only for final lesson, max 5MB
-  schedule: LessonSchedule
+  assignmentInstructions: string
+  assignmentFile?: File | null
+  assignmentUrl?: string // URL from server
+  quiz?: File | null
+  hasQuiz?: boolean
+  certificateFile?: File | null // SVG only for final lesson, max 5MB
+  certificateUrl?: string // URL from server
+  isFinalLesson: boolean
+  lessonDate: string // YYYY-MM-DD
+  assignmentDueDate: string // YYYY-MM-DD
+  authorName?: string
+  authorId?: number
   createdAt?: string
   updatedAt?: string
 }
