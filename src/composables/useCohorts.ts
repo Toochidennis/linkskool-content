@@ -62,6 +62,7 @@ export function useCohorts() {
   const isSubmitting = ref(false)
   const editingCohortId = ref<number | null>(null)
   const originalImageUrl = ref<string>('')
+  const fieldErrors = ref<Record<string, string>>({})
 
   const form = ref<CohortForm>({
     title: '',
@@ -110,6 +111,78 @@ export function useCohorts() {
     }
   }
 
+  // Field validation functions
+  const validateField = (fieldName: string): string => {
+    switch (fieldName) {
+      case 'title':
+        return form.value.title.trim() ? '' : 'Cohort title is required'
+      case 'startDate':
+        return form.value.startDate ? '' : 'Start date is required'
+      case 'endDate':
+        if (!form.value.endDate) return 'End date is required'
+        if (form.value.startDate && new Date(form.value.endDate) <= new Date(form.value.startDate))
+          return 'End date must be after start date'
+        return ''
+      case 'whatYouWillLearn':
+        return form.value.whatYouWillLearn.trim() ? '' : 'Learning points are required'
+      case 'image':
+        if (editingCohortId.value) return ''
+        return form.value.image instanceof File ? '' : 'Cover image is required'
+      case 'zoomLink':
+        if (!form.value.zoomLink) return ''
+        return isValidZoomLink(form.value.zoomLink)
+          ? ''
+          : 'Invalid Zoom link (use zoom.us or zoom.com URL)'
+      case 'cost':
+        if (form.value.isFree) return ''
+        if (form.value.cost === undefined || form.value.cost === null)
+          return 'Cost is required for paid cohorts'
+        if (form.value.cost <= 0) return 'Cost must be greater than 0'
+        return ''
+      case 'trialType':
+        if (form.value.isFree) return ''
+        return form.value.trialType ? '' : 'Trial type is required for paid cohorts'
+      case 'trialValue':
+        if (form.value.isFree) return ''
+        if (!form.value.trialValue) return 'Trial value is required for paid cohorts'
+        if (form.value.trialValue <= 0) return 'Trial value must be greater than 0'
+        return ''
+      default:
+        return ''
+    }
+  }
+
+  const validateAllFields = () => {
+    const errors: Record<string, string> = {}
+    const fields = [
+      'title',
+      'startDate',
+      'endDate',
+      'whatYouWillLearn',
+      'image',
+      'zoomLink',
+      'cost',
+      'trialType',
+      'trialValue',
+    ]
+
+    fields.forEach((field) => {
+      const error = validateField(field)
+      if (error) errors[field] = error
+    })
+
+    fieldErrors.value = errors
+    return Object.keys(errors).length === 0
+  }
+
+  const clearFieldError = (fieldName: string) => {
+    if (fieldErrors.value[fieldName]) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [fieldName]: _, ...rest } = fieldErrors.value
+      fieldErrors.value = rest
+    }
+  }
+
   // Validation
   const isFormValid = computed(() => {
     const hasBasics = Boolean(
@@ -127,7 +200,16 @@ export function useCohorts() {
     const hasImage = editingCohortId.value ? true : form.value.image instanceof File
     const hasValidZoom = isValidZoomLink(form.value.zoomLink)
 
-    return hasBasics && hasValidDateOrder && hasImage && hasValidZoom
+    // Validate paid cohort requirements
+    const paidCohortValid = form.value.isFree
+      ? true
+      : form.value.cost !== undefined &&
+      form.value.cost > 0 &&
+      form.value.trialType !== undefined &&
+      form.value.trialValue !== undefined &&
+      form.value.trialValue > 0
+
+    return hasBasics && hasValidDateOrder && hasImage && hasValidZoom && paidCohortValid
   })
 
   const validationMessage = computed(() => {
@@ -146,6 +228,16 @@ export function useCohorts() {
       return 'Cover image is required'
     if (form.value.zoomLink && !isValidZoomLink(form.value.zoomLink))
       return 'Invalid Zoom link. Use a valid zoom.us or zoom.com URL'
+
+    // Validate paid cohort requirements
+    if (!form.value.isFree) {
+      if (form.value.cost === undefined || form.value.cost === null || form.value.cost <= 0)
+        return 'Cost is required for paid cohorts'
+      if (!form.value.trialType) return 'Trial type is required for paid cohorts'
+      if (!form.value.trialValue || form.value.trialValue <= 0)
+        return 'Trial value is required for paid cohorts'
+    }
+
     return ''
   })
 
@@ -166,13 +258,21 @@ export function useCohorts() {
     payload.append('delivery_mode', form.value.delivery.toLowerCase())
     if (form.value.zoomLink) payload.append('zoom_link', form.value.zoomLink)
     payload.append('is_free', form.value.isFree ? '1' : '0')
-    if (form.value.isFree) {
-      if (form.value.trialType) payload.append('trial_type', form.value.trialType)
-      if (form.value.trialValue) payload.append('trial_value', String(form.value.trialValue))
+
+    if (form.value.isFree === false) {
+      if (form.value.trialType != null) {
+        payload.append('trial_type', form.value.trialType)
+      }
+
+      if (form.value.trialValue != null) {
+        payload.append('trial_value', String(form.value.trialValue))
+      }
+
+      if (form.value.cost != null) {
+        payload.append('cost', String(form.value.cost))
+      }
     }
-    if (!form.value.isFree && form.value.cost !== undefined) {
-      payload.append('cost', String(form.value.cost))
-    }
+
     if (form.value.image instanceof File) {
       payload.append('image', form.value.image)
       // If editing and had an old image, include it for backend deletion
@@ -213,6 +313,7 @@ export function useCohorts() {
     }
     originalImageUrl.value = ''
     editingCohortId.value = null
+    fieldErrors.value = {}
   }
 
   const startEditCohort = (cohort: Cohort) => {
@@ -266,9 +367,15 @@ export function useCohorts() {
   const saveCohort = async (programId: number, courseId: number, courseName: string) => {
     if (isSubmitting.value) return
 
+    const isValid = validateAllFields()
+    if (!isValid) {
+      toast.error(validationMessage.value || 'Please fix the errors before submitting')
+      return false
+    }
+
     if (!isFormValid.value) {
       toast.error(validationMessage.value || 'Please fill all required fields')
-      return
+      return false
     }
 
     if (!programId || !courseId) {
@@ -356,6 +463,7 @@ export function useCohorts() {
     editingCohortId,
     originalImageUrl,
     form,
+    fieldErrors,
 
     // Computed
     isFormValid,
@@ -368,5 +476,7 @@ export function useCohorts() {
     updateCohortStatus,
     resetForm,
     startEditCohort,
+    validateField,
+    clearFieldError,
   }
 }

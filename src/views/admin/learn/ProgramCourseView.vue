@@ -149,10 +149,20 @@
             </div>
 
             <!-- Course Title -->
-            <div class="form-group">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.title }">
               <label class="form-label">Course Title <span class="required">*</span></label>
-              <input v-model="formData.title" type="text" required class="form-input"
-                placeholder="e.g., Advanced Web Development" />
+              <input
+                v-model="formData.title"
+                type="text"
+                required
+                class="form-input"
+                placeholder="e.g., Advanced Web Development"
+                @blur="handleBlur('title')"
+                @input="handleInput('title')"
+              />
+              <span v-if="fieldErrors.title" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.title }}
+              </span>
             </div>
 
             <!-- Slogan -->
@@ -163,14 +173,24 @@
             </div>
 
             <!-- Description -->
-            <div class="form-group">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.description }">
               <label class="form-label">Description <span class="required">*</span></label>
-              <textarea v-model="formData.description" required rows="4" class="form-input"
-                placeholder="Describe this course..."></textarea>
+              <textarea
+                v-model="formData.description"
+                required
+                rows="4"
+                class="form-input"
+                placeholder="Describe this course..."
+                @blur="handleBlur('description')"
+                @input="handleInput('description')"
+              ></textarea>
+              <span v-if="fieldErrors.description" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.description }}
+              </span>
             </div>
 
             <!-- Target Age Groups -->
-            <div class="form-group">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.ageGroups }">
               <label class="form-label">Target Age Groups <span class="required">*</span></label>
               <div class="age-group-checkboxes">
                 <label v-for="option in ageRangeOptions" :key="option.key" class="checkbox-option">
@@ -178,6 +198,9 @@
                   <span class="checkbox-label">{{ option.label }}</span>
                 </label>
               </div>
+              <span v-if="fieldErrors.ageGroups" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.ageGroups }}
+              </span>
             </div>
 
             <!-- Course Image -->
@@ -357,6 +380,42 @@ const unmappedAgeGroups = ref<
   Array<{ key: string; label: string; min: number; max: number | null }>
 >([])
 
+const fieldErrors = ref<Record<string, string>>({})
+
+const validateField = (fieldName: string): string => {
+  switch (fieldName) {
+    case 'title':
+      return formData.value.title.trim() ? '' : 'Course title is required'
+    case 'description':
+      return formData.value.description.trim() ? '' : 'Description is required'
+    case 'ageGroups':
+      return formData.value.ageGroups.length > 0 ? '' : 'At least one target age group is required'
+    default:
+      return ''
+  }
+}
+
+const clearFieldError = (fieldName: string) => {
+  if (fieldErrors.value[fieldName]) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [fieldName]: _, ...rest } = fieldErrors.value
+    fieldErrors.value = rest
+  }
+}
+
+const handleBlur = (fieldName: string) => {
+  const error = validateField(fieldName)
+  if (error) {
+    fieldErrors.value[fieldName] = error
+  } else {
+    clearFieldError(fieldName)
+  }
+}
+
+const handleInput = (fieldName: string) => {
+  clearFieldError(fieldName)
+}
+
 const selectedAgeRangeKeys = computed({
   get: () => {
     const matchedKeys = formData.value.ageGroups
@@ -373,6 +432,7 @@ const selectedAgeRangeKeys = computed({
       .map((opt) => ({ ...opt }))
 
     formData.value.ageGroups = [...mappedSelections, ...unmappedAgeGroups.value]
+    clearFieldError('ageGroups')
   },
 })
 
@@ -545,6 +605,7 @@ const openModal = () => {
 const closeModal = () => {
   showModal.value = false
   resetForm()
+  fieldErrors.value = {}
 }
 
 const resetForm = () => {
@@ -601,6 +662,23 @@ const removeImage = () => {
 }
 
 const handleSubmit = async (status: 'published' | 'draft') => {
+  // Validate all fields
+  const errors: Record<string, string> = {}
+  const fieldsToValidate = ['title', 'description', 'ageGroups']
+  
+  fieldsToValidate.forEach(field => {
+    const error = validateField(field)
+    if (error) errors[field] = error
+  })
+  
+  fieldErrors.value = errors
+  
+  if (Object.keys(errors).length > 0) {
+    const firstError = Object.values(errors)[0]
+    toast.error(firstError || 'Please fix the errors before submitting')
+    return
+  }
+
   if (!isFormValid.value || isSubmitting.value) return
 
   isSubmitting.value = true
@@ -1959,5 +2037,32 @@ const navigateToCohorts = (course: ProgramCourse) => {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateX(10px);
+}
+
+/* Error Styles */
+.form-group.has-error .form-input,
+.form-group.has-error textarea,
+.form-group.has-error .age-group-checkboxes {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.form-group.has-error .form-input:focus,
+.form-group.has-error textarea:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.error-message i {
+  font-size: 0.875rem;
 }
 </style>

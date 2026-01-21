@@ -307,9 +307,11 @@
             </button>
           </header>
           <div class="modal-body">
-            <div class="field">
-              <label>Title</label>
-              <input v-model="form.title" type="text" placeholder="Cohort name" />
+            <div class="field" :class="{ 'has-error': fieldErrors.title }">
+              <label>Title<span class="required">*</span></label>
+              <input v-model="form.title" type="text" placeholder="Cohort name" @blur="handleBlur('title')"
+                @input="handleInput('title')" />
+              <span v-if="fieldErrors.title" class="error-message">{{ fieldErrors.title }}</span>
             </div>
             <div class="field inline">
               <div>
@@ -326,13 +328,25 @@
               </div>
             </div>
             <div class="field inline">
-              <div>
-                <label>Start date</label>
-                <input v-model="form.startDate" type="date" />
+              <div :class="{ 'has-error': fieldErrors.startDate }">
+                <label>Start date<span class="required">*</span></label>
+                <input v-model="form.startDate" type="date" @blur="handleBlur('startDate')" @change="
+                  () => {
+                    handleInput('startDate')
+                    handleBlur('endDate')
+                  }
+                " />
+                <span v-if="fieldErrors.startDate" class="error-message">{{
+                  fieldErrors.startDate
+                  }}</span>
               </div>
-              <div>
-                <label>End date</label>
-                <input v-model="form.endDate" type="date" />
+              <div :class="{ 'has-error': fieldErrors.endDate }">
+                <label>End date<span class="required">*</span></label>
+                <input v-model="form.endDate" type="date" @blur="handleBlur('endDate')"
+                  @change="handleInput('endDate')" />
+                <span v-if="fieldErrors.endDate" class="error-message">{{
+                  fieldErrors.endDate
+                  }}</span>
               </div>
             </div>
             <div class="field inline">
@@ -353,28 +367,36 @@
               <label>Description</label>
               <textarea v-model="form.description" rows="3" placeholder="What makes this cohort unique?" />
             </div>
-            <div class="field">
-              <label>What You Will Learn</label>
+            <div class="field" :class="{ 'has-error': fieldErrors.whatYouWillLearn }">
+              <label>What You Will Learn<span class="required">*</span></label>
               <div class="rich-editor-wrapper">
                 <RichTextEditor :model-value="form.whatYouWillLearn"
                   placeholder="Add learning points as a bulleted list. Press Enter to add each new point..."
                   @update:model-value="
                     (value) => {
                       form.whatYouWillLearn = value
+                      handleInput('whatYouWillLearn')
                     }
-                  " />
+                  " @blur="handleBlur('whatYouWillLearn')" />
               </div>
-              <p class="field-hint">
+              <span v-if="fieldErrors.whatYouWillLearn" class="error-message">{{
+                fieldErrors.whatYouWillLearn
+                }}</span>
+              <p v-else class="field-hint">
                 Use bullet points (•) for each learning outcome. Each point will be displayed with a
                 checkmark on the frontend.
               </p>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'has-error': fieldErrors.zoomLink }">
               <label>Zoom Link</label>
-              <input v-model="form.zoomLink" type="url" placeholder="https://zoom.us/j/..." />
+              <input v-model="form.zoomLink" type="url" placeholder="https://zoom.us/j/..."
+                @blur="handleBlur('zoomLink')" @input="handleInput('zoomLink')" />
+              <span v-if="fieldErrors.zoomLink" class="error-message">{{
+                fieldErrors.zoomLink
+                }}</span>
             </div>
-            <div class="field">
-              <label>Cover image</label>
+            <div class="field" :class="{ 'has-error': fieldErrors.image }">
+              <label>Cover image<span class="required">*</span></label>
               <div v-if="!imagePreview" class="upload upload-large" @click="triggerUpload" @dragover.prevent
                 @drop.prevent="handleDrop">
                 <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFile" />
@@ -395,6 +417,7 @@
                   Remove
                 </button>
               </div>
+              <span v-if="fieldErrors.image" class="error-message">{{ fieldErrors.image }}</span>
             </div>
 
             <!-- Pricing & Access Section -->
@@ -405,7 +428,9 @@
               <div class="field">
                 <label>Access Type</label>
                 <div style="display: flex; align-items: center; gap: 1rem">
-                  <button type="button" @click="form.isFree = !form.isFree" style="
+                  <button type="button"
+                  @click="form.isFree = !form.isFree; handleAccessTypeChange()"
+                    style="
                       position: relative;
                       width: 3.5rem;
                       height: 2rem;
@@ -433,8 +458,8 @@
               </div>
 
               <!-- Cost Input (Only if Paid) -->
-              <div v-if="!form.isFree" class="field">
-                <label>Cost/Amount</label>
+              <div v-if="!form.isFree" class="field" :class="{ 'has-error': fieldErrors.cost }">
+                <label>Cost/Amount<span class="required">*</span></label>
                 <div style="position: relative; display: flex; align-items: center">
                   <span style="
                       position: absolute;
@@ -444,27 +469,34 @@
                       pointer-events: none;
                     ">₦</span>
                   <input v-model.number="form.cost" type="number" min="0" step="0.01" style="padding-left: 2rem"
-                    placeholder="0.00" />
+                    placeholder="0.00" @blur="handleBlur('cost')" @input="handleInput('cost')" />
                 </div>
-                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem">
+                <span v-if="fieldErrors.cost" class="error-message">{{ fieldErrors.cost }}</span>
+                <p v-else style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem">
                   Enter the price for this cohort
                 </p>
               </div>
 
               <!-- Trial Settings (Only if Paid) -->
               <div v-if="!form.isFree" style="margin-top: 1rem">
-                <label style="font-weight: 700; color: #334155; display: block; margin-bottom: 0.75rem">Free Trial
-                  Setup</label>
+                <label style="font-weight: 700; color: #334155; display: block; margin-bottom: 0.75rem">
+                  Free Trial Setup<span class="required">*</span>
+                </label>
 
                 <div style="
                     display: grid;
                     grid-template-columns: 1fr 1fr;
                     gap: 0.75rem;
                     margin-bottom: 1rem;
-                  ">
+                  " :class="{ 'has-error': fieldErrors.trialType }">
                   <label style="position: relative; cursor: pointer">
                     <input type="radio" v-model="form.trialType" value="views" name="trial-type"
-                      style="position: absolute; opacity: 0" />
+                      style="position: absolute; opacity: 0" @change="
+                        () => {
+                          handleInput('trialType')
+                          handleBlur('trialValue')
+                        }
+                      " />
                     <span style="
                         display: flex;
                         align-items: center;
@@ -487,7 +519,12 @@
 
                   <label style="position: relative; cursor: pointer">
                     <input type="radio" v-model="form.trialType" value="days" name="trial-type"
-                      style="position: absolute; opacity: 0" />
+                      style="position: absolute; opacity: 0" @change="
+                        () => {
+                          handleInput('trialType')
+                          handleBlur('trialValue')
+                        }
+                      " />
                     <span style="
                         display: flex;
                         align-items: center;
@@ -508,13 +545,20 @@
                     </span>
                   </label>
                 </div>
+                <span v-if="fieldErrors.trialType" class="error-message" style="margin-top: -0.5rem; display: block">
+                  {{ fieldErrors.trialType }}
+                </span>
 
-                <div v-if="form.trialType" class="field">
+                <div v-if="form.trialType" class="field" :class="{ 'has-error': fieldErrors.trialValue }">
                   <label>{{
                     form.trialType === 'views' ? 'Number of Free Views' : 'Number of Trial Days'
-                    }}</label>
+                  }}<span class="required">*</span></label>
                   <input v-model.number="form.trialValue" type="number" min="1"
-                    :placeholder="form.trialType === 'views' ? 'e.g., 5 videos' : 'e.g., 7 days'" />
+                    :placeholder="form.trialType === 'views' ? 'e.g., 5 videos' : 'e.g., 7 days'"
+                    @blur="handleBlur('trialValue')" @input="handleInput('trialValue')" />
+                  <span v-if="fieldErrors.trialValue" class="error-message">{{
+                    fieldErrors.trialValue
+                    }}</span>
                 </div>
               </div>
             </div>
@@ -591,12 +635,15 @@ const {
   isSubmitting,
   form,
   isFormValid,
+  fieldErrors,
   fetchCohorts: _fetchCohorts,
   saveCohort: _saveCohort,
   deleteCohort: _deleteCohort,
   updateCohortStatus: _updateCohortStatus,
   resetForm,
   startEditCohort: _startEditCohort,
+  validateField,
+  clearFieldError,
 } = useCohorts()
 
 const programId = computed(() => Number(route.query.programId) || 0)
@@ -826,6 +873,7 @@ const handleFile = (e: Event) => {
       imagePreview.value = ev.target?.result as string
     }
     reader.readAsDataURL(file)
+    clearFieldError('image')
   }
 }
 
@@ -838,6 +886,7 @@ const handleDrop = (e: DragEvent) => {
       imagePreview.value = ev.target?.result as string
     }
     reader.readAsDataURL(file)
+    clearFieldError('image')
   }
 }
 
@@ -847,6 +896,27 @@ const removeImage = () => {
   if (fileInput.value) {
     fileInput.value.value = ''
   }
+  clearFieldError('image')
+}
+
+const handleBlur = (fieldName: string) => {
+  const error = validateField(fieldName)
+  if (error) {
+    fieldErrors.value[fieldName] = error
+  } else {
+    clearFieldError(fieldName)
+  }
+}
+
+const handleInput = (fieldName: string) => {
+  clearFieldError(fieldName)
+}
+
+const handleAccessTypeChange = () => {
+  // Clear pricing-related errors when toggling between free/paid
+  clearFieldError('cost')
+  clearFieldError('trialType')
+  clearFieldError('trialValue')
 }
 
 onMounted(() => {
@@ -1883,6 +1953,50 @@ onMounted(() => {
   background: transparent;
   color: #475569;
   cursor: pointer;
+}
+
+/* Required field indicator */
+.required {
+  color: #ef4444;
+  margin-left: 0.15rem;
+  font-weight: 700;
+}
+
+/* Error states */
+.field.has-error input,
+.field.has-error select,
+.field.has-error textarea,
+.field.has-error .rich-editor-wrapper {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.field.has-error input:focus,
+.field.has-error select:focus,
+.field.has-error textarea:focus,
+.field.has-error .rich-editor-wrapper:focus-within {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.field.has-error .upload {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.error-message {
+  display: block;
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.error-message::before {
+  content: '⚠';
+  font-size: 0.9rem;
 }
 
 .fade-slide-enter-active,

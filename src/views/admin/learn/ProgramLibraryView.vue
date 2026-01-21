@@ -95,7 +95,7 @@
             </div>
           </div>
           <p class="program-shortname">{{ program.shortname }}</p>
-          <p v-if="program.sponsor" class="program-sponsor"> {{ program.sponsor }}</p>
+          <p v-if="program.sponsor" class="program-sponsor">{{ program.sponsor }}</p>
           <p class="program-text">{{ program.description }}</p>
           <div class="program-meta">
             <span class="program-date">📚 {{ program.courseCount }}
@@ -140,24 +140,34 @@
             </div>
 
             <!-- Program Title -->
-            <div class="form-group">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.name }">
               <label class="form-label">Program Title <span class="required">*</span></label>
               <input v-model="formData.name" type="text" required class="form-input"
-                placeholder="e.g., Kids Coding Bootcamp" />
+                placeholder="e.g., Kids Coding Bootcamp" @blur="handleBlur('name')" @input="handleInput('name')" />
+              <span v-if="fieldErrors.name" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.name }}
+              </span>
             </div>
 
             <!-- Slogan/Short Name -->
-            <div class="form-group">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.shortname }">
               <label class="form-label">Slogan/Short Name <span class="required">*</span></label>
               <input v-model="formData.shortname" type="text" required class="form-input"
-                placeholder="e.g., KCB, WebDev Pro" />
+                placeholder="e.g., KCB, WebDev Pro" @blur="handleBlur('shortname')" @input="handleInput('shortname')" />
+              <span v-if="fieldErrors.shortname" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.shortname }}
+              </span>
             </div>
 
             <!-- Description/Purpose -->
-            <div class="form-group">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.description }">
               <label class="form-label">Description/Purpose <span class="required">*</span></label>
               <textarea v-model="formData.description" required rows="4" class="form-input"
-                placeholder="Describe what this program offers and its objectives..."></textarea>
+                placeholder="Describe what this program offers and its objectives..." @blur="handleBlur('description')"
+                @input="handleInput('description')"></textarea>
+              <span v-if="fieldErrors.description" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.description }}
+              </span>
             </div>
 
             <!-- Sponsor/Host -->
@@ -168,7 +178,7 @@
             </div>
 
             <!-- Banner Image -->
-            <div class="form-group">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.image }">
               <label class="form-label">Banner Image <span class="required">*</span></label>
               <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
                 <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" class="hidden" />
@@ -189,6 +199,9 @@
                   </svg>
                 </button>
               </div>
+              <span v-if="fieldErrors.image" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.image }}
+              </span>
             </div>
 
             <!-- Submit Buttons -->
@@ -358,6 +371,45 @@ const formData = ref({
   sponsor: '',
 })
 
+const fieldErrors = ref<Record<string, string>>({})
+
+const validateField = (fieldName: string): string => {
+  switch (fieldName) {
+    case 'name':
+      return formData.value.name.trim() ? '' : 'Program title is required'
+    case 'shortname':
+      return formData.value.shortname.trim() ? '' : 'Slogan/Short name is required'
+    case 'description':
+      return formData.value.description.trim() ? '' : 'Description/Purpose is required'
+    case 'image':
+      if (editingProgramId.value && imagePreview.value) return ''
+      return imageFile.value ? '' : 'Banner image is required'
+    default:
+      return ''
+  }
+}
+
+const clearFieldError = (fieldName: string) => {
+  if (fieldErrors.value[fieldName]) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [fieldName]: _, ...rest } = fieldErrors.value
+    fieldErrors.value = rest
+  }
+}
+
+const handleBlur = (fieldName: string) => {
+  const error = validateField(fieldName)
+  if (error) {
+    fieldErrors.value[fieldName] = error
+  } else {
+    clearFieldError(fieldName)
+  }
+}
+
+const handleInput = (fieldName: string) => {
+  clearFieldError(fieldName)
+}
+
 // Fetch programs from API
 const fetchPrograms = async () => {
   try {
@@ -457,6 +509,7 @@ const openModal = () => {
 const closeModal = () => {
   showModal.value = false
   resetForm()
+  fieldErrors.value = {}
 }
 
 const resetForm = () => {
@@ -497,6 +550,7 @@ const addFile = (file: File) => {
       imagePreview.value = e.target?.result as string
     }
     reader.readAsDataURL(file)
+    clearFieldError('image')
   } else {
     toast.error('Please upload an image file')
   }
@@ -508,9 +562,29 @@ const removeImage = () => {
   if (fileInput.value) {
     fileInput.value.value = ''
   }
+  if (!editingProgramId.value) {
+    handleBlur('image')
+  }
 }
 
 const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
+  // Validate all fields
+  const errors: Record<string, string> = {}
+  const fieldsToValidate = ['name', 'shortname', 'description', 'image']
+
+  fieldsToValidate.forEach((field) => {
+    const error = validateField(field)
+    if (error) errors[field] = error
+  })
+
+  fieldErrors.value = errors
+
+  if (Object.keys(errors).length > 0) {
+    const firstError = Object.values(errors)[0]
+    toast.error(firstError || 'Please fix the errors before submitting')
+    return
+  }
+
   if (!isFormValid.value || isSubmitting.value) return
 
   isSubmitting.value = true
@@ -1909,5 +1983,32 @@ const viewProgram = (prog: Program) => {
 .modal-enter-from .filter-modal,
 .modal-leave-to .filter-modal {
   transform: scale(0.95);
+}
+
+/* Error Styles */
+.form-group.has-error .form-input,
+.form-group.has-error textarea,
+.form-group.has-error .upload-area {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.form-group.has-error .form-input:focus,
+.form-group.has-error textarea:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.error-message i {
+  font-size: 0.875rem;
 }
 </style>

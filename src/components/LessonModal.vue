@@ -20,31 +20,42 @@
               <div class="form-section">
                 <h4 class="section-title">Basic Information</h4>
                 <div class="form-row">
-                  <div class="form-group">
+                  <div class="form-group" :class="{ 'has-error': fieldErrors.title }">
                     <label class="form-label">
                       Lesson Title
                       <span class="required">*</span>
                     </label>
                     <input v-model="localLesson.title" type="text" class="form-input"
-                      placeholder="Enter lesson title..." />
+                      placeholder="Enter lesson title..." @blur="handleBlur('title')" @input="handleInput('title')" />
+                    <span v-if="fieldErrors.title" class="error-message">{{
+                      fieldErrors.title
+                      }}</span>
                   </div>
                 </div>
 
                 <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Display Order</label>
-                    <input v-model.number="localLesson.displayOrder" type="number" class="form-input" min="1" />
+                  <div class="form-group" :class="{ 'has-error': fieldErrors.displayOrder }">
+                    <label class="form-label">Display Order<span class="required">*</span></label>
+                    <input v-model.number="localLesson.displayOrder" type="number" class="form-input" min="1"
+                      @blur="handleBlur('displayOrder')" @input="handleInput('displayOrder')" />
+                    <span v-if="fieldErrors.displayOrder" class="error-message">{{
+                      fieldErrors.displayOrder
+                      }}</span>
                   </div>
                 </div>
 
                 <div class="form-row">
-                  <div class="form-group full">
+                  <div class="form-group full" :class="{ 'has-error': fieldErrors.description }">
                     <label class="form-label">
                       Description
                       <span class="required">*</span>
                     </label>
                     <textarea v-model="localLesson.description" class="form-textarea"
-                      placeholder="Brief description of the lesson..." rows="3"></textarea>
+                      placeholder="Brief description of the lesson..." rows="3" @blur="handleBlur('description')"
+                      @input="handleInput('description')"></textarea>
+                    <span v-if="fieldErrors.description" class="error-message">{{
+                      fieldErrors.description
+                      }}</span>
                   </div>
                 </div>
               </div>
@@ -53,17 +64,21 @@
               <div v-if="!localLesson.isFinalLesson" class="form-section">
                 <h4 class="section-title">Learning Outcomes</h4>
                 <div class="form-row">
-                  <div class="form-group full">
-                    <label class="form-label">Goal</label>
+                  <div class="form-group full" :class="{ 'has-error': fieldErrors.goals }">
+                    <label class="form-label">Goal<span class="required">*</span></label>
                     <div class="rich-editor-wrapper">
                       <RichTextEditor :model-value="localLesson.goals"
                         placeholder="What is the main goal of this lesson?" @update:model-value="
                           (value) => {
                             localLesson.goals = value
+                            handleInput('goals')
                           }
-                        " />
+                        " @blur="handleBlur('goals')" />
                     </div>
-                    <p class="form-hint">Use formatting for better presentation</p>
+                    <span v-if="fieldErrors.goals" class="error-message">{{
+                      fieldErrors.goals
+                      }}</span>
+                    <p v-else class="form-hint">Use formatting for better presentation</p>
                   </div>
                 </div>
 
@@ -88,11 +103,15 @@
               <div v-if="!localLesson.isFinalLesson" class="form-section">
                 <h4 class="section-title">Video & Materials</h4>
                 <div class="form-row">
-                  <div class="form-group full">
-                    <label class="form-label">Video URL</label>
+                  <div class="form-group full" :class="{ 'has-error': fieldErrors.videoUrl }">
+                    <label class="form-label">Video URL<span class="required">*</span></label>
                     <input v-model="localLesson.videoUrl" type="url" class="form-input"
-                      placeholder="https://youtube.com/... or https://vimeo.com/..." />
-                    <p class="form-hint">Link to YouTube, Vimeo, or other video platform</p>
+                      placeholder="https://youtube.com/... or https://vimeo.com/..." @blur="handleBlur('videoUrl')"
+                      @input="handleInput('videoUrl')" />
+                    <span v-if="fieldErrors.videoUrl" class="error-message">{{
+                      fieldErrors.videoUrl
+                      }}</span>
+                    <p v-else class="form-hint">Link to YouTube, Vimeo, or other video platform</p>
                   </div>
                 </div>
 
@@ -143,16 +162,20 @@
               <div v-if="!localLesson.isFinalLesson" class="form-section">
                 <h4 class="section-title">Assignment</h4>
                 <div class="form-row">
-                  <div class="form-group full">
+                  <div class="form-group full" :class="{ 'has-error': fieldErrors.assignmentInstructions }">
                     <label class="form-label">Assignment Instructions</label>
                     <div class="rich-editor-wrapper">
                       <RichTextEditor :model-value="localLesson.assignmentInstructions"
                         placeholder="Provide detailed assignment instructions..." @update:model-value="
                           (value) => {
                             localLesson.assignmentInstructions = value
+                            handleInput('assignmentInstructions')
                           }
                         " />
                     </div>
+                    <span v-if="fieldErrors.assignmentInstructions" class="error-message">{{
+                      fieldErrors.assignmentInstructions
+                      }}</span>
                   </div>
                 </div>
 
@@ -235,24 +258,37 @@
 
                 <!-- Schedule Section - For All Lessons -->
                 <div class="form-row">
-                  <div v-if="!localLesson.isFinalLesson" class="form-group">
-                    <label class="form-label">Lesson Date</label>
-                    <input v-model="localLesson.lessonDate" type="date" class="form-input" />
+                  <div v-if="!localLesson.isFinalLesson" class="form-group"
+                    :class="{ 'has-error': fieldErrors.lessonDate }">
+                    <label class="form-label">Lesson Date<span class="required">*</span></label>
+                    <input v-model="localLesson.lessonDate" type="date" class="form-input"
+                      @blur="handleBlur('lessonDate')" @change="handleInput('lessonDate')" />
+                    <span v-if="fieldErrors.lessonDate" class="error-message">{{
+                      fieldErrors.lessonDate
+                      }}</span>
                   </div>
-                  <div v-else class="form-group">
+                  <div v-else class="form-group" :class="{ 'has-error': fieldErrors.lessonDate }">
                     <label class="form-label">
                       Completion Date
                       <span class="required">*</span>
                     </label>
-                    <input v-model="localLesson.lessonDate" type="date" class="form-input" />
+                    <input v-model="localLesson.lessonDate" type="date" class="form-input"
+                      @blur="handleBlur('lessonDate')" @change="handleInput('lessonDate')" />
+                    <span v-if="fieldErrors.lessonDate" class="error-message">{{
+                      fieldErrors.lessonDate
+                      }}</span>
                   </div>
                 </div>
 
                 <!-- Assignment Due Date (Regular Lessons Only) -->
                 <div v-if="!localLesson.isFinalLesson" class="form-row">
-                  <div class="form-group">
+                  <div class="form-group" :class="{ 'has-error': fieldErrors.assignmentDueDate }">
                     <label class="form-label">Assignment Due Date</label>
-                    <input v-model="localLesson.assignmentDueDate" type="date" class="form-input" />
+                    <input v-model="localLesson.assignmentDueDate" type="date" class="form-input"
+                      @blur="handleBlur('assignmentDueDate')" @change="handleInput('assignmentDueDate')" />
+                    <span v-if="fieldErrors.assignmentDueDate" class="error-message">{{
+                      fieldErrors.assignmentDueDate
+                      }}</span>
                   </div>
                 </div>
               </div>
@@ -316,6 +352,8 @@ const localLesson = ref<Lesson>({
   certificateFile: null,
 })
 
+const fieldErrors = ref<Record<string, string>>({})
+
 watch(
   () => props.lesson,
   (newLesson) => {
@@ -348,80 +386,103 @@ watch(
   { immediate: true, deep: true },
 )
 
+const validateField = (fieldName: string): string => {
+  switch (fieldName) {
+    case 'title':
+      return localLesson.value.title?.trim() ? '' : 'Lesson title is required'
+    case 'description':
+      return localLesson.value.description?.trim() ? '' : 'Description is required'
+    case 'goals':
+      return localLesson.value.goals?.trim() ? '' : 'Goals are required'
+    case 'videoUrl':
+      return localLesson.value.videoUrl?.trim() ? '' : 'Video URL is required'
+    case 'materialFile':
+      return localLesson.value.materialFile || localLesson.value.materialUrl
+        ? ''
+        : 'Material file is required'
+    case 'quiz':
+      return localLesson.value.quiz || localLesson.value.hasQuiz ? '' : 'Quiz file is required'
+    case 'lessonDate':
+      return localLesson.value.lessonDate?.trim() ? '' : 'Lesson date is required'
+    case 'displayOrder':
+      if (!localLesson.value.displayOrder || localLesson.value.displayOrder < 1)
+        return 'Display order must be greater than 0'
+      return ''
+    case 'certificateFile':
+      if (
+        localLesson.value.isFinalLesson &&
+        !localLesson.value.certificateFile &&
+        !localLesson.value.certificateUrl
+      )
+        return 'Certificate template is required for final lessons'
+      return ''
+    case 'assignmentInstructions':
+      if (localLesson.value.assignmentFile && !localLesson.value.assignmentInstructions?.trim())
+        return 'Assignment instructions are required when assignment file is uploaded'
+      return ''
+    case 'assignmentDueDate':
+      if (localLesson.value.assignmentFile && !localLesson.value.assignmentDueDate?.trim())
+        return 'Assignment due date is required when assignment file is uploaded'
+      return ''
+    default:
+      return ''
+  }
+}
+
+const clearFieldError = (fieldName: string) => {
+  if (fieldErrors.value[fieldName]) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [fieldName]: _, ...rest } = fieldErrors.value
+    fieldErrors.value = rest
+  }
+}
+
+const handleBlur = (fieldName: string) => {
+  const error = validateField(fieldName)
+  if (error) {
+    fieldErrors.value[fieldName] = error
+  } else {
+    clearFieldError(fieldName)
+  }
+}
+
+const handleInput = (fieldName: string) => {
+  clearFieldError(fieldName)
+}
+
 const handleClose = () => {
+  fieldErrors.value = {}
   emit('close')
 }
 
 const handleSave = () => {
-  // Validate required fields
-  if (!localLesson.value.title || !localLesson.value.title.trim()) {
-    alert('Lesson title is required')
-    return
-  }
+  // Validate all fields
+  const errors: Record<string, string> = {}
+  const fieldsToValidate = [
+    'title',
+    'description',
+    'goals',
+    'videoUrl',
+    'materialFile',
+    'quiz',
+    'lessonDate',
+    'displayOrder',
+    'certificateFile',
+    'assignmentInstructions',
+    'assignmentDueDate',
+  ]
 
-  if (!localLesson.value.description || !localLesson.value.description.trim()) {
-    alert('Lesson description is required')
-    return
-  }
+  fieldsToValidate.forEach((field) => {
+    const error = validateField(field)
+    if (error) errors[field] = error
+  })
 
-  // Goals are required
-  if (!localLesson.value.goals || !localLesson.value.goals.trim()) {
-    alert('Goals are required')
-    return
-  }
+  fieldErrors.value = errors
 
-  // Material file is required
-  if (!localLesson.value.materialFile && !localLesson.value.materialUrl) {
-    alert('Material file is required. Please upload a PDF material file before saving.')
-    return
-  }
-
-  // Video URL is required
-  if (!localLesson.value.videoUrl || !localLesson.value.videoUrl.trim()) {
-    alert('Video URL is required')
-    return
-  }
-
-  // Lesson date is required
-  if (!localLesson.value.lessonDate || !localLesson.value.lessonDate.trim()) {
-    alert('Lesson date is required')
-    return
-  }
-
-  // Display order is required
-  if (!localLesson.value.displayOrder || localLesson.value.displayOrder < 1) {
-    alert('Display order is required and must be greater than 0')
-    return
-  }
-
-  // Quiz is required
-  if (!localLesson.value.quiz && !localLesson.value.hasQuiz) {
-    alert('Quiz file is required. Please upload a JSON quiz file before saving.')
-    return
-  }
-
-  // If assignment file exists, validate instructions and due date
-  if (localLesson.value.assignmentFile) {
-    if (
-      !localLesson.value.assignmentInstructions ||
-      !localLesson.value.assignmentInstructions.trim()
-    ) {
-      alert('Assignment instructions are required when assignment file is uploaded')
-      return
-    }
-    if (!localLesson.value.assignmentDueDate || !localLesson.value.assignmentDueDate.trim()) {
-      alert('Assignment due date is required when assignment file is uploaded')
-      return
-    }
-  }
-
-  // If final lesson, certificate is required
-  if (
-    localLesson.value.isFinalLesson &&
-    !localLesson.value.certificateFile &&
-    !localLesson.value.certificateUrl
-  ) {
-    alert('Certificate template is required for final lessons')
+  if (Object.keys(errors).length > 0) {
+    // Show the first error in an alert
+    const firstError = Object.values(errors)[0]
+    alert(firstError || 'Please fix the errors before submitting')
     return
   }
 
@@ -449,6 +510,7 @@ const handleMaterialUpload = (files: File[]) => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   localLesson.value.materialFile = file as any
+  clearFieldError('materialFile')
 }
 
 const handleAssignmentUpload = (files: File[]) => {
@@ -472,6 +534,9 @@ const handleAssignmentUpload = (files: File[]) => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   localLesson.value.assignmentFile = file as any
+  clearFieldError('assignmentFile')
+  clearFieldError('assignmentInstructions')
+  clearFieldError('assignmentDueDate')
 }
 
 const handleQuizUpload = (files: File[]) => {
@@ -483,6 +548,7 @@ const handleQuizUpload = (files: File[]) => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   localLesson.value.quiz = file as any
+  clearFieldError('quiz')
 }
 
 const handleCertificateUpload = (files: File[]) => {
@@ -504,6 +570,7 @@ const handleCertificateUpload = (files: File[]) => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   localLesson.value.certificateFile = file as any
+  clearFieldError('certificateFile')
 }
 
 const removeMaterialFile = () => {
@@ -512,6 +579,8 @@ const removeMaterialFile = () => {
   localLesson.value.materialUrl = undefined
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ; (localLesson.value as any).oldMaterialUrl = undefined
+  // Trigger validation
+  handleBlur('materialFile')
 }
 
 const removeAssignmentFile = () => {
@@ -526,6 +595,8 @@ const removeQuizFile = () => {
   localLesson.value.quiz = null
   // Also clear the hasQuiz flag
   localLesson.value.hasQuiz = false
+  // Trigger validation
+  handleBlur('quiz')
 }
 
 const removeCertificateFile = () => {
@@ -534,6 +605,10 @@ const removeCertificateFile = () => {
   localLesson.value.certificateUrl = undefined
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ; (localLesson.value as any).oldCertificateUrl = undefined
+  // Trigger validation if final lesson
+  if (localLesson.value.isFinalLesson) {
+    handleBlur('certificateFile')
+  }
 }
 </script>
 
@@ -865,6 +940,36 @@ const removeCertificateFile = () => {
 .modal-enter-from .modal-container,
 .modal-leave-to .modal-container {
   transform: translateY(40px) scale(0.95);
+}
+
+/* Error states */
+.form-group.has-error .form-input,
+.form-group.has-error .form-textarea,
+.form-group.has-error .rich-editor-wrapper {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.form-group.has-error .form-input:focus,
+.form-group.has-error .form-textarea:focus,
+.form-group.has-error .rich-editor-wrapper:focus-within {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.error-message {
+  display: block;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.error-message::before {
+  content: '⚠';
+  font-size: 14px;
 }
 
 /* Responsive */
