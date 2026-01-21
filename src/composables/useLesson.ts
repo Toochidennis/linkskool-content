@@ -153,11 +153,25 @@ export function useLesson() {
     }
   }
 
+  const deleteLesson = async (lessonId: number, cohortId: number) => {
+    try {
+      const response = programService.delete(
+        `cohorts/${cohortId}/lessons/${lessonId}`,
+      )
+
+      return response
+    } catch (error) {
+      console.error('Error deleting lesson:', error)
+      throw error
+    }
+  }
+
   return {
     lessons,
     fetchLessons,
     packageLesson,
     saveLesson,
     updateLesson,
+    deleteLesson,
   }
 }

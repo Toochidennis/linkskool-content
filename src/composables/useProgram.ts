@@ -49,23 +49,7 @@ export const useProgram = () => {
       if (payload.sponsor) {
         formData.append('sponsor', payload.sponsor);
       }
-      formData.append('is_free', payload.is_free ? '1' : '0');
       formData.append('status', payload.status);
-
-      if (!payload.is_free && payload.trial_type) {
-        formData.append('trial_type', payload.trial_type);
-        if (payload.trial_value) {
-          formData.append('trial_value', payload.trial_value.toString());
-        }
-      }
-
-      if (payload.start_date) {
-        formData.append('start_date', payload.start_date);
-      }
-
-      if (payload.end_date) {
-        formData.append('end_date', payload.end_date);
-      }
 
       // Append banner image file - ensure it's a valid File object
       if (payload.banner_image instanceof File) {

@@ -86,13 +86,15 @@
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                   </button>
-                  <button class="icon-btn duplicate-btn" @click="duplicateLesson(lesson, $event)" title="Duplicate">
+                  <button class="icon-btn duplicate-btn" @click="duplicateLesson(lesson, $event)"
+                    title="Duplicate (Coming Soon)" disabled style="opacity: 0.5; cursor: not-allowed">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
                   </button>
-                  <button class="icon-btn delete-btn" @click="deleteLesson(lesson, $event)" title="Delete">
+                  <button class="icon-btn delete-btn" @click="deleteLesson(lesson, $event)" title="Delete"
+                    :disabled="isDeleting">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="3 6 5 6 21 6"></polyline>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -444,6 +446,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useToast } from 'vue-toast-notification'
 import type { Lesson } from '@/api/models/lesson'
 import type { QuizQuestion } from '@/api/models/quiz'
 import LessonModal from '@/components/LessonModal.vue'
@@ -455,6 +458,8 @@ import { programService } from '@/api/services/serviceFactory'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const toast = useToast()
+const isDeleting = ref(false)
 
 function formatCourseSlug(slug: string) {
   if (!slug) return 'Course'
@@ -483,7 +488,14 @@ const showModal = ref(false)
 const selectedLesson = ref<Lesson | null>(null)
 const isEditMode = ref(false)
 
-const { lessons, fetchLessons, packageLesson, saveLesson, updateLesson } = useLesson()
+const {
+  lessons,
+  fetchLessons,
+  packageLesson,
+  saveLesson,
+  updateLesson,
+  deleteLesson: deleteLessonApi,
+} = useLesson()
 
 onMounted(async () => {
   // Extract course info from route if available
@@ -494,6 +506,10 @@ onMounted(async () => {
   // Load lessons from server
   if (cohortId.value > 0) {
     try {
+      toast.info('Loading lessons...', {
+        position: 'top-right',
+        duration: 1500,
+      })
       await fetchLessons(cohortId.value)
       // Collapse all cards by default
       lessons.value.forEach((lesson: Lesson) => {
@@ -501,8 +517,21 @@ onMounted(async () => {
           collapsedCards.value.add(String(lesson.lessonId))
         }
       })
+      if (lessons.value.length > 0) {
+        toast.success(
+          `Loaded ${lessons.value.length} lesson${lessons.value.length > 1 ? 's' : ''}`,
+          {
+            position: 'top-right',
+            duration: 2000,
+          },
+        )
+      }
     } catch (err) {
       console.error('Failed to load lessons:', err)
+      toast.error('Failed to load lessons. Please refresh the page.', {
+        position: 'top-right',
+        duration: 5000,
+      })
     }
   }
 })
@@ -561,6 +590,10 @@ const handleModalSave = async (lesson: Lesson) => {
 
   try {
     isSaving.value = true
+    toast.info(isEditMode.value ? 'Updating lesson...' : 'Creating lesson...', {
+      position: 'top-right',
+      duration: 2000,
+    })
 
     // Package the single lesson as FormData
     const formData = packageLesson(
@@ -587,9 +620,17 @@ const handleModalSave = async (lesson: Lesson) => {
       if (index !== -1) {
         lessons.value[index] = { ...lesson, lessonId: response.data?.lessonId || lesson.lessonId }
       }
+      toast.success('Lesson updated successfully!', {
+        position: 'top-right',
+        duration: 3000,
+      })
     } else {
       // Add new lesson
       lessons.value.push({ ...lesson, lessonId: response.data?.lessonId || lesson.lessonId })
+      toast.success('Lesson created successfully!', {
+        position: 'top-right',
+        duration: 3000,
+      })
     }
 
     isSaving.value = false
@@ -601,7 +642,12 @@ const handleModalSave = async (lesson: Lesson) => {
     }, 3000)
   } catch (err) {
     console.error('Error saving lesson:', err)
-    alert(err instanceof Error ? err.message : 'Failed to save lesson. Please try again.')
+    const errorMessage =
+      err instanceof Error ? err.message : 'Failed to save lesson. Please try again.'
+    toast.error(errorMessage, {
+      position: 'top-right',
+      duration: 5000,
+    })
     isSaving.value = false
   }
 }
@@ -685,25 +731,64 @@ const handleCardClick = (lessonId: string, event: Event) => {
 
 const duplicateLesson = (lesson: Lesson, event: Event) => {
   event.stopPropagation()
-
-  const duplicated = JSON.parse(JSON.stringify(lesson))
-  duplicated.lessonId = `temp-${Date.now()}`
-
-  const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
-  if (index !== -1) {
-    lessons.value.splice(index + 1, 0, duplicated)
-  }
+  // TODO: Implement duplication functionality
+  toast.info('Duplicate feature coming soon!', {
+    position: 'top-right',
+    duration: 2000,
+  })
 }
 
-const deleteLesson = (lesson: Lesson, event: Event) => {
+const deleteLesson = async (lesson: Lesson, event: Event) => {
   event.stopPropagation()
 
-  if (confirm('Are you sure you want to delete this lesson? This action cannot be undone.')) {
+  if (!confirm('Are you sure you want to delete this lesson? This action cannot be undone.')) {
+    return
+  }
+
+  // Don't delete temp lessons that haven't been saved yet
+  if (String(lesson.lessonId).startsWith('temp-')) {
     const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
     if (index !== -1) {
       lessons.value.splice(index, 1)
       collapsedCards.value.delete(String(lesson.lessonId))
     }
+    toast.success('Lesson removed', {
+      position: 'top-right',
+      duration: 2000,
+    })
+    return
+  }
+
+  try {
+    isDeleting.value = true
+    toast.info('Deleting lesson...', {
+      position: 'top-right',
+      duration: 2000,
+    })
+
+    await deleteLessonApi(Number(lesson.lessonId), cohortId.value)
+
+    // Remove from local list
+    const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
+    if (index !== -1) {
+      lessons.value.splice(index, 1)
+      collapsedCards.value.delete(String(lesson.lessonId))
+    }
+
+    toast.success('Lesson deleted successfully!', {
+      position: 'top-right',
+      duration: 3000,
+    })
+  } catch (err) {
+    console.error('Error deleting lesson:', err)
+    const errorMessage =
+      err instanceof Error ? err.message : 'Failed to delete lesson. Please try again.'
+    toast.error(errorMessage, {
+      position: 'top-right',
+      duration: 5000,
+    })
+  } finally {
+    isDeleting.value = false
   }
 }
 
