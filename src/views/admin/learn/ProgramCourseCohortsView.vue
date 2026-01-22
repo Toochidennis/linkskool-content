@@ -1,6 +1,7 @@
 <template>
   <div class="cohorts-page">
-    <header class="page-header">
+    <template v-if="!showModal">
+      <header class="page-header">
       <div class="header-left">
         <button class="back-btn cursor-pointer" @click="goBack" aria-label="Go back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -286,21 +287,22 @@
       </article>
     </section>
 
-    <div v-else class="empty">
-      <p class="empty-title">No cohorts yet</p>
-      <p class="empty-sub">Create your first cohort to start scheduling lessons.</p>
-      <button class="primary-btn" @click="openCreateModal">Create a cohort</button>
-    </div>
+      <div v-else class="empty">
+        <p class="empty-title">No cohorts yet</p>
+        <p class="empty-sub">Create your first cohort to start scheduling lessons.</p>
+        <button class="primary-btn" @click="openCreateModal">Create a cohort</button>
+      </div>
+    </template>
 
-    <transition name="modal">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-        <div class="modal">
+    <transition name="page">
+      <div v-if="showModal" class="cohort-page">
+        <div class="page-panel">
           <header class="modal-header">
             <div>
               <p class="label">New cohort</p>
               <h3>Create a cohort for {{ courseName }}</h3>
             </div>
-            <button class="icon" @click="closeModal" aria-label="Close">
+            <button class="icon close-btn" @click="closeModal" aria-label="Close">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M6 6l12 12M6 18L18 6" stroke-width="2" stroke-linecap="round" />
               </svg>
@@ -406,7 +408,7 @@
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p style="font-weight: 600; margin: 0 0 4px 0">Drop an image or click to upload</p>
-                <p class="hint" style="margin: 0">PNG, JPG, or GIF (recommended: 1200x600px)</p>
+                <p class="hint" style="margin: 0">PNG, JPG, or GIF up to 2MB (recommended: 1200x600px)</p>
               </div>
               <div v-else class="image-preview-container">
                 <img :src="imagePreview" alt="Cover preview" class="preview-image" />
@@ -1713,6 +1715,18 @@ onMounted(() => {
   color: #64748b;
 }
 
+.cohort-page {
+  width: 100%;
+}
+
+.page-panel {
+  width: 100%;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1955,6 +1969,22 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
 /* Required field indicator */
 .required {
   color: #ef4444;
@@ -2018,6 +2048,26 @@ onMounted(() => {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+.page-enter-active .page-panel,
+.page-leave-active .page-panel {
+  transition: transform 0.3s ease;
+}
+
+.page-enter-from .page-panel,
+.page-leave-to .page-panel {
+  transform: translateX(6%);
 }
 
 @media (max-width: 1024px) {
