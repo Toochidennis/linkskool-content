@@ -26,6 +26,7 @@ import ProgramCourseView from '@/views/admin/learn/ProgramCourseView.vue'
 import ProgramCourseCohortsView from '@/views/admin/learn/ProgramCourseCohortsView.vue'
 import ProgramCourseLessonsView from '@/views/admin/learn/ProgramCourseLessonsView.vue'
 import LessonFormView from '@/views/admin/learn/LessonFormView.vue'
+import LearningCourseView from '@/views/admin/learn/LearningCourseView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -114,12 +115,17 @@ const routes: RouteRecordRaw[] = [
         component: VideoLibraryDetailsView,
       },
       {
+        path: 'learn-courses',
+        name: 'Courses',
+        component: LearningCourseView,
+      },
+      {
         path: 'learn-programs',
         name: 'Programs',
         component: ProgramLibraryView,
       },
       {
-        path: 'learn-courses/:slug',
+        path: 'program-courses/:slug',
         name: 'Program Courses',
         component: ProgramCourseView,
       },

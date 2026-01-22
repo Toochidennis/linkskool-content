@@ -1,6 +1,7 @@
 <template>
   <div class="program-library">
-    <!-- Modern Header with Title, Description, Search & Filter -->
+    <div v-if="!showModal">
+      <!-- Modern Header with Title, Description, Search & Filter -->
     <div class="header-section">
       <div class="header-left">
         <h1 class="header-title">Programs</h1>
@@ -98,8 +99,8 @@
           <p v-if="program.sponsor" class="program-sponsor">{{ program.sponsor }}</p>
           <p class="program-text">{{ program.description }}</p>
           <div class="program-meta">
-            <span class="program-date">📚 {{ program.courseCount }}
-              {{ program.courseCount === 1 ? 'Course' : 'Courses' }}</span>
+            <span class="program-date">📚 {{ getCourseCount(program) }}
+              {{ getCourseCount(program) === 1 ? 'Course' : 'Courses' }}</span>
           </div>
         </div>
       </div>
@@ -119,109 +120,6 @@
         }}
       </p>
     </div>
-
-    <!-- Modal -->
-    <Transition name="modal">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-container">
-          <div class="modal-header">
-            <h3 class="modal-title">{{ editingProgramId ? 'Edit Program' : 'Add Program' }}</h3>
-            <button @click="closeModal" class="close-button">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div class="modal-body">
-            <!-- Section: Basic Information -->
-            <div class="section-header">
-              <h4 class="section-title">Basic Information</h4>
-            </div>
-
-            <!-- Program Title -->
-            <div class="form-group" :class="{ 'has-error': fieldErrors.name }">
-              <label class="form-label">Program Title <span class="required">*</span></label>
-              <input v-model="formData.name" type="text" required class="form-input"
-                placeholder="e.g., Kids Coding Bootcamp" @blur="handleBlur('name')" @input="handleInput('name')" />
-              <span v-if="fieldErrors.name" class="error-message">
-                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.name }}
-              </span>
-            </div>
-
-            <!-- Slogan/Short Name -->
-            <div class="form-group" :class="{ 'has-error': fieldErrors.shortname }">
-              <label class="form-label">Slogan/Short Name <span class="required">*</span></label>
-              <input v-model="formData.shortname" type="text" required class="form-input"
-                placeholder="e.g., KCB, WebDev Pro" @blur="handleBlur('shortname')" @input="handleInput('shortname')" />
-              <span v-if="fieldErrors.shortname" class="error-message">
-                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.shortname }}
-              </span>
-            </div>
-
-            <!-- Description/Purpose -->
-            <div class="form-group" :class="{ 'has-error': fieldErrors.description }">
-              <label class="form-label">Description/Purpose <span class="required">*</span></label>
-              <textarea v-model="formData.description" required rows="4" class="form-input"
-                placeholder="Describe what this program offers and its objectives..." @blur="handleBlur('description')"
-                @input="handleInput('description')"></textarea>
-              <span v-if="fieldErrors.description" class="error-message">
-                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.description }}
-              </span>
-            </div>
-
-            <!-- Sponsor/Host -->
-            <div class="form-group">
-              <label class="form-label">Sponsor/Host</label>
-              <input v-model="formData.sponsor" type="text" class="form-input"
-                placeholder="e.g., Digital Dreams Limited, Company Name" />
-            </div>
-
-            <!-- Banner Image -->
-            <div class="form-group" :class="{ 'has-error': fieldErrors.image }">
-              <label class="form-label">Banner Image <span class="required">*</span></label>
-              <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
-                <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" class="hidden" />
-                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <p class="upload-text">Click to upload or drag and drop</p>
-                <p class="upload-hint">PNG, JPG up to 10MB (Recommended: 1200x400px)</p>
-              </div>
-
-              <!-- Image Preview -->
-              <div v-if="imagePreview" class="image-preview-single">
-                <img :src="loadImage(imagePreview)" alt="Preview" class="preview-image-single" />
-                <button type="button" @click="removeImage" class="remove-image-btn">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <span v-if="fieldErrors.image" class="error-message">
-                <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.image }}
-              </span>
-            </div>
-
-            <!-- Submit Buttons -->
-            <div class="modal-footer">
-              <button type="button" @click="closeModal" class="btn-secondary" :disabled="isSubmitting">
-                Cancel
-              </button>
-              <button type="button" @click="handleSubmit('draft')" :disabled="!isFormValid || isSubmitting"
-                class="btn-draft" :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }">
-                {{ isSubmitting ? 'Saving...' : 'Save as Draft' }}
-              </button>
-              <button type="button" @click="handleSubmit('published')" :disabled="!isFormValid || isSubmitting"
-                class="btn-primary" :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }">
-                {{ isSubmitting ? 'Publishing...' : 'Publish Now' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
 
     <!-- Floating Action Button (Add Program) -->
     <button @click="openModal" class="floating-action-button" title="Add new program">
@@ -332,14 +230,162 @@
       </div>
     </Transition>
   </div>
+
+  <!-- Program Page -->
+  <Transition name="page">
+    <div v-if="showModal" class="program-page">
+      <div class="page-panel">
+        <div class="modal-header">
+          <h3 class="modal-title">{{ editingProgramId ? 'Edit Program' : 'Add Program' }}</h3>
+          <button @click="closeModal" class="close-button">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Section: Basic Information -->
+          <div class="section-header">
+            <h4 class="section-title">Basic Information</h4>
+          </div>
+
+          <!-- Program Title -->
+          <div class="form-group" :class="{ 'has-error': fieldErrors.name }">
+            <label class="form-label">Program Title <span class="required">*</span></label>
+            <input v-model="formData.name" type="text" required class="form-input"
+              placeholder="e.g., Kids Coding Bootcamp" @blur="handleBlur('name')" @input="handleInput('name')" />
+            <span v-if="fieldErrors.name" class="error-message">
+              <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.name }}
+            </span>
+          </div>
+
+          <!-- Slogan/Short Name -->
+          <div class="form-group" :class="{ 'has-error': fieldErrors.shortname }">
+            <label class="form-label">Slogan/Short Name <span class="required">*</span></label>
+            <input v-model="formData.shortname" type="text" required class="form-input"
+              placeholder="e.g., KCB, WebDev Pro" @blur="handleBlur('shortname')" @input="handleInput('shortname')" />
+            <span v-if="fieldErrors.shortname" class="error-message">
+              <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.shortname }}
+            </span>
+          </div>
+
+          <!-- Description/Purpose -->
+          <div class="form-group" :class="{ 'has-error': fieldErrors.description }">
+            <label class="form-label">Description/Purpose <span class="required">*</span></label>
+            <textarea v-model="formData.description" required rows="4" class="form-input"
+              placeholder="Describe what this program offers and its objectives..." @blur="handleBlur('description')"
+              @input="handleInput('description')"></textarea>
+            <span v-if="fieldErrors.description" class="error-message">
+              <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.description }}
+            </span>
+          </div>
+
+          <!-- Sponsor/Host -->
+          <div class="form-group">
+            <label class="form-label">Sponsor/Host</label>
+            <input v-model="formData.sponsor" type="text" class="form-input"
+              placeholder="e.g., Digital Dreams Limited, Company Name" />
+          </div>
+
+          <!-- Target Age Groups -->
+          <div class="form-group" :class="{ 'has-error': fieldErrors.ageGroups }">
+            <label class="form-label">Target Age Groups <span class="required">*</span></label>
+            <div class="age-group-checkboxes">
+              <label v-for="option in ageRangeOptions" :key="option.key" class="checkbox-option">
+                <input type="checkbox" :value="option.key" v-model="selectedAgeRangeKeys" />
+                <span class="checkbox-label">{{ option.label }}</span>
+              </label>
+            </div>
+            <span v-if="fieldErrors.ageGroups" class="error-message">
+              <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.ageGroups }}
+            </span>
+          </div>
+
+          <!-- Attach Courses -->
+          <div class="form-group">
+            <label class="form-label">Attach Courses</label>
+            <input v-model="courseSearchQuery" type="text" class="form-input"
+              placeholder="Search learning courses..." />
+            <div class="course-chips">
+              <span v-if="selectedCourses.length === 0" class="chip-empty">
+                No courses attached yet
+              </span>
+              <button v-for="course in selectedCourses" :key="course.id" type="button"
+                class="course-chip selected" @click="removeSelectedCourse(course.id)">
+                <span class="chip-label">{{ getCourseLabel(course) }}</span>
+                <span class="chip-remove">x</span>
+              </button>
+            </div>
+            <div class="course-chip-list">
+              <button v-for="course in availableCourses" :key="course.id" type="button" class="course-chip"
+                @click="toggleCourseSelection(course.id)">
+                {{ getCourseLabel(course) }}
+              </button>
+              <span v-if="learningCoursesLoading" class="chip-hint">Loading courses...</span>
+              <span v-else-if="learningCourses.length === 0" class="chip-empty">
+                No courses available
+              </span>
+              <span v-else-if="availableCourses.length === 0" class="chip-empty">
+                No more courses to attach
+              </span>
+            </div>
+          </div>
+
+          <!-- Banner Image -->
+          <div class="form-group" :class="{ 'has-error': fieldErrors.image }">
+            <label class="form-label">Banner Image <span class="required">*</span></label>
+            <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
+              <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" class="hidden" />
+              <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p class="upload-text">Click to upload or drag and drop</p>
+              <p class="upload-hint">PNG, JPG up to 2MB (Recommended: 1200x400px)</p>
+            </div>
+
+            <!-- Image Preview -->
+            <div v-if="imagePreview" class="image-preview-single">
+              <img :src="loadImage(imagePreview)" alt="Preview" class="preview-image-single" />
+              <button type="button" @click="removeImage" class="remove-image-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <span v-if="fieldErrors.image" class="error-message">
+              <i class="fas fa-exclamation-circle"></i> {{ fieldErrors.image }}
+            </span>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="modal-footer">
+            <button type="button" @click="closeModal" class="btn-secondary" :disabled="isSubmitting">
+              Cancel
+            </button>
+            <button type="button" @click="handleSubmit('draft')" :disabled="!isFormValid || isSubmitting"
+              class="btn-draft" :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }">
+              {{ isSubmitting ? 'Saving...' : 'Save as Draft' }}
+            </button>
+            <button type="button" @click="handleSubmit('published')" :disabled="!isFormValid || isSubmitting"
+              class="btn-primary" :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }">
+              {{ isSubmitting ? 'Publishing...' : 'Publish Now' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
+</div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
-import type { Program } from '@/api/models'
-import { programService } from '@/api/services/serviceFactory'
+import type { LearningCourse, Program } from '@/api/models'
+import { learningCourseService, programService } from '@/api/services/serviceFactory'
 
 const toast = useToast()
 const router = useRouter()
@@ -358,6 +404,19 @@ const isSubmitting = ref(false)
 const originalImageFileName = ref('')
 const statusLoadingId = ref<number | null>(null)
 const deleteLoadingId = ref<number | null>(null)
+const learningCourses = ref<LearningCourse[]>([])
+const learningCoursesLoading = ref(false)
+const courseSearchQuery = ref('')
+const selectedCourseIds = ref<number[]>([])
+const maxImageBytes = 2 * 1024 * 1024
+
+const ageRangeOptions = [
+  { key: '5-8', label: '5-8 years', min: 5, max: 8 },
+  { key: '8-12', label: '8-12 years', min: 8, max: 12 },
+  { key: '12-16', label: '12-16 years', min: 12, max: 16 },
+  { key: '16-18', label: '16-18 years', min: 16, max: 18 },
+  { key: '18-plus', label: '18+ years', min: 18, max: null },
+]
 
 // Filter states
 const searchQuery = ref('')
@@ -369,7 +428,12 @@ const formData = ref({
   shortname: '',
   description: '',
   sponsor: '',
+  ageGroups: [] as Array<{ key: string; label: string; min: number; max: number | null }>,
 })
+
+const unmappedAgeGroups = ref<
+  Array<{ key: string; label: string; min: number; max: number | null }>
+>([])
 
 const fieldErrors = ref<Record<string, string>>({})
 
@@ -381,6 +445,10 @@ const validateField = (fieldName: string): string => {
       return formData.value.shortname.trim() ? '' : 'Slogan/Short name is required'
     case 'description':
       return formData.value.description.trim() ? '' : 'Description/Purpose is required'
+    case 'ageGroups':
+      return formData.value.ageGroups.length > 0
+        ? ''
+        : 'At least one target age group is required'
     case 'image':
       if (editingProgramId.value && imagePreview.value) return ''
       return imageFile.value ? '' : 'Banner image is required'
@@ -410,6 +478,146 @@ const handleInput = (fieldName: string) => {
   clearFieldError(fieldName)
 }
 
+const selectedAgeRangeKeys = computed({
+  get: () => {
+    const matchedKeys = formData.value.ageGroups
+      .map((ag) => ag.key)
+      .filter((key): key is string => Boolean(key))
+
+    return matchedKeys
+  },
+  set: (newKeys: string[]) => {
+    const uniqueKeys = Array.from(new Set(newKeys))
+    const mappedSelections = uniqueKeys
+      .map((key) => ageRangeOptions.find((opt) => opt.key === key))
+      .filter((opt): opt is (typeof ageRangeOptions)[number] => Boolean(opt))
+      .map((opt) => ({ ...opt }))
+
+    formData.value.ageGroups = [...mappedSelections, ...unmappedAgeGroups.value]
+    clearFieldError('ageGroups')
+  },
+})
+
+const normalizeAgeGroup = (ageGroup: Record<string, unknown> | string) => {
+  if (
+    typeof ageGroup === 'object' &&
+    ageGroup !== null &&
+    'min' in ageGroup &&
+    'max' in ageGroup &&
+    'key' in ageGroup &&
+    'label' in ageGroup
+  ) {
+    const min = Number((ageGroup as Record<string, unknown>).min)
+    const rawMax = (ageGroup as Record<string, unknown>).max
+    const max = rawMax === null || rawMax === undefined ? null : Number(rawMax)
+
+    if (Number.isFinite(min) && (max === null || Number.isFinite(max))) {
+      return {
+        key: String((ageGroup as Record<string, unknown>).key),
+        label: String((ageGroup as Record<string, unknown>).label),
+        min,
+        max: max === null ? null : Number(max),
+      }
+    }
+  }
+
+  if (typeof ageGroup === 'object' && ageGroup !== null && 'min' in ageGroup && 'max' in ageGroup) {
+    const min = Number((ageGroup as Record<string, unknown>).min)
+    const rawMax = (ageGroup as Record<string, unknown>).max
+    const max = rawMax === null || rawMax === undefined ? null : Number(rawMax)
+
+    if (Number.isFinite(min) && (max === null || Number.isFinite(max))) {
+      const optionMatch = ageRangeOptions.find((opt) => opt.min === min && opt.max === max)
+      if (optionMatch) return { ...optionMatch }
+      return { key: `${min}-${max ?? 'plus'}`, label: `${min}-${max ?? 'plus'}`, min, max }
+    }
+  }
+
+  if (typeof ageGroup === 'string') {
+    const [minStr, maxStr] = ageGroup.split('-')
+    const min = Number(minStr)
+    const maxValue =
+      maxStr === undefined || maxStr === '' || maxStr === 'null' ? null : Number(maxStr)
+
+    if (Number.isFinite(min) && (maxValue === null || Number.isFinite(maxValue))) {
+      const optionMatch = ageRangeOptions.find((opt) => opt.min === min && opt.max === maxValue)
+      if (optionMatch) return { ...optionMatch }
+      return {
+        key: `${min}-${maxValue ?? 'plus'}`,
+        label: `${min}-${maxValue ?? 'plus'}`,
+        min,
+        max: maxValue,
+      }
+    }
+  }
+
+  return null
+}
+
+const splitMappedAgeGroups = (ageGroups: Array<Record<string, unknown> | string>) => {
+  const mapped: Array<{ key: string; label: string; min: number; max: number | null }> = []
+  const unmapped: Array<{ key: string; label: string; min: number; max: number | null }> = []
+
+  ageGroups.forEach((ag) => {
+    const normalized = normalizeAgeGroup(ag)
+    if (!normalized) return
+
+    const optionMatch = ageRangeOptions.find(
+      (opt) => opt.min === normalized.min && opt.max === normalized.max,
+    )
+
+    if (optionMatch) {
+      mapped.push({ ...optionMatch })
+    } else {
+      unmapped.push(normalized)
+    }
+  })
+
+  return { mapped, unmapped }
+}
+
+const resolveProgramAgeGroups = (prog: Program): Array<Record<string, unknown> | string> => {
+  const programAny = prog as Program & {
+    ageGroups?: Array<Record<string, unknown> | string>
+    age_groups?: Array<Record<string, unknown> | string>
+  }
+  const candidate = programAny.ageGroups ?? programAny.age_groups
+  return Array.isArray(candidate) ? candidate : []
+}
+
+const resolveProgramCourseIds = (prog: Program): number[] => {
+  const programAny = prog as Program & {
+    courseIds?: Array<number | string>
+    course_ids?: Array<number | string>
+    courses?: Array<{ id?: number | string }>
+  }
+
+  const direct = programAny.courseIds ?? programAny.course_ids
+  if (Array.isArray(direct)) {
+    return direct
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id))
+  }
+
+  if (Array.isArray(programAny.courses)) {
+    return programAny.courses
+      .map((course) => Number(course.id))
+      .filter((id) => Number.isFinite(id))
+  }
+
+  return []
+}
+
+const getCourseCount = (prog: Program): number => {
+  if (Array.isArray(prog.courses)) {
+    return prog.courses.length
+  }
+  if (typeof prog.courseCount === 'number') {
+    return prog.courseCount
+  }
+  return 0
+}
+
 // Fetch programs from API
 const fetchPrograms = async () => {
   try {
@@ -422,6 +630,20 @@ const fetchPrograms = async () => {
     console.error('Failed to fetch programs:', error)
     const message = error instanceof Error ? error.message : 'Failed to load programs'
     toast.error(message)
+  }
+}
+
+const fetchLearningCourses = async () => {
+  learningCoursesLoading.value = true
+  try {
+    const response = await learningCourseService.get()
+    learningCourses.value = Array.isArray(response.data) ? response.data : []
+  } catch (error: unknown) {
+    console.error('Failed to fetch learning courses:', error)
+    const message = error instanceof Error ? error.message : 'Failed to load learning courses'
+    toast.error(message)
+  } finally {
+    learningCoursesLoading.value = false
   }
 }
 
@@ -478,6 +700,28 @@ const filteredProgramsList = computed(() => {
   return filtered
 })
 
+const filteredLearningCourses = computed(() => {
+  const query = courseSearchQuery.value.trim().toLowerCase()
+  if (!query) {
+    return [...learningCourses.value]
+  }
+
+  return learningCourses.value.filter((course) => {
+    const title = (course.title || course.courseName || '').toLowerCase()
+    const slogan = (course.slogan || '').toLowerCase()
+    const description = (course.description || '').toLowerCase()
+    return title.includes(query) || slogan.includes(query) || description.includes(query)
+  })
+})
+
+const selectedCourses = computed(() =>
+  learningCourses.value.filter((course) => selectedCourseIds.value.includes(course.id)),
+)
+
+const availableCourses = computed(() =>
+  filteredLearningCourses.value.filter((course) => !selectedCourseIds.value.includes(course.id)),
+)
+
 // Count active filters
 const activeFiltersCount = computed(() => {
   let count = 0
@@ -489,6 +733,7 @@ const activeFiltersCount = computed(() => {
 // Load data on component mount
 onMounted(() => {
   fetchPrograms()
+  fetchLearningCourses()
 })
 
 const isFormValid = computed(() => {
@@ -498,11 +743,27 @@ const isFormValid = computed(() => {
     formData.value.description.trim() !== '' &&
     (imageFile.value !== null || (editingProgramId.value && imagePreview.value))
 
-  return basicValid
+  const hasValidAgeGroups =
+    formData.value.ageGroups.length > 0 &&
+    formData.value.ageGroups.every(
+      (ag) =>
+        typeof ag.key === 'string' &&
+        ag.key.length > 0 &&
+        typeof ag.label === 'string' &&
+        ag.label.length > 0 &&
+        Number.isFinite(ag.min) &&
+        ag.min >= 0 &&
+        (ag.max === null || (Number.isFinite(ag.max) && ag.max >= ag.min)),
+    )
+
+  return basicValid && hasValidAgeGroups
 })
 
 const openModal = () => {
-  editingProgramId.value = null
+  resetForm()
+  if (learningCourses.value.length === 0 && !learningCoursesLoading.value) {
+    fetchLearningCourses()
+  }
   showModal.value = true
 }
 
@@ -518,10 +779,15 @@ const resetForm = () => {
     shortname: '',
     description: '',
     sponsor: '',
+    ageGroups: [],
   }
+  unmappedAgeGroups.value = []
   imagePreview.value = ''
   imageFile.value = null
   editingProgramId.value = null
+  originalImageFileName.value = ''
+  selectedCourseIds.value = []
+  courseSearchQuery.value = ''
 }
 
 const triggerFileInput = () => {
@@ -544,6 +810,10 @@ const handleDrop = (event: DragEvent) => {
 
 const addFile = (file: File) => {
   if (file.type.startsWith('image/')) {
+    if (file.size > maxImageBytes) {
+      toast.error('Image must be 2MB or less')
+      return
+    }
     imageFile.value = file
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -567,10 +837,27 @@ const removeImage = () => {
   }
 }
 
+const getCourseLabel = (course: LearningCourse) =>
+  course.title || course.courseName || 'Untitled Course'
+
+const toggleCourseSelection = (courseId: number) => {
+  const next = new Set(selectedCourseIds.value)
+  if (next.has(courseId)) {
+    next.delete(courseId)
+  } else {
+    next.add(courseId)
+  }
+  selectedCourseIds.value = Array.from(next)
+}
+
+const removeSelectedCourse = (courseId: number) => {
+  selectedCourseIds.value = selectedCourseIds.value.filter((id) => id !== courseId)
+}
+
 const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
   // Validate all fields
   const errors: Record<string, string> = {}
-  const fieldsToValidate = ['name', 'shortname', 'description', 'image']
+  const fieldsToValidate = ['name', 'shortname', 'description', 'ageGroups', 'image']
 
   fieldsToValidate.forEach((field) => {
     const error = validateField(field)
@@ -619,6 +906,22 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
     if (formData.value.sponsor) {
       payload.append('sponsor', formData.value.sponsor)
     }
+
+    formData.value.ageGroups.forEach((ag, index) => {
+      payload.append(`age_groups[${index}][key]`, ag.key)
+      payload.append(`age_groups[${index}][label]`, ag.label)
+      payload.append(`age_groups[${index}][min]`, String(ag.min))
+      if (ag.max !== null) {
+        payload.append(`age_groups[${index}][max]`, String(ag.max))
+      }
+    })
+
+    selectedCourseIds.value.forEach((courseId, index) => {
+      const course = learningCourses.value.find((item) => item.id === courseId)
+      const title = course ? getCourseLabel(course) : ''
+      payload.append(`courses[${index}][id]`, String(courseId))
+      payload.append(`courses[${index}][title]`, title)
+    })
 
     // Handle image updates
     if (editingProgramId.value !== null) {
@@ -669,30 +972,42 @@ const closeMenuOutside = () => {
 
 const editProgram = (prog: Program) => {
   editingProgramId.value = prog.id
+  const { mapped, unmapped } = splitMappedAgeGroups(resolveProgramAgeGroups(prog))
+  const courseIds = resolveProgramCourseIds(prog)
   formData.value = {
     name: prog.name,
     shortname: prog.shortname,
     description: prog.description || '',
     sponsor: prog.sponsor || '',
+    ageGroups: [...mapped, ...unmapped],
   }
+  unmappedAgeGroups.value = unmapped
   originalImageFileName.value = prog.imageUrl || ''
   imagePreview.value = prog.imageUrl || ''
   imageFile.value = null
+  selectedCourseIds.value = courseIds
+  courseSearchQuery.value = ''
   activeMenu.value = null
   showModal.value = true
 }
 
 const duplicateProgram = (prog: Program) => {
   editingProgramId.value = null
+  const { mapped, unmapped } = splitMappedAgeGroups(resolveProgramAgeGroups(prog))
+  const courseIds = resolveProgramCourseIds(prog)
   formData.value = {
     name: prog.name + ' (Copy)',
     shortname: prog.shortname + ' Copy',
     description: prog.description || '',
     sponsor: prog.sponsor || '',
+    ageGroups: [...mapped, ...unmapped],
   }
+  unmappedAgeGroups.value = unmapped
   originalImageFileName.value = ''
   imagePreview.value = prog.imageUrl || ''
   imageFile.value = null
+  selectedCourseIds.value = courseIds
+  courseSearchQuery.value = ''
   activeMenu.value = null
   showModal.value = true
 }
@@ -790,6 +1105,7 @@ const viewProgram = (prog: Program) => {
   position: relative;
   padding-bottom: 2rem;
 }
+
 
 /* Header Section - Modern Design */
 .header-section {
@@ -1238,6 +1554,18 @@ const viewProgram = (prog: Program) => {
   padding: 1rem;
 }
 
+.program-page {
+  width: 100%;
+}
+
+.page-panel {
+  width: 100%;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
 .modal-container {
   background: white;
   border-radius: 1rem;
@@ -1340,6 +1668,60 @@ const viewProgram = (prog: Program) => {
   outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.course-chips,
+.course-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.course-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.course-chip:hover {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.course-chip.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.chip-label {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-remove {
+  font-size: 0.7rem;
+  color: #6b7280;
+  padding-left: 0.25rem;
+}
+
+.chip-empty,
+.chip-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
 }
 
 .cost-input-container {
@@ -1975,6 +2357,26 @@ const viewProgram = (prog: Program) => {
   transform: scale(0.95);
 }
 
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+.page-enter-active .page-panel,
+.page-leave-active .page-panel {
+  transition: transform 0.3s ease;
+}
+
+.page-enter-from .page-panel,
+.page-leave-to .page-panel {
+  transform: translateX(6%);
+}
+
 .modal-enter-active .filter-modal,
 .modal-leave-active .filter-modal {
   transition: transform 0.3s ease;
@@ -1988,6 +2390,7 @@ const viewProgram = (prog: Program) => {
 /* Error Styles */
 .form-group.has-error .form-input,
 .form-group.has-error textarea,
+.form-group.has-error .age-group-checkboxes,
 .form-group.has-error .upload-area {
   border-color: #ef4444;
   background-color: #fef2f2;

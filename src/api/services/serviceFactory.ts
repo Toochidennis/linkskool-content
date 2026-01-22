@@ -17,4 +17,5 @@ export const newsService = serviceFactory<any>("news");
 export const advertisementService = serviceFactory<any>("advertisements");
 export const videoLibraryService = serviceFactory<any>("video-library");
 export const levelService = serviceFactory<any>("levels");
-export const programService = serviceFactory<any>("programs");
+export const programService = serviceFactory<any>("learn/programs");
+export const learningCourseService = serviceFactory<any>("learn/courses");

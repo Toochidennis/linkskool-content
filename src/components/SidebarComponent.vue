@@ -129,6 +129,7 @@ const menuItems: MenuItem[] = [
     children: [
       {name: 'Levels', route: '/dashboard/levels', icon: 'fas fa-layer-group' },
       { name: 'Videos', route: '/dashboard/video-library', icon: 'fas fa-video' },
+      {name: 'Courses', route: '/dashboard/learn-courses', icon: 'fas fa-book' },
       { name: 'Programs', route: '/dashboard/learn-programs', icon: 'fas fa-sitemap' },
     ]
   },

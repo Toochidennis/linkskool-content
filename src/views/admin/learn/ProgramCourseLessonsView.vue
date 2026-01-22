@@ -49,15 +49,14 @@
             draggable="true" @dragstart="handleDragStart($event, index)" @dragend="handleDragEnd" :data-index="index">
             <div class="lesson-card" :class="{
               'is-final': lesson.isFinalLesson,
-              'is-collapsed': collapsedCards.has(String(lesson.lessonId)),
-            }" @click="handleCardClick(String(lesson.lessonId), $event)">
+            }">
               <!-- Card Header -->
               <div class="lesson-card-header">
                 <div class="lesson-header-info">
                   <div class="lesson-badge" :class="lesson.isFinalLesson ? 'final' : 'regular'">
                     {{ lesson.isFinalLesson ? ' Final' : `Lesson ${index + 1}` }}
                   </div>
-                  <h3 class="lesson-title" v-if="collapsedCards.has(String(lesson.lessonId))">
+                  <h3 class="lesson-title">
                     {{ lesson.title || 'Untitled Lesson' }}
                   </h3>
                 </div>
@@ -66,16 +65,6 @@
                   <span class="order-display">{{ lesson.displayOrder }}</span>
                 </div>
                 <div class="lesson-card-actions">
-                  <button class="icon-btn collapse-btn" @click="toggleCollapse(String(lesson.lessonId), $event)"
-                    :title="collapsedCards.has(String(lesson.lessonId)) ? 'Expand' : 'Collapse'">
-                    <svg v-if="collapsedCards.has(String(lesson.lessonId))" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <polyline points="18 15 12 9 6 15"></polyline>
-                    </svg>
-                  </button>
                   <button class="icon-btn edit-btn" @click="openEditModal(lesson, $event)" title="Edit">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -101,8 +90,8 @@
                 </div>
               </div>
 
-              <!-- Collapsed/Expanded Preview - Always Read-Only -->
-              <div v-if="collapsedCards.has(String(lesson.lessonId))" class="lesson-preview">
+              <!-- Summary Preview - Always Read-Only -->
+              <div class="lesson-preview">
                 <p class="preview-description">{{ lesson.description || 'No description' }}</p>
                 <div class="preview-stats">
                   <div class="stat-item">
@@ -111,290 +100,37 @@
                   </div>
                   <div class="stat-item">
                     <span class="stat-label">Date:</span>
-                    <span class="stat-value">📅 {{ formatDate(lesson.lessonDate) }}</span>
+                    <span class="stat-value">{{ formatDate(lesson.lessonDate) }}</span>
                   </div>
                 </div>
                 <div class="preview-meta">
                   <button v-if="lesson.videoUrl" class="meta-tag video" @click="previewVideo(lesson.videoUrl!, $event)">
-                    📹 Video
+                    Video
                   </button>
                   <button v-if="lesson.recordedVideoUrl" class="meta-tag recorded"
                     @click="previewVideo(lesson.recordedVideoUrl!, $event)">
-                    🎥 Recorded
+                    Recorded
                   </button>
                   <button v-if="lesson.materialUrl" class="meta-tag material"
                     @click="previewMaterial(lesson.materialUrl!, $event)">
-                    📄 Material
+                    Material
                   </button>
                   <span v-if="lesson.writeupContent" class="meta-tag writeup">📝 Write-up</span>
                   <button v-if="lesson.assignmentUrl" class="meta-tag assignment"
                     @click="previewAssignment(lesson.assignmentUrl!, $event)">
-                    ✍️ Assignment
+                    Assignment
                   </button>
                   <button v-if="lesson.hasQuiz" class="meta-tag quiz" @click="previewQuiz(lesson.lessonId!, $event)">
-                    ❓ Quiz
+                    Quiz
                   </button>
                   <button v-if="lesson.certificateUrl && lesson.isFinalLesson" class="meta-tag certificate"
                     @click="previewCertificate(lesson.certificateUrl!, $event)">
-                    🎓 Certificate
+                    Certificate
                   </button>
-                  <span v-if="lesson.isFinalLesson" class="meta-tag final-badge">🎓 Final Lesson</span>
+                  <span v-if="lesson.isFinalLesson" class="meta-tag final-badge">Final Lesson</span>
                 </div>
               </div>
 
-              <!-- Expanded View - Read-Only Display -->
-              <div v-else class="lesson-detail-view">
-                <!-- Basic Information Section -->
-                <div class="view-section">
-                  <h4 class="section-title">Basic Information</h4>
-                  <div class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Lesson Title</label>
-                      <p class="view-value">{{ lesson.title || 'Untitled' }}</p>
-                    </div>
-                  </div>
-                  <div class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Description</label>
-                      <p class="view-value">{{ lesson.description || 'No description' }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Learning Outcomes -->
-                <div v-if="!lesson.isFinalLesson && (lesson.goals || lesson.objectives)" class="view-section">
-                  <h4 class="section-title">Learning Outcomes</h4>
-                  <div v-if="lesson.goals" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Goal</label>
-                      <div class="view-html" v-html="lesson.goals"></div>
-                    </div>
-                  </div>
-                  <div v-if="lesson.objectives" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Objectives</label>
-                      <div class="view-html" v-html="lesson.objectives"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Video & Materials -->
-                <div v-if="
-                  !lesson.isFinalLesson &&
-                  (lesson.videoUrl ||
-                    lesson.recordedVideoUrl ||
-                    lesson.materialFile ||
-                    lesson.writeupContent)
-                " class="view-section">
-                  <h4 class="section-title">Video & Materials</h4>
-                  <div v-if="lesson.videoUrl" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Video URL</label>
-                      <a :href="lesson.videoUrl" target="_blank" class="view-link">{{
-                        lesson.videoUrl
-                        }}</a>
-                    </div>
-                  </div>
-                  <div v-if="lesson.recordedVideoUrl" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Recorded Video URL</label>
-                      <a :href="lesson.recordedVideoUrl" target="_blank" class="view-link">{{
-                        lesson.recordedVideoUrl
-                        }}</a>
-                    </div>
-                  </div>
-                  <div v-if="lesson.materialUrl" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Material File</label>
-                      <div class="view-file-preview">
-                        <div class="view-file">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                          </svg>
-                          <span>Material PDF</span>
-                        </div>
-                        <button class="btn-preview" @click="previewMaterial(lesson.materialUrl!, $event)">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                          Preview
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else-if="lesson.materialFile" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Material File</label>
-                      <div class="view-file">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span>{{
-                          (lesson.materialFile as any)?.file_name || lesson.materialFile.name
-                          }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="lesson.writeupContent" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Material Write-up</label>
-                      <div class="view-html" v-html="lesson.writeupContent"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Assignment -->
-                <div v-if="
-                  !lesson.isFinalLesson &&
-                  (lesson.assignmentInstructions || lesson.assignmentFile)
-                " class="view-section">
-                  <h4 class="section-title">Assignment</h4>
-                  <div v-if="lesson.assignmentInstructions" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Instructions</label>
-                      <div class="view-html" v-html="lesson.assignmentInstructions"></div>
-                    </div>
-                  </div>
-                  <div v-if="lesson.assignmentUrl" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Assignment File</label>
-                      <div class="view-file-preview">
-                        <div class="view-file">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                          </svg>
-                          <span>Assignment PDF</span>
-                        </div>
-                        <button class="btn-preview" @click="previewAssignment(lesson.assignmentUrl!, $event)">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                          Preview
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else-if="lesson.assignmentFile" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Assignment File</label>
-                      <div class="view-file">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span>{{
-                          (lesson.assignmentFile as any)?.file_name || lesson.assignmentFile.name
-                          }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="lesson.assignmentDueDate" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Due Date</label>
-                      <p class="view-value">{{ formatDate(lesson.assignmentDueDate) }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Quiz -->
-                <div v-if="!lesson.isFinalLesson && lesson.hasQuiz" class="view-section">
-                  <h4 class="section-title">Quiz</h4>
-                  <div class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Quiz Available</label>
-                      <div class="view-file-preview">
-                        <div class="view-file quiz-badge">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                          </svg>
-                          <span>Quiz Questions</span>
-                        </div>
-                        <button class="btn-preview quiz" @click="previewQuiz(lesson.lessonId!, $event)">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                          Preview Quiz
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Lesson Settings -->
-                <div class="view-section">
-                  <h4 class="section-title">Lesson Settings</h4>
-                  <div class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Lesson Type</label>
-                      <p class="view-value">
-                        {{ lesson.isFinalLesson ? '🎓 Final Lesson' : '📚 Regular Lesson' }}
-                      </p>
-                    </div>
-                  </div>
-                  <div v-if="lesson.isFinalLesson && lesson.certificateUrl" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Certificate Template</label>
-                      <div class="view-file-preview">
-                        <div class="view-file">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                          </svg>
-                          <span>Certificate SVG</span>
-                        </div>
-                        <button class="btn-preview" @click="previewCertificate(lesson.certificateUrl!, $event)">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                          Preview
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else-if="lesson.isFinalLesson && lesson.certificateFile" class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">Certificate Template</label>
-                      <div class="view-file">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span>{{
-                          (lesson.certificateFile as any)?.file_name || lesson.certificateFile.name
-                          }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="view-row">
-                    <div class="view-field">
-                      <label class="view-label">{{
-                        lesson.isFinalLesson ? 'Completion Date' : 'Lesson Date'
-                        }}</label>
-                      <p class="view-value">{{ formatDate(lesson.lessonDate) }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Edit Button at Bottom -->
-                <div class="view-actions">
-                  <button class="btn-edit-full" @click="openEditModal(lesson, $event)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    Edit Lesson
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -464,7 +200,6 @@ const cohortId = computed(() => {
   return Number.isFinite(fromQuery) ? fromQuery : 0
 })
 const courseTitle = ref((route.query.courseName as string) || formatCourseSlug(courseSlug.value))
-const collapsedCards = ref(new Set<string>())
 const savedIndicator = ref(false)
 
 const { lessons, fetchLessons, deleteLesson: deleteLessonApi } = useLesson()
@@ -473,12 +208,6 @@ const loadLessons = async () => {
   if (cohortId.value > 0) {
     try {
       await fetchLessons(cohortId.value)
-      // Collapse all cards by default
-      lessons.value.forEach((lesson: Lesson) => {
-        if (lesson.lessonId) {
-          collapsedCards.value.add(String(lesson.lessonId))
-        }
-      })
     } catch (err) {
       console.error('Failed to load lessons:', err)
       toast.error('Failed to load lessons. Please refresh the page.', {
@@ -578,40 +307,6 @@ const handleDrop = (event: DragEvent) => {
   }
 }
 
-const toggleCollapse = (lessonId: string, event: Event) => {
-  event.stopPropagation()
-
-  if (collapsedCards.value.has(lessonId)) {
-    // Expand this card and collapse others
-    lessons.value.forEach((l: Lesson) => {
-      const id = String(l.lessonId)
-      if (id !== lessonId) {
-        collapsedCards.value.add(id)
-      }
-    })
-    collapsedCards.value.delete(lessonId)
-  } else {
-    collapsedCards.value.add(lessonId)
-  }
-}
-
-const handleCardClick = (lessonId: string, event: Event) => {
-  if (collapsedCards.value.has(lessonId)) {
-    const target = event.target as HTMLElement
-    if (target.closest('button') || target.closest('input') || target.closest('select')) {
-      return
-    }
-
-    lessons.value.forEach((l: Lesson) => {
-      const id = String(l.lessonId)
-      if (id !== lessonId) {
-        collapsedCards.value.add(id)
-      }
-    })
-    collapsedCards.value.delete(lessonId)
-  }
-}
-
 const duplicateLesson = (lesson: Lesson, event: Event) => {
   event.stopPropagation()
   // TODO: Implement duplication functionality
@@ -633,7 +328,6 @@ const deleteLesson = async (lesson: Lesson, event: Event) => {
     const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
     if (index !== -1) {
       lessons.value.splice(index, 1)
-      collapsedCards.value.delete(String(lesson.lessonId))
     }
     toast.success('Lesson removed', {
       position: 'top-right',
@@ -655,7 +349,6 @@ const deleteLesson = async (lesson: Lesson, event: Event) => {
     const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
     if (index !== -1) {
       lessons.value.splice(index, 1)
-      collapsedCards.value.delete(String(lesson.lessonId))
     }
 
     toast.success('Lesson deleted successfully!', {
@@ -1097,23 +790,8 @@ const goBack = () => {
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
 }
 
-.lesson-card.is-collapsed {
-  cursor: pointer;
-}
-
-.lesson-card.is-collapsed:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
-  border-left-color: #667eea;
-}
-
 .lesson-card.is-final {
   border-left-color: #8b5cf6;
-}
-
-.lesson-card.is-final.is-collapsed:hover {
-  border-left-color: #8b5cf6;
-  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.15);
 }
 
 /* Card Header */
@@ -1221,11 +899,6 @@ const goBack = () => {
   transform: translateY(-1px);
 }
 
-.icon-btn.collapse-btn:hover {
-  color: #667eea;
-  border-color: #667eea;
-  background: #f0f4ff;
-}
 
 .icon-btn.duplicate-btn:hover {
   color: #10b981;
