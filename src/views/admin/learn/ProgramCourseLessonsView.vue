@@ -13,11 +13,7 @@
           <p class="page-subtitle">View and manage course lessons with comprehensive content</p>
         </div>
         <div class="header-actions">
-          <span v-if="isSaving" class="saving-status">
-            <span class="spinner"></span>
-            Saving...
-          </span>
-          <span v-else-if="savedIndicator" class="saved-status">
+          <span v-if="savedIndicator" class="saved-status">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
             </svg>
@@ -405,10 +401,6 @@
       </div>
     </div>
 
-    <!-- Lesson Modal -->
-    <LessonModal :show="showModal" :lesson="selectedLesson" :is-edit-mode="isEditMode" @close="closeModal"
-      @save="handleModalSave" />
-
     <!-- Video Player Overlay -->
     <Teleport to="body">
       <div v-if="videoPlayerOpen" class="video-overlay" @click="closeVideoPlayer">
@@ -434,12 +426,6 @@
     <!-- Quiz Preview Modal -->
     <QuizPreviewModal :is-open="quizPreviewOpen" :questions="quizQuestions" :loading="quizLoading" :error="quizError"
       @close="closeQuizPreview" @retry="retryQuizFetch" />
-
-    <!-- Saving Indicator -->
-    <div v-if="isSaving" class="save-indicator">
-      <div class="spinner"></div>
-      <span>Saving changes...</span>
-    </div>
   </div>
 </template>
 
@@ -449,15 +435,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import type { Lesson } from '@/api/models/lesson'
 import type { QuizQuestion } from '@/api/models/quiz'
-import LessonModal from '@/components/LessonModal.vue'
 import QuizPreviewModal from '@/components/QuizPreviewModal.vue'
 import { useLesson } from '@/composables/useLesson'
-import { useAuthStore } from '@/stores/auth'
 import { programService } from '@/api/services/serviceFactory'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
 const toast = useToast()
 const isDeleting = ref(false)
 
@@ -482,34 +465,13 @@ const cohortId = computed(() => {
 })
 const courseTitle = ref((route.query.courseName as string) || formatCourseSlug(courseSlug.value))
 const collapsedCards = ref(new Set<string>())
-const isSaving = ref(false)
 const savedIndicator = ref(false)
-const showModal = ref(false)
-const selectedLesson = ref<Lesson | null>(null)
-const isEditMode = ref(false)
 
-const {
-  lessons,
-  fetchLessons,
-  packageLesson,
-  saveLesson,
-  updateLesson,
-  deleteLesson: deleteLessonApi,
-} = useLesson()
+const { lessons, fetchLessons, deleteLesson: deleteLessonApi } = useLesson()
 
-onMounted(async () => {
-  // Extract course info from route if available
-  if (courseSlug.value) {
-    courseTitle.value = formatCourseSlug(courseSlug.value)
-  }
-
-  // Load lessons from server
+const loadLessons = async () => {
   if (cohortId.value > 0) {
     try {
-      toast.info('Loading lessons...', {
-        position: 'top-right',
-        duration: 1500,
-      })
       await fetchLessons(cohortId.value)
       // Collapse all cards by default
       lessons.value.forEach((lesson: Lesson) => {
@@ -517,15 +479,6 @@ onMounted(async () => {
           collapsedCards.value.add(String(lesson.lessonId))
         }
       })
-      if (lessons.value.length > 0) {
-        toast.success(
-          `Loaded ${lessons.value.length} lesson${lessons.value.length > 1 ? 's' : ''}`,
-          {
-            position: 'top-right',
-            duration: 2000,
-          },
-        )
-      }
     } catch (err) {
       console.error('Failed to load lessons:', err)
       toast.error('Failed to load lessons. Please refresh the page.', {
@@ -534,122 +487,52 @@ onMounted(async () => {
       })
     }
   }
+}
+
+onMounted(async () => {
+  // Extract course info from route if available
+  if (courseSlug.value) {
+    courseTitle.value = formatCourseSlug(courseSlug.value)
+  }
+
+  // Load lessons from server
+  await loadLessons()
 })
 
-// Modal functions
-const openAddModal = () => {
-  const today = new Date().toISOString().split('T')[0] || ''
-  selectedLesson.value = {
-    lessonId: `temp-${Date.now()}`,
-    courseId: courseId.value,
-    displayOrder: lessons.value.length + 1,
-    title: '',
-    description: '',
-    goals: '',
-    objectives: '',
-    videoUrl: '',
-    recordedVideoUrl: '',
-    materialFile: null,
-    writeupContent: '',
-    assignmentInstructions: '',
-    assignmentFile: null,
-    assignmentDueDate: today,
-    quiz: null,
-    lessonDate: today,
-    isFinalLesson: false,
-    certificateFile: null,
+// Reload lessons when returning from form
+router.afterEach(() => {
+  if (route.name === 'Program Course Lessons') {
+    loadLessons()
   }
-  isEditMode.value = false
-  showModal.value = true
+})
+
+// Navigation functions
+const openAddModal = () => {
+  router.push({
+    path: '/dashboard/lesson-form',
+    query: {
+      programId: programId.value,
+      cohortId: cohortId.value,
+      courseId: courseId.value,
+      displayOrder: lessons.value.length + 1,
+    },
+  })
 }
 
 const openEditModal = (lesson: Lesson, event: Event) => {
   event.stopPropagation()
-  selectedLesson.value = JSON.parse(JSON.stringify(lesson))
-  isEditMode.value = true
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  selectedLesson.value = null
-}
-
-const handleModalSave = async (lesson: Lesson) => {
-  // Validate required route parameters
-  if (!programId.value || !cohortId.value || !courseId.value) {
-    alert('Missing required program, cohort, or course information')
-    return
-  }
-
-  // Validate author information
-  if (!authStore.user?.id || !authStore.user?.username) {
-    alert('User information not available. Please log in again.')
-    return
-  }
-
-  try {
-    isSaving.value = true
-    toast.info(isEditMode.value ? 'Updating lesson...' : 'Creating lesson...', {
-      position: 'top-right',
-      duration: 2000,
-    })
-
-    // Package the single lesson as FormData
-    const formData = packageLesson(
-      lesson,
-      programId.value,
-      courseId.value,
-      authStore.user.username,
-      authStore.user.id,
-    )
-
-    console.log('Saving lesson data')
-
-    // Send to server - use update for edit mode, save for new lessons
-    let response
-    if (isEditMode.value && lesson.lessonId && !String(lesson.lessonId).startsWith('temp-')) {
-      response = await updateLesson(Number(lesson.lessonId), cohortId.value, formData)
-    } else {
-      response = await saveLesson(cohortId.value, formData)
-    }
-
-    // Update lesson in the list
-    if (isEditMode.value) {
-      const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
-      if (index !== -1) {
-        lessons.value[index] = { ...lesson, lessonId: response.data?.lessonId || lesson.lessonId }
-      }
-      toast.success('Lesson updated successfully!', {
-        position: 'top-right',
-        duration: 3000,
-      })
-    } else {
-      // Add new lesson
-      lessons.value.push({ ...lesson, lessonId: response.data?.lessonId || lesson.lessonId })
-      toast.success('Lesson created successfully!', {
-        position: 'top-right',
-        duration: 3000,
-      })
-    }
-
-    isSaving.value = false
-    savedIndicator.value = true
-    closeModal()
-
-    setTimeout(() => {
-      savedIndicator.value = false
-    }, 3000)
-  } catch (err) {
-    console.error('Error saving lesson:', err)
-    const errorMessage =
-      err instanceof Error ? err.message : 'Failed to save lesson. Please try again.'
-    toast.error(errorMessage, {
-      position: 'top-right',
-      duration: 5000,
-    })
-    isSaving.value = false
-  }
+  router.push({
+    path: '/dashboard/lesson-form',
+    query: {
+      programId: programId.value,
+      cohortId: cohortId.value,
+      courseId: courseId.value,
+    },
+    state: {
+      lesson: JSON.parse(JSON.stringify(lesson)),
+      mode: 'edit',
+    },
+  })
 }
 
 let draggedIndex = -1

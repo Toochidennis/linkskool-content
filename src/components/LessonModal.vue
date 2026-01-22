@@ -297,9 +297,10 @@
 
           <!-- Modal Footer -->
           <div class="modal-footer">
-            <button class="btn-cancel" @click="handleClose">Cancel</button>
-            <button class="btn-submit" @click="handleSave">
-              {{ isEditMode ? 'Update Lesson' : 'Create Lesson' }}
+            <button class="btn-cancel" @click="handleClose" :disabled="isSaving">Cancel</button>
+            <button class="btn-submit" @click="handleSave" :disabled="isSaving">
+              <span v-if="isSaving">Saving...</span>
+              <span v-else>{{ isEditMode ? 'Update Lesson' : 'Create Lesson' }}</span>
             </button>
           </div>
         </div>
@@ -353,6 +354,7 @@ const localLesson = ref<Lesson>({
 })
 
 const fieldErrors = ref<Record<string, string>>({})
+const isSaving = ref(false)
 
 watch(
   () => props.lesson,
@@ -384,6 +386,15 @@ watch(
     }
   },
   { immediate: true, deep: true },
+)
+
+watch(
+  () => props.show,
+  (newShow) => {
+    if (!newShow) {
+      isSaving.value = false
+    }
+  },
 )
 
 const validateField = (fieldName: string): string => {
@@ -451,11 +462,14 @@ const handleInput = (fieldName: string) => {
 }
 
 const handleClose = () => {
+  if (isSaving.value) return
   fieldErrors.value = {}
   emit('close')
 }
 
 const handleSave = () => {
+  if (isSaving.value) return
+
   // Validate all fields
   const errors: Record<string, string> = {}
   const fieldsToValidate = [
@@ -486,6 +500,7 @@ const handleSave = () => {
     return
   }
 
+  isSaving.value = true
   emit('save', localLesson.value)
 }
 
@@ -546,9 +561,37 @@ const handleQuizUpload = (files: File[]) => {
     return
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  localLesson.value.quiz = file as any
-  clearFieldError('quiz')
+  // Validate and clean JSON
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const content = e.target?.result as string
+
+      // Remove trailing commas before closing brackets/braces
+      const cleanedContent = content
+        .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas before } or ]
+        .trim()
+
+      // Validate JSON by parsing it
+      JSON.parse(cleanedContent)
+
+      // Create a new cleaned file
+      const cleanedFile = new File([cleanedContent], file.name, { type: 'application/json' })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      localLesson.value.quiz = cleanedFile as any
+      clearFieldError('quiz')
+    } catch (error) {
+      alert('Invalid JSON file. Please check the file format and remove any syntax errors.')
+      console.error('JSON validation error:', error)
+    }
+  }
+
+  reader.onerror = () => {
+    alert('Failed to read the quiz file')
+  }
+
+  reader.readAsText(file)
 }
 
 const handleCertificateUpload = (files: File[]) => {
@@ -636,7 +679,7 @@ const removeCertificateFile = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 10001;
   padding: 20px;
   overflow-y: auto;
 }
@@ -752,9 +795,15 @@ const removeCertificateFile = () => {
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.btn-submit:hover {
+.btn-submit:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-submit:disabled,
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Form Styles */

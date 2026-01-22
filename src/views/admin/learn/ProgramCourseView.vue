@@ -5,7 +5,12 @@
       <div class="header-left">
         <div class="back-button" @click="goBack">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </div>
         <div>
@@ -18,18 +23,34 @@
         <!-- Search Bar -->
         <div class="search-container">
           <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search courses..." class="search-input" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search courses..."
+            class="search-input"
+          />
         </div>
 
         <!-- Filter Button with Badge -->
-        <button @click="showFilterModal = true" class="filter-button"
-          :class="{ 'filter-active': activeFiltersCount > 0 }">
+        <button
+          @click="showFilterModal = true"
+          class="filter-button"
+          :class="{ 'filter-active': activeFiltersCount > 0 }"
+        >
           <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+            />
           </svg>
           <span v-if="activeFiltersCount > 0" class="filter-badge">{{ activeFiltersCount }}</span>
         </button>
@@ -45,8 +66,13 @@
 
     <!-- Grid View -->
     <div v-if="filteredCoursesList.length > 0" class="courses-grid" @click="closeMenuOutside">
-      <div v-for="course in filteredCoursesList" :key="course.id" class="course-card" @click.stop
-        @click="navigateToCohorts(course)">
+      <div
+        v-for="course in filteredCoursesList"
+        :key="course.id"
+        class="course-card"
+        @click.stop
+        @click="navigateToCohorts(course)"
+      >
         <div class="course-image-container">
           <img :src="loadImage(course.imageUrl || '')" :alt="course.title" class="course-image" />
           <div class="course-status-badge" :class="getStatusClass(course.status || 'draft')">
@@ -61,40 +87,63 @@
               <button @click.stop="toggleMenu(course.id)" class="menu-button">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path
-                    d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"
+                  />
                 </svg>
               </button>
               <Transition name="dropdown">
                 <div v-if="activeMenu === course.id" class="menu-dropdown">
                   <button @click.stop="editCourse(course)" class="menu-item">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
                     </svg>
                     Edit
                   </button>
                   <button @click.stop="duplicateCourse(course)" class="menu-item">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
                     </svg>
                     Duplicate
                   </button>
-                  <button @click.stop="togglePublishStatus(course.id)" class="menu-item"
+                  <button
+                    @click.stop="togglePublishStatus(course.id)"
+                    class="menu-item"
                     :disabled="statusLoadingId === course.id"
-                    :class="statusLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''">
+                    :class="statusLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''"
+                  >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                      />
                     </svg>
                     {{ course.status === 'published' ? 'Archive' : 'Publish' }}
                   </button>
-                  <button @click.stop="deleteCourse(course.id)" class="menu-item menu-item-danger"
+                  <button
+                    @click.stop="deleteCourse(course.id)"
+                    class="menu-item menu-item-danger"
                     :disabled="deleteLoadingId === course.id"
-                    :class="deleteLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''">
+                    :class="deleteLoadingId === course.id ? 'opacity-60 cursor-not-allowed' : ''"
+                  >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 7l-.867 12.142A2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                     Delete
                   </button>
@@ -117,8 +166,12 @@
     <!-- Empty State -->
     <div v-else class="empty-state">
       <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+        />
       </svg>
       <p class="empty-text">
         {{
@@ -137,7 +190,12 @@
             <h3 class="modal-title">{{ editingCourseId ? 'Edit Course' : 'Add Course' }}</h3>
             <button @click="closeModal" class="close-button">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -168,8 +226,12 @@
             <!-- Slogan -->
             <div class="form-group">
               <label class="form-label">Slogan/Tagline</label>
-              <input v-model="formData.slogan" type="text" class="form-input"
-                placeholder="e.g., Master modern web technologies" />
+              <input
+                v-model="formData.slogan"
+                type="text"
+                class="form-input"
+                placeholder="e.g., Master modern web technologies"
+              />
             </div>
 
             <!-- Description -->
@@ -206,11 +268,26 @@
             <!-- Course Image -->
             <div class="form-group">
               <label class="form-label">Course Image</label>
-              <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
-                <input ref="fileInput" type="file" accept="image/*" @change="handleFileSelect" class="hidden" />
+              <div
+                class="upload-area"
+                @click="triggerFileInput"
+                @dragover.prevent
+                @drop.prevent="handleDrop"
+              >
+                <input
+                  ref="fileInput"
+                  type="file"
+                  accept="image/*"
+                  @change="handleFileSelect"
+                  class="hidden"
+                />
                 <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
                 </svg>
                 <p class="upload-text">Click to upload or drag and drop</p>
                 <p class="upload-hint">PNG, JPG up to 10MB</p>
@@ -221,7 +298,12 @@
                 <img :src="loadImage(imagePreview)" alt="Preview" class="preview-image-single" />
                 <button type="button" @click="removeImage" class="remove-image-btn">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -229,15 +311,30 @@
 
             <!-- Submit Buttons -->
             <div class="modal-footer">
-              <button type="button" @click="closeModal" class="btn-secondary" :disabled="isSubmitting">
+              <button
+                type="button"
+                @click="closeModal"
+                class="btn-secondary"
+                :disabled="isSubmitting"
+              >
                 Cancel
               </button>
-              <button type="button" @click="handleSubmit('draft')" :disabled="!isFormValid || isSubmitting"
-                class="btn-draft" :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }">
+              <button
+                type="button"
+                @click="handleSubmit('draft')"
+                :disabled="!isFormValid || isSubmitting"
+                class="btn-draft"
+                :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }"
+              >
                 {{ isSubmitting ? 'Saving...' : 'Save as Draft' }}
               </button>
-              <button type="button" @click="handleSubmit('published')" :disabled="!isFormValid || isSubmitting"
-                class="btn-primary" :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }">
+              <button
+                type="button"
+                @click="handleSubmit('published')"
+                :disabled="!isFormValid || isSubmitting"
+                class="btn-primary"
+                :class="{ 'opacity-50 cursor-not-allowed': !isFormValid || isSubmitting }"
+              >
                 {{ isSubmitting ? 'Publishing...' : 'Publish Now' }}
               </button>
             </div>
@@ -249,7 +346,12 @@
     <!-- Floating Action Button (Add Course) -->
     <button @click="openModal" class="floating-action-button" title="Add new course">
       <svg class="fab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2.5"
+          d="M12 4v16m8-8H4"
+        />
       </svg>
     </button>
 
@@ -261,7 +363,12 @@
             <h3 class="filter-modal-title">Filter Courses</h3>
             <button @click="showFilterModal = false" class="filter-close-button">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -306,8 +413,12 @@
         <div class="delete-confirm-modal">
           <div class="delete-icon-container">
             <svg class="delete-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
           <h3 class="delete-title">Delete Course</h3>
@@ -316,8 +427,12 @@
           </p>
           <div class="delete-actions">
             <button @click="showDeleteConfirm = false" class="delete-btn-cancel">Cancel</button>
-            <button @click="confirmDelete" :disabled="deleteLoadingId !== null"
-              :class="deleteLoadingId !== null ? 'opacity-50 cursor-not-allowed' : ''" class="delete-btn-danger">
+            <button
+              @click="confirmDelete"
+              :disabled="deleteLoadingId !== null"
+              :class="deleteLoadingId !== null ? 'opacity-50 cursor-not-allowed' : ''"
+              class="delete-btn-danger"
+            >
               {{ deleteLoadingId !== null ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
@@ -665,14 +780,14 @@ const handleSubmit = async (status: 'published' | 'draft') => {
   // Validate all fields
   const errors: Record<string, string> = {}
   const fieldsToValidate = ['title', 'description', 'ageGroups']
-  
-  fieldsToValidate.forEach(field => {
+
+  fieldsToValidate.forEach((field) => {
     const error = validateField(field)
     if (error) errors[field] = error
   })
-  
+
   fieldErrors.value = errors
-  
+
   if (Object.keys(errors).length > 0) {
     const firstError = Object.values(errors)[0]
     toast.error(firstError || 'Please fix the errors before submitting')
@@ -1167,7 +1282,6 @@ const navigateToCohorts = (course: ProgramCourse) => {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
