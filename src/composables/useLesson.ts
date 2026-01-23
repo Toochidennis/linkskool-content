@@ -99,6 +99,17 @@ export function useLesson() {
     }
   }
 
+  const deleteQuiz = async (quizId: number) => {
+    try {
+      return await programService.delete(
+        `lessons/quizzes/${quizId}`,
+      )
+    } catch (error) {
+      console.error('Error deleting quiz question:', error)
+      throw error
+    }
+  }
+
   const packageLesson = (
     lesson: Lesson,
     programId: number,
@@ -209,6 +220,7 @@ export function useLesson() {
     fetchLessons,
     fetchQuizQuestions,
     saveQuizQuestion,
+    deleteQuiz,
     packageLesson,
     saveLesson,
     updateLesson,

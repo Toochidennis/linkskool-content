@@ -211,14 +211,14 @@ const handleClose = () => {
 }
 
 .quiz-modal {
-  background: #f8fafc;
+  background: var(--theme-bg);
   border-radius: 18px;
   width: 100%;
   max-width: 820px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   box-shadow:
     0 30px 70px rgba(15, 23, 42, 0.35),
     0 0 0 1px rgba(255, 255, 255, 0.6) inset;
@@ -242,7 +242,7 @@ const handleClose = () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 26px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--theme-border);
   background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
   border-radius: 18px 18px 0 0;
 }
@@ -251,7 +251,7 @@ const handleClose = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #1f2937;
+  color: var(--theme-text);
 }
 
 .quiz-title svg {
@@ -277,7 +277,7 @@ const handleClose = () => {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #475569;
+  color: var(--theme-text-muted);
 }
 
 .quiz-close-btn:hover {
@@ -300,7 +300,7 @@ const handleClose = () => {
   justify-content: center;
   padding: 80px 32px;
   gap: 16px;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
 }
 
 .spinner-large {
@@ -355,9 +355,9 @@ const handleClose = () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: #ffffff;
+  background: var(--theme-surface);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
 }
 
 .question-counter {
@@ -372,7 +372,7 @@ const handleClose = () => {
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: white;
+  background: var(--theme-surface);
   border: 1px solid #f59e0b;
   border-radius: 999px;
   font-weight: 600;
@@ -384,7 +384,7 @@ const handleClose = () => {
 
 .btn-toggle-answer:hover {
   background: #f59e0b;
-  color: #1f2937;
+  color: var(--theme-text);
 }
 
 .btn-toggle-answer svg {
@@ -395,16 +395,16 @@ const handleClose = () => {
 
 .question-section {
   padding: 16px 18px;
-  background: #ffffff;
+  background: var(--theme-surface);
   border-radius: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
 .question-text {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--theme-text);
   line-height: 1.55;
 }
 
@@ -419,8 +419,8 @@ const handleClose = () => {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -452,18 +452,18 @@ const handleClose = () => {
   justify-content: center;
   min-width: 30px;
   height: 30px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-bg);
+  border: 1px solid var(--theme-border);
   border-radius: 9px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--theme-text-muted);
   transition: all 0.2s ease;
 }
 
 .option-card.selected .option-marker {
   background: #f59e0b;
   border-color: #f59e0b;
-  color: #1f2937;
+  color: var(--theme-text);
 }
 
 .option-card.correct .option-marker {
@@ -485,7 +485,7 @@ const handleClose = () => {
 .option-text {
   margin: 0;
   font-size: 14px;
-  color: #374151;
+  color: var(--theme-text-muted);
   line-height: 1.5;
 }
 
@@ -528,8 +528,8 @@ const handleClose = () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 18px;
-  border-top: 1px solid #e2e8f0;
-  background: #ffffff;
+  border-top: 1px solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: 0 0 18px 18px;
   gap: 16px;
 }
@@ -539,12 +539,12 @@ const handleClose = () => {
   align-items: center;
   gap: 8px;
   padding: 10px 18px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 10px;
   font-weight: 600;
   font-size: 13px;
-  color: #374151;
+  color: var(--theme-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
 }

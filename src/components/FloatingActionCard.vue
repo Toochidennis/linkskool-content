@@ -134,7 +134,7 @@ defineEmits<{
     padding: 0;
     background: transparent;
     border: none;
-    color: #9ca3af;
+    color: var(--theme-text-subtle);
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.2s ease;
@@ -142,7 +142,7 @@ defineEmits<{
 }
 
 .close-btn:hover {
-    background: #f3f4f6;
+    background: var(--theme-surface-muted);
     color: #667eea;
     transform: scale(1.1);
 }
@@ -160,14 +160,14 @@ defineEmits<{
     justify-content: center;
     gap: 0;
     padding: 10px;
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--theme-surface);
+    border: 1px solid var(--theme-border);
     border-radius: 7px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    color: #374151;
+    color: var(--theme-text-muted);
     width: 100%;
     height: 40px;
     position: relative;
@@ -197,7 +197,7 @@ defineEmits<{
 }
 
 .action-btn:hover {
-    background: white;
+    background: var(--theme-surface);
     transform: scale(1.1);
 }
 

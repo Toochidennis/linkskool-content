@@ -810,7 +810,7 @@ const getStatusClass = (status: string) => {
 
 .header-subtitle {
   font-size: 0.95rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   margin: 0;
   font-weight: 500;
 }
@@ -836,7 +836,7 @@ const getStatusClass = (status: string) => {
   transform: translateY(-50%);
   width: 1.25rem;
   height: 1.25rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -844,8 +844,8 @@ const getStatusClass = (status: string) => {
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.75rem;
-  border: 1.5px solid #e5e7eb;
-  background: white;
+  border: 1.5px solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   font-size: 0.875rem;
   color: #111827;
@@ -872,8 +872,8 @@ const getStatusClass = (status: string) => {
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
-  border: 1.5px solid #e5e7eb;
-  background: white;
+  border: 1.5px solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -894,7 +894,7 @@ const getStatusClass = (status: string) => {
 .filter-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   stroke-width: 1.8;
 }
 
@@ -924,16 +924,16 @@ const getStatusClass = (status: string) => {
   padding: 0.75rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   background: transparent;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--theme-border);
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .clear-button:hover {
-  color: #374151;
+  color: var(--theme-text-muted);
   border-color: #d1d5db;
   background: #fafafa;
 }
@@ -1026,12 +1026,12 @@ const getStatusClass = (status: string) => {
 
 /* Ad Card */
 .ad-card {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   display: flex;
   flex-direction: column;
   animation: cardFadeIn 0.4s ease-out;
@@ -1118,7 +1118,7 @@ const getStatusClass = (status: string) => {
 }
 
 .ad-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   line-height: 1.5;
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
@@ -1133,7 +1133,7 @@ const getStatusClass = (status: string) => {
 .ad-meta {
   margin-bottom: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1148,7 +1148,7 @@ const getStatusClass = (status: string) => {
 
 .ad-author {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   font-weight: 500;
 }
 
@@ -1208,7 +1208,7 @@ const getStatusClass = (status: string) => {
   left: 0.25rem;
   width: 1.5rem;
   height: 1.5rem;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 9999px;
   transition: transform 0.3s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -1220,7 +1220,7 @@ const getStatusClass = (status: string) => {
 
 .toggle-label {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-weight: 500;
 }
 
@@ -1264,7 +1264,7 @@ const getStatusClass = (status: string) => {
 }
 
 .empty-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 1rem;
 }
 
@@ -1281,7 +1281,7 @@ const getStatusClass = (status: string) => {
 }
 
 .modal-container {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 1rem;
   max-width: 42rem;
   width: 100%;
@@ -1295,7 +1295,7 @@ const getStatusClass = (status: string) => {
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .modal-title {
@@ -1306,7 +1306,7 @@ const getStatusClass = (status: string) => {
 
 .close-button {
   padding: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   transition: color 0.2s;
   border: none;
   background: none;
@@ -1315,7 +1315,7 @@ const getStatusClass = (status: string) => {
 }
 
 .close-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1339,7 +1339,7 @@ const getStatusClass = (status: string) => {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -1350,7 +1350,7 @@ const getStatusClass = (status: string) => {
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   transition: all 0.2s;
@@ -1364,7 +1364,7 @@ const getStatusClass = (status: string) => {
 
 /* Upload Area */
 .upload-area {
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--theme-border-strong);
   border-radius: 0.75rem;
   padding: 2rem;
   text-align: center;
@@ -1381,19 +1381,19 @@ const getStatusClass = (status: string) => {
   width: 3rem;
   height: 3rem;
   margin: 0 auto 1rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .upload-text {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.25rem;
 }
 
 .upload-hint {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .hidden {
@@ -1406,7 +1406,7 @@ const getStatusClass = (status: string) => {
   margin-top: 1rem;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--theme-border);
   max-width: 300px;
 }
 
@@ -1466,17 +1466,17 @@ const getStatusClass = (status: string) => {
 
 .btn-secondary {
   padding: 0.625rem 1.5rem;
-  background: white;
-  color: #374151;
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
   font-weight: 600;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 /* Menu Dropdown */
@@ -1488,7 +1488,7 @@ const getStatusClass = (status: string) => {
   padding: 0.25rem;
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: pointer;
   border-radius: 0.375rem;
   transition: all 0.2s;
@@ -1498,7 +1498,7 @@ const getStatusClass = (status: string) => {
 }
 
 .menu-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1507,10 +1507,10 @@ const getStatusClass = (status: string) => {
   right: 0;
   top: 100%;
   margin-top: 0.25rem;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.5rem;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   min-width: 10rem;
   z-index: 10;
   overflow: hidden;
@@ -1522,9 +1522,9 @@ const getStatusClass = (status: string) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: white;
+  background: var(--theme-surface);
   border: none;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -1533,7 +1533,7 @@ const getStatusClass = (status: string) => {
 }
 
 .menu-item:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 .menu-item-danger {
@@ -1579,7 +1579,7 @@ const getStatusClass = (status: string) => {
 
 /* Delete Modal */
 .delete-modal {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   width: 90%;
   max-width: 20rem;
@@ -1588,7 +1588,7 @@ const getStatusClass = (status: string) => {
 
 .delete-modal-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .delete-modal-title {
@@ -1603,14 +1603,14 @@ const getStatusClass = (status: string) => {
 }
 
 .delete-modal-text {
-  color: #374151;
+  color: var(--theme-text-muted);
   font-size: 0.9375rem;
   font-weight: 500;
   margin: 0 0 0.5rem 0;
 }
 
 .delete-modal-hint {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 0.8125rem;
   margin: 0;
 }
@@ -1633,13 +1633,13 @@ const getStatusClass = (status: string) => {
 }
 
 .delete-modal-cancel {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: var(--theme-surface-muted);
+  color: var(--theme-text-muted);
+  border: 1px solid var(--theme-border-strong);
 }
 
 .delete-modal-cancel:hover {
-  background: #e5e7eb;
+  background: var(--theme-border);
 }
 
 .delete-modal-delete {
@@ -1653,7 +1653,7 @@ const getStatusClass = (status: string) => {
 
 /* Filter Modal */
 .filter-modal {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   width: 90%;
   max-width: 28rem;
@@ -1665,7 +1665,7 @@ const getStatusClass = (status: string) => {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .filter-modal-title {
@@ -1677,7 +1677,7 @@ const getStatusClass = (status: string) => {
 
 .filter-close-button {
   padding: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   transition: color 0.2s;
   border: none;
   background: none;
@@ -1686,7 +1686,7 @@ const getStatusClass = (status: string) => {
 }
 
 .filter-close-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1707,7 +1707,7 @@ const getStatusClass = (status: string) => {
 .filter-section-title {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin: 0 0 0.75rem 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1736,7 +1736,7 @@ const getStatusClass = (status: string) => {
 
 .filter-checkbox span {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--theme-text-muted);
   user-select: none;
 }
 
@@ -1748,7 +1748,7 @@ const getStatusClass = (status: string) => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
   justify-content: flex-end;
 }
 

@@ -1132,7 +1132,7 @@ const viewProgram = (prog: Program) => {
 
 .header-subtitle {
   font-size: 0.95rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   margin: 0;
   font-weight: 500;
 }
@@ -1158,7 +1158,7 @@ const viewProgram = (prog: Program) => {
   transform: translateY(-50%);
   width: 1.25rem;
   height: 1.25rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -1166,8 +1166,8 @@ const viewProgram = (prog: Program) => {
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.75rem;
-  border: 1.5px solid #e5e7eb;
-  background: white;
+  border: 1.5px solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   font-size: 0.875rem;
   color: #111827;
@@ -1196,8 +1196,8 @@ const viewProgram = (prog: Program) => {
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
-  border: 1.5px solid #e5e7eb;
-  background: white;
+  border: 1.5px solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1220,7 +1220,7 @@ const viewProgram = (prog: Program) => {
 .filter-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   stroke-width: 1.8;
 }
 
@@ -1250,16 +1250,16 @@ const viewProgram = (prog: Program) => {
   padding: 0.75rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   background: transparent;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--theme-border);
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .clear-button:hover {
-  color: #374151;
+  color: var(--theme-text-muted);
   border-color: #d1d5db;
   background: #fafafa;
 }
@@ -1356,12 +1356,12 @@ const viewProgram = (prog: Program) => {
 
 /* Program Card */
 .program-card {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   display: flex;
   flex-direction: column;
   animation: cardFadeIn 0.4s ease-out;
@@ -1472,7 +1472,7 @@ const viewProgram = (prog: Program) => {
 }
 
 .program-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   line-height: 1.5;
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
@@ -1487,7 +1487,7 @@ const viewProgram = (prog: Program) => {
 .program-meta {
   margin-top: auto;
   padding-top: 0.75rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1497,7 +1497,7 @@ const viewProgram = (prog: Program) => {
 
 .program-date {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-weight: 500;
 }
 
@@ -1538,7 +1538,7 @@ const viewProgram = (prog: Program) => {
 }
 
 .empty-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 1rem;
 }
 
@@ -1560,14 +1560,14 @@ const viewProgram = (prog: Program) => {
 
 .page-panel {
   width: 100%;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 1rem;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
   overflow: hidden;
 }
 
 .modal-container {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 1rem;
   max-width: 46rem;
   width: 100%;
@@ -1581,7 +1581,7 @@ const viewProgram = (prog: Program) => {
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .modal-title {
@@ -1592,7 +1592,7 @@ const viewProgram = (prog: Program) => {
 
 .close-button {
   padding: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   transition: color 0.2s;
   border: none;
   background: none;
@@ -1601,7 +1601,7 @@ const viewProgram = (prog: Program) => {
 }
 
 .close-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1615,7 +1615,7 @@ const viewProgram = (prog: Program) => {
   justify-content: flex-end;
   padding-top: 1.5rem;
   margin-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
 }
 
 /* Section Headers */
@@ -1647,7 +1647,7 @@ const viewProgram = (prog: Program) => {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -1658,7 +1658,7 @@ const viewProgram = (prog: Program) => {
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   transition: all 0.2s;
@@ -1684,9 +1684,9 @@ const viewProgram = (prog: Program) => {
   gap: 0.375rem;
   padding: 0.375rem 0.625rem;
   border-radius: 9999px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #374151;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface-soft);
+  color: var(--theme-text-muted);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -1714,14 +1714,14 @@ const viewProgram = (prog: Program) => {
 
 .chip-remove {
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   padding-left: 0.25rem;
 }
 
 .chip-empty,
 .chip-hint {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .cost-input-container {
@@ -1734,7 +1734,7 @@ const viewProgram = (prog: Program) => {
   position: absolute;
   left: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-size: 1rem;
   pointer-events: none;
 }
@@ -1745,7 +1745,7 @@ const viewProgram = (prog: Program) => {
 
 .cost-hint {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   margin-top: 0.25rem;
   margin-bottom: 0;
 }
@@ -1756,8 +1756,8 @@ const viewProgram = (prog: Program) => {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface-soft);
+  border: 1px solid var(--theme-border);
   border-radius: 0.5rem;
 }
 
@@ -1780,7 +1780,7 @@ const viewProgram = (prog: Program) => {
 
 .checkbox-label {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-weight: 500;
 }
 
@@ -1832,7 +1832,7 @@ const viewProgram = (prog: Program) => {
   left: 0.25rem;
   width: 1.5rem;
   height: 1.5rem;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 9999px;
   transition: transform 0.3s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -1844,16 +1844,16 @@ const viewProgram = (prog: Program) => {
 
 .toggle-label {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-weight: 500;
 }
 
 /* Trial Section */
 .trial-section {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
 }
 
 .trial-type-selector {
@@ -1882,10 +1882,10 @@ const viewProgram = (prog: Program) => {
   padding: 0.75rem 1rem;
   border: 2px solid #d1d5db;
   border-radius: 0.5rem;
-  background: white;
+  background: var(--theme-surface);
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   transition: all 0.2s;
 }
 
@@ -1901,7 +1901,7 @@ const viewProgram = (prog: Program) => {
 
 /* Upload Area */
 .upload-area {
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--theme-border-strong);
   border-radius: 0.75rem;
   padding: 2rem;
   text-align: center;
@@ -1918,19 +1918,19 @@ const viewProgram = (prog: Program) => {
   width: 3rem;
   height: 3rem;
   margin: 0 auto 1rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .upload-text {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.25rem;
 }
 
 .upload-hint {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .hidden {
@@ -1943,7 +1943,7 @@ const viewProgram = (prog: Program) => {
   margin-top: 1rem;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--theme-border);
   max-width: 100%;
 }
 
@@ -2003,17 +2003,17 @@ const viewProgram = (prog: Program) => {
 
 .btn-secondary {
   padding: 0.625rem 1.5rem;
-  background: white;
-  color: #374151;
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
   font-weight: 600;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 /* Menu Dropdown */
@@ -2025,7 +2025,7 @@ const viewProgram = (prog: Program) => {
   padding: 0.25rem;
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: pointer;
   border-radius: 0.375rem;
   transition: all 0.2s;
@@ -2035,7 +2035,7 @@ const viewProgram = (prog: Program) => {
 }
 
 .menu-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -2044,12 +2044,12 @@ const viewProgram = (prog: Program) => {
   right: 0;
   top: 100%;
   margin-top: 0.25rem;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.5rem;
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   min-width: 10rem;
   z-index: 10;
   overflow: hidden;
@@ -2061,9 +2061,9 @@ const viewProgram = (prog: Program) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: white;
+  background: var(--theme-surface);
   border: none;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -2072,7 +2072,7 @@ const viewProgram = (prog: Program) => {
 }
 
 .menu-item:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 .menu-item-danger {
@@ -2120,7 +2120,7 @@ const viewProgram = (prog: Program) => {
 
 /* Delete Modal */
 .delete-modal {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   width: 90%;
   max-width: 20rem;
@@ -2129,7 +2129,7 @@ const viewProgram = (prog: Program) => {
 
 .delete-modal-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .delete-modal-title {
@@ -2144,14 +2144,14 @@ const viewProgram = (prog: Program) => {
 }
 
 .delete-modal-text {
-  color: #374151;
+  color: var(--theme-text-muted);
   font-size: 0.9375rem;
   font-weight: 500;
   margin: 0 0 0.5rem 0;
 }
 
 .delete-modal-hint {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 0.8125rem;
   margin: 0;
 }
@@ -2174,13 +2174,13 @@ const viewProgram = (prog: Program) => {
 }
 
 .delete-modal-cancel {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: var(--theme-surface-muted);
+  color: var(--theme-text-muted);
+  border: 1px solid var(--theme-border-strong);
 }
 
 .delete-modal-cancel:hover {
-  background: #e5e7eb;
+  background: var(--theme-border);
 }
 
 .delete-modal-delete {
@@ -2194,7 +2194,7 @@ const viewProgram = (prog: Program) => {
 
 /* Filter Modal */
 .filter-modal {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   width: 90%;
   max-width: 28rem;
@@ -2206,7 +2206,7 @@ const viewProgram = (prog: Program) => {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .filter-modal-title {
@@ -2218,7 +2218,7 @@ const viewProgram = (prog: Program) => {
 
 .filter-close-button {
   padding: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   transition: color 0.2s;
   border: none;
   background: none;
@@ -2227,7 +2227,7 @@ const viewProgram = (prog: Program) => {
 }
 
 .filter-close-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -2248,7 +2248,7 @@ const viewProgram = (prog: Program) => {
 .filter-section-title {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin: 0 0 0.75rem 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -2277,7 +2277,7 @@ const viewProgram = (prog: Program) => {
 
 .filter-checkbox span {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--theme-text-muted);
   user-select: none;
 }
 
@@ -2289,7 +2289,7 @@ const viewProgram = (prog: Program) => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
   justify-content: flex-end;
 }
 

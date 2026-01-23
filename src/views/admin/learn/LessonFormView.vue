@@ -670,8 +670,8 @@ const removeCertificateFile = () => {
     position: sticky;
     top: 0;
     z-index: 40;
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
+    background: var(--theme-surface);
+    border-bottom: 1px solid var(--theme-border);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(10px);
     background-color: rgba(255, 255, 255, 0.95);
@@ -687,17 +687,17 @@ const removeCertificateFile = () => {
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: #f3f4f6;
-    border: 1px solid #e5e7eb;
+    background: var(--theme-surface-muted);
+    border: 1px solid var(--theme-border);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    color: #6b7280;
+    color: var(--theme-text-subtle);
     flex-shrink: 0;
 }
 
 .back-btn:hover:not(:disabled) {
-    background: white;
+    background: var(--theme-surface);
     border-color: #667eea;
     color: #667eea;
     transform: translateX(-2px);
@@ -721,14 +721,14 @@ const removeCertificateFile = () => {
 .page-title {
     font-size: 24px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--theme-text);
     margin: 0 0 4px 0;
     letter-spacing: -0.5px;
 }
 
 .page-subtitle {
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--theme-text-subtle);
     margin: 0;
     font-weight: 500;
 }
@@ -789,7 +789,7 @@ const removeCertificateFile = () => {
 }
 
 .lesson-form {
-    background: white;
+    background: var(--theme-surface);
     border-radius: 16px;
     padding: 32px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -811,7 +811,7 @@ const removeCertificateFile = () => {
 .section-title {
     font-size: 15px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--theme-text);
     margin: 0 0 20px 0;
     display: flex;
     align-items: center;
@@ -844,7 +844,7 @@ const removeCertificateFile = () => {
 .form-label {
     font-size: 13px;
     font-weight: 600;
-    color: #374151;
+    color: var(--theme-text-muted);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -858,20 +858,20 @@ const removeCertificateFile = () => {
 .form-input,
 .form-textarea {
     padding: 12px 14px;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--theme-border);
     border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
     transition: all 0.2s ease;
     outline: none;
-    background: white;
+    background: var(--theme-surface);
 }
 
 .form-input:focus,
 .form-textarea:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    background: white;
+    background: var(--theme-surface);
 }
 
 .form-textarea {
@@ -881,7 +881,7 @@ const removeCertificateFile = () => {
 
 .form-hint {
     font-size: 12px;
-    color: #9ca3af;
+    color: var(--theme-text-subtle);
     margin: 4px 0 0 0;
 }
 
@@ -890,7 +890,7 @@ const removeCertificateFile = () => {
     align-items: center;
     gap: 10px;
     font-size: 14px;
-    color: #374151;
+    color: var(--theme-text-muted);
     font-weight: 500;
     cursor: pointer;
     user-select: none;
@@ -904,7 +904,7 @@ const removeCertificateFile = () => {
 }
 
 .rich-editor-wrapper {
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--theme-border);
     border-radius: 8px;
     overflow: hidden;
     transition: all 0.2s ease;

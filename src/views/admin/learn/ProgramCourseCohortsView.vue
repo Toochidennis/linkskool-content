@@ -423,7 +423,7 @@
             </div>
 
             <!-- Pricing & Access Section -->
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem">
+            <div style="border-top: 1px solid var(--theme-border); padding-top: 1rem; margin-top: 1rem">
               <p style="font-weight: 700; margin-bottom: 1rem; color: #0f172a">Pricing & Access</p>
 
               <!-- Free/Paid Toggle -->
@@ -447,13 +447,13 @@
                         left: 0.25rem;
                         width: 1.5rem;
                         height: 1.5rem;
-                        background: white;
+                        background: var(--theme-surface);
                         border-radius: 999px;
                         transition: transform 0.3s;
                       " :style="form.isFree ? 'transform: translateX(1.5rem);' : 'transform: translateX(0);'
                         "></span>
                   </button>
-                  <span style="font-size: 0.875rem; color: #374151; font-weight: 500">
+                  <span style="font-size: 0.875rem; color: var(--theme-text-muted); font-weight: 500">
                     {{ form.isFree ? 'Free Cohort' : 'Paid Cohort' }}
                   </span>
                 </div>
@@ -467,21 +467,21 @@
                       position: absolute;
                       left: 0.75rem;
                       font-weight: 600;
-                      color: #374151;
+                      color: var(--theme-text-muted);
                       pointer-events: none;
                     ">₦</span>
                   <input v-model.number="form.cost" type="number" min="0" step="0.01" style="padding-left: 2rem"
                     placeholder="0.00" @blur="handleBlur('cost')" @input="handleInput('cost')" />
                 </div>
                 <span v-if="fieldErrors.cost" class="error-message">{{ fieldErrors.cost }}</span>
-                <p v-else style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem">
+                <p v-else style="font-size: 0.75rem; color: var(--theme-text-subtle); margin-top: 0.25rem">
                   Enter the price for this cohort
                 </p>
               </div>
 
               <!-- Trial Settings (Only if Paid) -->
               <div v-if="!form.isFree" style="margin-top: 1rem">
-                <label style="font-weight: 700; color: #334155; display: block; margin-bottom: 0.75rem">
+                <label style="font-weight: 700; color: var(--theme-text-muted); display: block; margin-bottom: 0.75rem">
                   Free Trial Setup<span class="required">*</span>
                 </label>
 
@@ -506,10 +506,10 @@
                         padding: 0.75rem 1rem;
                         border: 2px solid #d1d5db;
                         border-radius: 0.5rem;
-                        background: white;
+                        background: var(--theme-surface);
                         font-size: 0.875rem;
                         font-weight: 600;
-                        color: #374151;
+                        color: var(--theme-text-muted);
                         transition: all 0.2s;
                       " :style="form.trialType === 'views'
                           ? 'border-color: #6366f1; background: #eef2ff; color: #6366f1;'
@@ -534,10 +534,10 @@
                         padding: 0.75rem 1rem;
                         border: 2px solid #d1d5db;
                         border-radius: 0.5rem;
-                        background: white;
+                        background: var(--theme-surface);
                         font-size: 0.875rem;
                         font-weight: 600;
-                        color: #374151;
+                        color: var(--theme-text-muted);
                         transition: all 0.2s;
                       " :style="form.trialType === 'days'
                           ? 'border-color: #6366f1; background: #eef2ff; color: #6366f1;'
@@ -935,7 +935,7 @@ onMounted(() => {
 .cohorts-page {
   min-height: 100vh;
   padding: 2rem 0 3rem;
-  color: #0f172a;
+  color: var(--theme-text);
 }
 
 .page-header {
@@ -955,11 +955,11 @@ onMounted(() => {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
   display: grid;
   place-items: center;
-  color: #475569;
+  color: var(--theme-text-muted);
   transition: all 0.2s ease;
 }
 
@@ -970,7 +970,7 @@ onMounted(() => {
 
 .eyebrow {
   margin: 0;
-  color: #64748b;
+  color: var(--theme-text-muted);
   font-weight: 600;
   font-size: 0.85rem;
 }
@@ -984,7 +984,7 @@ onMounted(() => {
 
 .page-subtitle {
   margin: 0;
-  color: #64748b;
+  color: var(--theme-text-muted);
 }
 
 .header-actions {
@@ -1001,9 +1001,9 @@ onMounted(() => {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1090,8 +1090,8 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 1rem;
   padding: 1rem 1.25rem;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
@@ -1103,7 +1103,7 @@ onMounted(() => {
 
 .label {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--theme-text-muted);
   margin: 0;
 }
 
@@ -1123,7 +1123,7 @@ onMounted(() => {
   font-size: 1.8rem;
   font-weight: 800;
   margin: 0;
-  color: #0f172a;
+  color: var(--theme-text);
 }
 
 .stat-number.sm {
@@ -1131,7 +1131,7 @@ onMounted(() => {
 }
 
 .hint {
-  color: #94a3b8;
+  color: var(--theme-text-subtle);
   margin: 0;
   font-size: 0.9rem;
 }
@@ -1161,7 +1161,7 @@ onMounted(() => {
 
 .pill.muted {
   background: #f1f5f9;
-  color: #475569;
+  color: var(--theme-text-muted);
   border-color: #e2e8f0;
 }
 
@@ -1179,8 +1179,8 @@ onMounted(() => {
 }
 
 .pill.paused {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--theme-bg);
+  color: var(--theme-text-muted);
   border-color: #e2e8f0;
 }
 
@@ -1191,8 +1191,8 @@ onMounted(() => {
 }
 
 .pill.subtle {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--theme-bg);
+  color: var(--theme-text-muted);
   border-color: #e2e8f0;
 }
 
@@ -1227,9 +1227,9 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.8rem 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--theme-surface);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
 }
 
@@ -1243,7 +1243,7 @@ onMounted(() => {
 .search-box svg {
   width: 18px;
   height: 18px;
-  color: #94a3b8;
+  color: var(--theme-text-subtle);
 }
 
 .toggle input {
@@ -1254,7 +1254,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: #475569;
+  color: var(--theme-text-muted);
   font-weight: 600;
 }
 
@@ -1265,9 +1265,9 @@ onMounted(() => {
 }
 
 .cohort-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   border-radius: 16px;
-  background: #fff;
+  background: var(--theme-surface);
   overflow: visible;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
 }
@@ -1295,7 +1295,7 @@ onMounted(() => {
 
 .cohort-meta {
   margin: 0.1rem 0 0;
-  color: #64748b;
+  color: var(--theme-text-muted);
 }
 
 .header-right {
@@ -1305,8 +1305,8 @@ onMounted(() => {
 }
 
 .spark {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-bg);
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
   padding: 0.55rem 0.85rem;
   min-width: 110px;
@@ -1315,11 +1315,11 @@ onMounted(() => {
 .spark .strong {
   margin: 0.1rem 0 0;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--theme-text);
 }
 
 .spark .muted {
-  color: #94a3b8;
+  color: var(--theme-text-subtle);
   font-weight: 600;
   margin-left: 0.15rem;
 }
@@ -1328,11 +1328,11 @@ onMounted(() => {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
   display: grid;
   place-items: center;
-  color: #475569;
+  color: var(--theme-text-muted);
 }
 
 .menu-container {
@@ -1343,19 +1343,19 @@ onMounted(() => {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
   display: grid;
   place-items: center;
-  color: #475569;
+  color: var(--theme-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .menu-btn:hover {
-  background: #f8fafc;
+  background: var(--theme-bg);
   border-color: #cbd5e1;
-  color: #0f172a;
+  color: var(--theme-text);
 }
 
 .menu-btn svg {
@@ -1368,8 +1368,8 @@ onMounted(() => {
   top: calc(100% + 8px);
   right: 0;
   min-width: 220px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(15, 23, 42, 0.15);
   z-index: 100;
@@ -1384,7 +1384,7 @@ onMounted(() => {
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--theme-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0;
@@ -1398,7 +1398,7 @@ onMounted(() => {
   padding: 0.65rem 0.75rem;
   border: none;
   background: transparent;
-  color: #334155;
+  color: var(--theme-text-muted);
   font-size: 0.875rem;
   font-weight: 600;
   text-align: left;
@@ -1409,8 +1409,8 @@ onMounted(() => {
 }
 
 .menu-item:hover:not(:disabled) {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--theme-bg);
+  color: var(--theme-text);
 }
 
 .menu-item:disabled {
@@ -1475,7 +1475,7 @@ onMounted(() => {
 .warning-text {
   margin: 0;
   font-size: 1rem;
-  color: #0f172a;
+  color: var(--theme-text);
   text-align: center;
 }
 
@@ -1487,7 +1487,7 @@ onMounted(() => {
 .warning-sub {
   margin: 0;
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--theme-text-muted);
   text-align: center;
   line-height: 1.5;
 }
@@ -1596,8 +1596,8 @@ onMounted(() => {
 }
 
 .metric {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-bg);
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
   padding: 0.75rem;
 }
@@ -1648,7 +1648,7 @@ onMounted(() => {
 .timeline-meta {
   display: flex;
   justify-content: space-between;
-  color: #94a3b8;
+  color: var(--theme-text-subtle);
   font-weight: 600;
   margin-top: 0.35rem;
 }
@@ -1699,7 +1699,7 @@ onMounted(() => {
 .empty {
   text-align: center;
   padding: 3rem 1rem;
-  background: #fff;
+  background: var(--theme-surface);
   border: 1px dashed #e2e8f0;
   border-radius: 16px;
 }
@@ -1712,7 +1712,7 @@ onMounted(() => {
 
 .empty-sub {
   margin: 0 0 1rem;
-  color: #64748b;
+  color: var(--theme-text-muted);
 }
 
 .cohort-page {
@@ -1721,7 +1721,7 @@ onMounted(() => {
 
 .page-panel {
   width: 100%;
-  background: #fff;
+  background: var(--theme-surface);
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
   overflow: hidden;
@@ -1738,7 +1738,7 @@ onMounted(() => {
 }
 
 .modal {
-  background: #fff;
+  background: var(--theme-surface);
   border-radius: 16px;
   width: min(720px, 100%);
   max-height: 90vh;
@@ -1761,9 +1761,9 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1rem;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--theme-border);
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--theme-bg);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -1771,7 +1771,7 @@ onMounted(() => {
 
 .filter-option:hover {
   border-color: #cbd5e1;
-  background: #fff;
+  background: var(--theme-surface);
 }
 
 .filter-option.active {
@@ -1802,12 +1802,12 @@ onMounted(() => {
 
 .filter-option span {
   font-weight: 600;
-  color: #334155;
+  color: var(--theme-text-muted);
 }
 
 .modal-header {
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--theme-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1822,7 +1822,7 @@ onMounted(() => {
 
 .modal-footer {
   padding: 1.25rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--theme-border);
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -1848,17 +1848,17 @@ onMounted(() => {
 
 .field label {
   font-weight: 700;
-  color: #334155;
+  color: var(--theme-text-muted);
 }
 
 .field input,
 .field select,
 .field textarea {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   border-radius: 10px;
   padding: 0.65rem 0.8rem;
   font-size: 1rem;
-  background: #f8fafc;
+  background: var(--theme-bg);
 }
 
 .field textarea {
@@ -1866,22 +1866,22 @@ onMounted(() => {
 }
 
 .rich-editor-wrapper {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   border-radius: 10px;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--theme-bg);
   transition: all 0.2s ease;
 }
 
 .rich-editor-wrapper:focus-within {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  background: #fff;
+  background: var(--theme-surface);
 }
 
 .field-hint {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--theme-text-muted);
   margin: 0.35rem 0 0 0;
   line-height: 1.4;
 }
@@ -1891,14 +1891,14 @@ onMounted(() => {
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
-  color: #475569;
+  color: var(--theme-text-muted);
   cursor: pointer;
-  background: #f8fafc;
+  background: var(--theme-bg);
   transition: all 0.2s ease;
 }
 
 .upload:hover {
-  border-color: #94a3b8;
+  border-color: var(--theme-text-subtle);
   background: #f1f5f9;
 }
 
@@ -1913,10 +1913,10 @@ onMounted(() => {
 
 .image-preview-container {
   position: relative;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--theme-border);
   border-radius: 12px;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--theme-bg);
 }
 
 .preview-image {
@@ -1965,7 +1965,7 @@ onMounted(() => {
 .icon {
   border: none;
   background: transparent;
-  color: #475569;
+  color: var(--theme-text-muted);
   cursor: pointer;
 }
 
@@ -1973,15 +1973,15 @@ onMounted(() => {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   display: grid;
   place-items: center;
   transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--theme-bg);
+  color: var(--theme-text);
   border-color: #cbd5e1;
 }
 

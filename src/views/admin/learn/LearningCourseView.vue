@@ -658,10 +658,10 @@ const confirmDelete = async () => {
 
 .back-button {
   padding: 0.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -671,7 +671,7 @@ const confirmDelete = async () => {
 }
 
 .back-button:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   border-color: #4f46e5;
   color: #4f46e5;
 }
@@ -686,7 +686,7 @@ const confirmDelete = async () => {
 
 .header-subtitle {
   font-size: 0.95rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   margin: 0;
   font-weight: 500;
 }
@@ -712,7 +712,7 @@ const confirmDelete = async () => {
   transform: translateY(-50%);
   width: 1.25rem;
   height: 1.25rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -720,8 +720,8 @@ const confirmDelete = async () => {
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.75rem;
-  border: 1.5px solid #e5e7eb;
-  background: white;
+  border: 1.5px solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   font-size: 0.875rem;
   color: #111827;
@@ -828,12 +828,12 @@ const confirmDelete = async () => {
 
 /* Course Card */
 .course-card {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   overflow: visible;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   display: flex;
   flex-direction: column;
   animation: cardFadeIn 0.4s ease-out;
@@ -906,7 +906,7 @@ const confirmDelete = async () => {
 }
 
 .course-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   line-height: 1.5;
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
@@ -921,7 +921,7 @@ const confirmDelete = async () => {
 .course-meta {
   margin-top: auto;
   padding-top: 0.75rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -965,7 +965,7 @@ const confirmDelete = async () => {
 }
 
 .empty-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 1rem;
 }
 
@@ -982,7 +982,7 @@ const confirmDelete = async () => {
 }
 
 .modal-container {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 1rem;
   max-width: 46rem;
   width: 100%;
@@ -996,7 +996,7 @@ const confirmDelete = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .modal-title {
@@ -1007,7 +1007,7 @@ const confirmDelete = async () => {
 
 .close-button {
   padding: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   transition: color 0.2s;
   border: none;
   background: none;
@@ -1016,7 +1016,7 @@ const confirmDelete = async () => {
 }
 
 .close-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1030,7 +1030,7 @@ const confirmDelete = async () => {
   justify-content: flex-end;
   padding-top: 1.5rem;
   margin-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
 }
 
 /* Section Headers */
@@ -1062,7 +1062,7 @@ const confirmDelete = async () => {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -1073,7 +1073,7 @@ const confirmDelete = async () => {
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   transition: all 0.2s;
@@ -1085,8 +1085,8 @@ const confirmDelete = async () => {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface-soft);
+  border: 1px solid var(--theme-border);
   border-radius: 0.5rem;
 }
 
@@ -1109,7 +1109,7 @@ const confirmDelete = async () => {
 
 .checkbox-label {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-weight: 500;
 }
 
@@ -1125,7 +1125,7 @@ const confirmDelete = async () => {
 
 /* Upload Area */
 .upload-area {
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--theme-border-strong);
   border-radius: 0.75rem;
   padding: 2rem;
   text-align: center;
@@ -1142,19 +1142,19 @@ const confirmDelete = async () => {
   width: 3rem;
   height: 3rem;
   margin: 0 auto 1rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .upload-text {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.25rem;
 }
 
 .upload-hint {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .hidden {
@@ -1167,7 +1167,7 @@ const confirmDelete = async () => {
   margin-top: 1rem;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--theme-border);
   max-width: 100%;
 }
 
@@ -1212,17 +1212,17 @@ const confirmDelete = async () => {
 
 .btn-secondary {
   padding: 0.625rem 1.5rem;
-  background: white;
-  color: #374151;
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
   font-weight: 600;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 /* Menu Dropdown */
@@ -1235,7 +1235,7 @@ const confirmDelete = async () => {
   padding: 0.25rem;
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: pointer;
   border-radius: 0.375rem;
   transition: all 0.2s;
@@ -1245,7 +1245,7 @@ const confirmDelete = async () => {
 }
 
 .menu-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1254,12 +1254,12 @@ const confirmDelete = async () => {
   right: 0;
   top: 100%;
   margin-top: 0.25rem;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.5rem;
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   min-width: 10rem;
   z-index: 50;
   overflow: hidden;
@@ -1271,9 +1271,9 @@ const confirmDelete = async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: white;
+  background: var(--theme-surface);
   border: none;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -1282,7 +1282,7 @@ const confirmDelete = async () => {
 }
 
 .menu-item:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 .menu-item-danger {
@@ -1389,14 +1389,14 @@ const confirmDelete = async () => {
 .age-input-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .age-input {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   border-radius: 0.375rem;
   font-size: 0.875rem;
 }
@@ -1427,7 +1427,7 @@ const confirmDelete = async () => {
 
 .btn-add-age-group {
   padding: 0.625rem 1rem;
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #4f46e5;
   border: 1px dashed #d1d5db;
   border-radius: 0.375rem;
@@ -1438,13 +1438,13 @@ const confirmDelete = async () => {
 }
 
 .btn-add-age-group:hover {
-  background: #e5e7eb;
+  background: var(--theme-border);
   border-color: #4f46e5;
 }
 
 /* Delete Confirmation Modal Styles */
 .delete-confirm-modal {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   padding: 2rem;
@@ -1475,7 +1475,7 @@ const confirmDelete = async () => {
 
 .delete-message {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   line-height: 1.5;
   margin-bottom: 1.5rem;
 }
@@ -1488,9 +1488,9 @@ const confirmDelete = async () => {
 
 .delete-btn-cancel {
   padding: 0.625rem 1.5rem;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: var(--theme-surface-muted);
+  color: var(--theme-text-muted);
+  border: 1px solid var(--theme-border-strong);
   border-radius: 0.375rem;
   font-weight: 600;
   font-size: 0.875rem;
@@ -1499,7 +1499,7 @@ const confirmDelete = async () => {
 }
 
 .delete-btn-cancel:hover {
-  background: #e5e7eb;
+  background: var(--theme-border);
 }
 
 .delete-btn-danger {

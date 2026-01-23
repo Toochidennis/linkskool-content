@@ -142,7 +142,7 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
-const { fetchQuizQuestions, saveQuizQuestion } = useLesson()
+const { fetchQuizQuestions, saveQuizQuestion, deleteQuiz } = useLesson()
 
 const cohortId = computed(() => Number(route.query.cohortId) || 0)
 const programId = computed(() => Number(route.query.programId) || 0)
@@ -231,9 +231,25 @@ const duplicateQuestion = (question: EditableQuestion) => {
   expandedQuestionId.value = newQuestion.localId
 }
 
-const deleteQuestion = (question: EditableQuestion) => {
+const deleteQuestion = async (question: EditableQuestion) => {
   const index = questions.value.indexOf(question)
   if (index === -1) return
+  if (!confirm('Delete this question? This action cannot be undone.')) {
+    return
+  }
+  if (question.questionId) {
+    try {
+      await deleteQuiz(question.questionId)
+      toast.success('Question deleted', { position: 'top-right', duration: 2000 })
+    } catch (err) {
+      console.error('Failed to delete quiz question:', err)
+      toast.error('Failed to delete question. Please try again.', {
+        position: 'top-right',
+        duration: 4000,
+      })
+      return
+    }
+  }
   questions.value.splice(index, 1)
   if (expandedQuestionId.value === question.localId) {
     expandedQuestionId.value = null
@@ -375,8 +391,8 @@ onMounted(() => {
 .quiz-page {
   min-height: 100vh;
   padding: 2rem 1.5rem 3rem;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--theme-bg);
+  color: var(--theme-text);
 }
 
 .quiz-header {
@@ -397,17 +413,17 @@ onMounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
   display: grid;
   place-items: center;
-  color: #475569;
+  color: var(--theme-text-muted);
   cursor: pointer;
 }
 
 .back-btn:hover {
   border-color: #cbd5e1;
-  color: #0f172a;
+  color: var(--theme-text);
 }
 
 .eyebrow {
@@ -416,7 +432,7 @@ onMounted(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748b;
+  color: var(--theme-text-muted);
 }
 
 .page-title {
@@ -427,7 +443,7 @@ onMounted(() => {
 
 .page-subtitle {
   margin: 0;
-  color: #64748b;
+  color: var(--theme-text-muted);
 }
 
 .header-actions {
@@ -457,19 +473,19 @@ onMounted(() => {
 }
 
 .ghost-btn {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-muted);
 }
 
 .ghost-btn:hover {
   border-color: #cbd5e1;
-  color: #0f172a;
+  color: var(--theme-text);
 }
 
 .state-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 14px;
   padding: 1.5rem;
 }
@@ -482,7 +498,7 @@ onMounted(() => {
 
 .empty-state {
   text-align: center;
-  background: #fff;
+  background: var(--theme-surface);
   border: 1px dashed #e2e8f0;
   border-radius: 16px;
   padding: 2.5rem 1.5rem;
@@ -495,7 +511,7 @@ onMounted(() => {
 
 .empty-state p {
   margin: 0 0 1.5rem;
-  color: #64748b;
+  color: var(--theme-text-muted);
 }
 
 .question-list {
@@ -505,9 +521,9 @@ onMounted(() => {
 }
 
 .question-card {
-  background: #fff;
+  background: var(--theme-surface);
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   padding: 1.25rem 1.5rem;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
 }
@@ -563,12 +579,12 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
   display: grid;
   place-items: center;
   cursor: pointer;
-  color: #475569;
+  color: var(--theme-text-muted);
   transition: all 0.2s ease;
 }
 
@@ -579,7 +595,7 @@ onMounted(() => {
 
 .icon-action:hover {
   border-color: #cbd5e1;
-  color: #0f172a;
+  color: var(--theme-text);
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
@@ -606,7 +622,7 @@ onMounted(() => {
 .preview-question {
   margin: 0;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--theme-text);
 }
 
 .preview-options {
@@ -620,9 +636,9 @@ onMounted(() => {
   gap: 0.6rem;
   padding: 0.5rem 0.75rem;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-bg);
+  color: var(--theme-text-muted);
 }
 
 .preview-option.selected {
@@ -664,16 +680,16 @@ onMounted(() => {
 .form-group label,
 .options-group label {
   font-weight: 600;
-  color: #334155;
+  color: var(--theme-text-muted);
 }
 
 .form-textarea {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   border-radius: 12px;
   padding: 0.75rem 0.9rem;
   font-size: 0.95rem;
   resize: vertical;
-  background: #f8fafc;
+  background: var(--theme-bg);
 }
 
 .options-group {
@@ -713,18 +729,18 @@ onMounted(() => {
 
 .option-input {
   flex: 1;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--theme-border);
   border-radius: 10px;
   padding: 0.55rem 0.75rem;
-  background: #f8fafc;
+  background: var(--theme-bg);
 }
 
 .icon-btn {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -749,7 +765,7 @@ onMounted(() => {
 .correct-hint {
   margin-top: 0.75rem;
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: var(--theme-text-subtle);
 }
 
 @media (max-width: 900px) {

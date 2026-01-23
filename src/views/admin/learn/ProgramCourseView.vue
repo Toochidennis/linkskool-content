@@ -184,10 +184,10 @@ onMounted(() => {
 
 .back-button {
   padding: 0.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -197,7 +197,7 @@ onMounted(() => {
 }
 
 .back-button:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   border-color: #4f46e5;
   color: #4f46e5;
 }
@@ -212,7 +212,7 @@ onMounted(() => {
 
 .header-subtitle {
   font-size: 0.95rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   margin: 0;
   font-weight: 500;
 }
@@ -237,7 +237,7 @@ onMounted(() => {
   transform: translateY(-50%);
   width: 1.25rem;
   height: 1.25rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -245,8 +245,8 @@ onMounted(() => {
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.75rem;
-  border: 1.5px solid #e5e7eb;
-  background: white;
+  border: 1.5px solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   font-size: 0.875rem;
   color: #111827;
@@ -287,12 +287,12 @@ onMounted(() => {
 }
 
 .course-card {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   overflow: visible;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   display: flex;
   flex-direction: column;
   animation: cardFadeIn 0.4s ease-out;
@@ -365,7 +365,7 @@ onMounted(() => {
 }
 
 .course-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   line-height: 1.5;
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
@@ -394,7 +394,7 @@ onMounted(() => {
 }
 
 .empty-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 1rem;
 }
 

@@ -775,7 +775,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   gap: 2rem;
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
@@ -793,7 +793,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .header-subtitle {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   margin: 0;
 }
 
@@ -816,14 +816,14 @@ const toServerDatetime = (datetimeLocal: string) => {
   transform: translateY(-50%);
   width: 1.25rem;
   height: 1.25rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   pointer-events: none;
 }
 
 .search-input {
   width: 100%;
   padding: 0.625rem 0.75rem 0.625rem 2.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   transition: all 0.2s;
@@ -839,10 +839,10 @@ const toServerDatetime = (datetimeLocal: string) => {
 .filter-button {
   position: relative;
   padding: 0.625rem 1rem;
-  border: 1px solid #d1d5db;
-  background: white;
+  border: 1px solid var(--theme-border-strong);
+  background: var(--theme-surface);
   border-radius: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -852,7 +852,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .filter-button:hover {
   border-color: #4f46e5;
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   color: #4f46e5;
 }
 
@@ -879,9 +879,9 @@ const toServerDatetime = (datetimeLocal: string) => {
 .clear-filters-btn {
   padding: 0.625rem 1rem;
   background: transparent;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   border-radius: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -907,7 +907,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 .modal-container {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 1rem;
   max-width: 42rem;
   width: 100%;
@@ -921,7 +921,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .modal-title {
@@ -932,7 +932,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .close-button {
   padding: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   transition: color 0.2s;
   border: none;
   background: none;
@@ -941,7 +941,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 .close-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -965,7 +965,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -976,7 +976,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   transition: all 0.2s;
@@ -997,9 +997,9 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .category-chip {
   padding: 0.5rem 1rem;
-  border: 2px solid #e5e7eb;
-  background: white;
-  color: #6b7280;
+  border: 2px solid var(--theme-border);
+  background: var(--theme-surface);
+  color: var(--theme-text-subtle);
   font-size: 0.875rem;
   font-weight: 500;
   border-radius: 9999px;
@@ -1027,7 +1027,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 .category-chip-add {
   border-color: #d1d5db;
   border-style: dashed;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -1035,7 +1035,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .category-chip-add:hover {
   border-color: #4f46e5;
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   color: #4f46e5;
   border-style: dashed;
 }
@@ -1047,7 +1047,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   padding: 0.25rem;
   border: 2px solid #4f46e5;
   border-radius: 9999px;
-  background: white;
+  background: var(--theme-surface);
 }
 
 .category-input {
@@ -1091,7 +1091,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 /* Upload Area */
 .upload-area {
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--theme-border-strong);
   border-radius: 0.75rem;
   padding: 2rem;
   text-align: center;
@@ -1108,19 +1108,19 @@ const toServerDatetime = (datetimeLocal: string) => {
   width: 3rem;
   height: 3rem;
   margin: 0 auto 1rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .upload-text {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin-bottom: 0.25rem;
 }
 
 .upload-hint {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 .hidden {
@@ -1140,7 +1140,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   aspect-ratio: 1;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--theme-border);
 }
 
 .preview-image {
@@ -1199,17 +1199,17 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .btn-secondary {
   padding: 0.625rem 1.5rem;
-  background: white;
-  color: #374151;
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
   font-weight: 600;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--theme-border-strong);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 /* Masonry Grid */
@@ -1238,12 +1238,12 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 /* News Card */
 .news-card {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
 }
 
 .news-card:hover {
@@ -1345,7 +1345,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 .news-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   line-height: 1.5;
   margin-bottom: 0.75rem;
   display: -webkit-box;
@@ -1361,12 +1361,12 @@ const toServerDatetime = (datetimeLocal: string) => {
   align-items: center;
   justify-content: space-between;
   padding-top: 0.75rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
 }
 
 .news-date {
   font-size: 0.875rem;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
 }
 
 /* Empty State */
@@ -1387,7 +1387,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 .empty-text {
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-size: 1rem;
 }
 
@@ -1400,7 +1400,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   padding: 0.25rem;
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: pointer;
   border-radius: 0.375rem;
   transition: all 0.2s;
@@ -1410,7 +1410,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 .menu-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1419,10 +1419,10 @@ const toServerDatetime = (datetimeLocal: string) => {
   right: 0;
   top: 100%;
   margin-top: 0.25rem;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.5rem;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   min-width: 10rem;
   z-index: 10;
   overflow: hidden;
@@ -1434,9 +1434,9 @@ const toServerDatetime = (datetimeLocal: string) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: white;
+  background: var(--theme-surface);
   border: none;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -1445,7 +1445,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 .menu-item:hover {
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
 }
 
 .menu-item-danger {
@@ -1488,7 +1488,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 /* Filter Modal Styles */
 .filter-modal {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 0.75rem;
   width: 90%;
   max-width: 28rem;
@@ -1500,7 +1500,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .filter-modal-title {
@@ -1512,7 +1512,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .filter-close-button {
   padding: 0.5rem;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   transition: color 0.2s;
   border: none;
   background: none;
@@ -1521,7 +1521,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 .filter-close-button:hover {
-  background: #f3f4f6;
+  background: var(--theme-surface-muted);
   color: #111827;
 }
 
@@ -1542,7 +1542,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 .filter-section-title {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin: 0 0 0.75rem 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1571,7 +1571,7 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .filter-checkbox span {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--theme-text-muted);
   user-select: none;
   display: flex;
   align-items: center;
@@ -1585,7 +1585,7 @@ const toServerDatetime = (datetimeLocal: string) => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--theme-border);
   justify-content: flex-end;
 }
 

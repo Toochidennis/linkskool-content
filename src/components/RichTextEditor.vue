@@ -89,9 +89,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   border-radius: 8px;
-  background: white;
+  background: var(--theme-surface);
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
 }
 
 .editor-toolbar {
@@ -99,8 +99,8 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 12px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--theme-surface-soft);
+  border-bottom: 1px solid var(--theme-border);
   flex-wrap: wrap;
 }
 
@@ -111,18 +111,18 @@ onBeforeUnmount(() => {
   min-width: 36px;
   height: 36px;
   padding: 0 10px;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 6px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   font-weight: 600;
   font-size: 14px;
   transition: all 0.2s ease;
 }
 
 .toolbar-btn:hover {
-  background: white;
+  background: var(--theme-surface);
   border-color: #667eea;
   color: #667eea;
 }
@@ -136,13 +136,13 @@ onBeforeUnmount(() => {
 .toolbar-separator {
   width: 1px;
   height: 24px;
-  background: #e5e7eb;
+  background: var(--theme-border);
   margin: 0 4px;
 }
 
 .editor-content {
   flex: 1;
-  background: white;
+  background: var(--theme-surface);
 }
 
 :deep(.ProseMirror) {
@@ -151,13 +151,13 @@ onBeforeUnmount(() => {
   outline: none;
   font-size: 14px;
   line-height: 1.6;
-  color: #374151;
+  color: var(--theme-text-muted);
   word-wrap: break-word;
 }
 
 :deep(.ProseMirror:empty:before) {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   font-style: italic;
   pointer-events: none;
   position: absolute;

@@ -159,6 +159,26 @@
       </div>
     </Teleport>
 
+    <!-- File Preview Overlay -->
+    <Teleport to="body">
+      <div v-if="filePreviewOpen" class="file-overlay" @click="closeFilePreview">
+        <div class="file-modal" @click.stop>
+          <div class="file-header">
+            <h3 class="file-title">{{ filePreviewTitle }}</h3>
+            <button class="file-close-btn" @click="closeFilePreview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="file-body">
+            <iframe v-if="filePreviewUrl" :src="filePreviewUrl" title="File preview"></iframe>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
@@ -368,7 +388,7 @@ const previewMaterial = (materialUrl: string, event: Event) => {
   if (materialUrl) {
     const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || ''
     const fullUrl = `${assetsBaseUrl}/${materialUrl}`
-    window.open(fullUrl, '_blank')
+    openFilePreview(fullUrl, 'Material')
   }
 }
 
@@ -377,7 +397,7 @@ const previewAssignment = (assignmentUrl: string, event: Event) => {
   if (assignmentUrl) {
     const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || ''
     const fullUrl = `${assetsBaseUrl}/${assignmentUrl}`
-    window.open(fullUrl, '_blank')
+    openFilePreview(fullUrl, 'Assignment')
   }
 }
 
@@ -436,6 +456,22 @@ const closeVideoPlayer = () => {
   currentVideoUrl.value = ''
 }
 
+const filePreviewOpen = ref(false)
+const filePreviewUrl = ref('')
+const filePreviewTitle = ref('')
+
+const openFilePreview = (url: string, title: string) => {
+  filePreviewUrl.value = url
+  filePreviewTitle.value = title
+  filePreviewOpen.value = true
+}
+
+const closeFilePreview = () => {
+  filePreviewOpen.value = false
+  filePreviewUrl.value = ''
+  filePreviewTitle.value = ''
+}
+
 const openQuizBuilder = (lesson: Lesson, event: Event) => {
   event.stopPropagation()
   router.push({
@@ -487,8 +523,8 @@ const goBack = () => {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--theme-surface);
+  border-bottom: 1px solid var(--theme-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(10px);
   background-color: rgba(255, 255, 255, 0.95);
@@ -510,16 +546,16 @@ const goBack = () => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface-muted);
+  border: 1px solid var(--theme-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #6b7280;
+  color: var(--theme-text-subtle);
 }
 
 .back-btn:hover {
-  background: white;
+  background: var(--theme-surface);
   border-color: #667eea;
   color: #667eea;
   transform: translateX(-2px);
@@ -538,14 +574,14 @@ const goBack = () => {
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--theme-text);
   margin: 0 0 4px 0;
   letter-spacing: -0.5px;
 }
 
 .page-subtitle {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   margin: 0;
   font-weight: 500;
 }
@@ -653,7 +689,7 @@ const goBack = () => {
   justify-content: center;
   padding: 80px 40px;
   text-align: center;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 16px;
   border: 2px dashed #e5e7eb;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -670,13 +706,13 @@ const goBack = () => {
 .empty-state h3 {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--theme-text);
   margin: 0 0 8px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   margin: 0 0 24px 0;
 }
 
@@ -729,7 +765,7 @@ const goBack = () => {
 
 /* Lesson Card */
 .lesson-card {
-  background: white;
+  background: var(--theme-surface);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -752,7 +788,7 @@ const goBack = () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--theme-surface-muted);
   transition: all 0.3s ease;
 }
 
@@ -787,7 +823,7 @@ const goBack = () => {
 .lesson-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--theme-text);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -804,18 +840,18 @@ const goBack = () => {
 .order-label {
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   white-space: nowrap;
 }
 
 .order-input {
   width: 50px;
   padding: 6px 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--theme-text);
   outline: none;
   transition: all 0.2s ease;
 }
@@ -837,17 +873,17 @@ const goBack = () => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface-muted);
+  border: 1px solid var(--theme-border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   flex-shrink: 0;
 }
 
 .icon-btn:hover {
-  background: white;
+  background: var(--theme-surface);
   transform: translateY(-1px);
 }
 
@@ -873,7 +909,7 @@ const goBack = () => {
 /* Preview */
 .lesson-preview {
   padding: 20px 24px;
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -889,7 +925,7 @@ const goBack = () => {
 
 .preview-description {
   font-size: 14px;
-  color: #374151;
+  color: var(--theme-text-muted);
   line-height: 1.6;
   margin: 0 0 12px 0;
 }
@@ -905,12 +941,12 @@ const goBack = () => {
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   cursor: default;
   transition: all 0.2s ease;
 }
@@ -918,7 +954,7 @@ const goBack = () => {
 /* Clickable meta-tags (buttons) */
 button.meta-tag {
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
 }
 
 button.meta-tag:hover {
@@ -1031,11 +1067,11 @@ button.meta-tag.certificate:hover {
 
 .stat-label {
   font-weight: 600;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
 }
 
 .stat-value {
-  color: #374151;
+  color: var(--theme-text-muted);
   font-weight: 500;
 }
 
@@ -1172,7 +1208,7 @@ button.meta-tag.certificate:hover {
 .section-title {
   font-size: 15px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--theme-text);
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;
@@ -1205,7 +1241,7 @@ button.meta-tag.certificate:hover {
 .form-label {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1219,20 +1255,20 @@ button.meta-tag.certificate:hover {
 .form-input,
 .form-textarea {
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   transition: all 0.2s ease;
   outline: none;
-  background: white;
+  background: var(--theme-surface);
 }
 
 .form-input:focus,
 .form-textarea:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  background: white;
+  background: var(--theme-surface);
 }
 
 .form-textarea {
@@ -1242,7 +1278,7 @@ button.meta-tag.certificate:hover {
 
 .form-hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   margin: 4px 0 0 0;
 }
 
@@ -1251,7 +1287,7 @@ button.meta-tag.certificate:hover {
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  color: #374151;
+  color: var(--theme-text-muted);
   font-weight: 500;
   cursor: pointer;
   user-select: none;
@@ -1266,7 +1302,7 @@ button.meta-tag.certificate:hover {
 
 /* Rich Editor Wrapper */
 .rich-editor-wrapper {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.2s ease;
@@ -1346,12 +1382,12 @@ button.meta-tag.certificate:hover {
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  background: white;
+  background: var(--theme-surface);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   z-index: 1000;
   animation: slideInUp 0.3s ease-out;
 }
@@ -1401,26 +1437,26 @@ button.meta-tag.certificate:hover {
 .view-label {
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--theme-text-subtle);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .view-value {
   font-size: 14px;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin: 0;
   line-height: 1.6;
 }
 
 .view-html {
   font-size: 14px;
-  color: #374151;
+  color: var(--theme-text-muted);
   line-height: 1.7;
   padding: 12px;
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--theme-border);
 }
 
 .view-link {
@@ -1620,7 +1656,7 @@ button.meta-tag.certificate:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(148, 163, 184, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1640,8 +1676,8 @@ button.meta-tag.certificate:hover {
 
 .video-modal {
   position: relative;
-  width: 90%;
-  max-width: 1200px;
+  width: min(84vw, 960px);
+  max-height: 70vh;
   background: #000;
   border-radius: 12px;
   overflow: hidden;
@@ -1667,8 +1703,8 @@ button.meta-tag.certificate:hover {
   right: 16px;
   width: 40px;
   height: 40px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(248, 250, 252, 0.9);
+  border: 2px solid rgba(148, 163, 184, 0.6);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1676,12 +1712,12 @@ button.meta-tag.certificate:hover {
   cursor: pointer;
   z-index: 10;
   transition: all 0.2s ease;
-  color: white;
+  color: #0f172a;
 }
 
 .video-close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(100, 116, 139, 0.8);
   transform: rotate(90deg);
 }
 
@@ -1711,7 +1747,7 @@ button.meta-tag.certificate:hover {
 
 @media (max-width: 768px) {
   .video-modal {
-    width: 95%;
+    width: 92%;
     border-radius: 8px;
   }
 
@@ -1720,6 +1756,86 @@ button.meta-tag.certificate:hover {
     right: 8px;
     width: 36px;
     height: 36px;
+  }
+}
+
+/* File Preview Overlay */
+.file-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+  padding: 20px;
+}
+
+.file-modal {
+  width: min(78vw, 860px);
+  height: 90vh;
+  max-height: 94vh;
+  background: var(--theme-surface);
+  border-radius: 14px;
+  border: 1px solid var(--theme-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  animation: slideUp 0.3s ease;
+}
+
+.file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--theme-border);
+  background: var(--theme-surface-soft);
+}
+
+.file-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--theme-text);
+}
+
+.file-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--theme-text-subtle);
+  transition: all 0.2s ease;
+}
+
+.file-close-btn:hover {
+  color: var(--theme-text);
+  border-color: var(--theme-border-strong);
+}
+
+.file-body {
+  flex: 1;
+  min-height: 0;
+  background: var(--theme-surface);
+}
+
+.file-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+@media (max-width: 768px) {
+  .file-modal {
+    width: 92%;
+    max-height: 84vh;
   }
 }
 </style>

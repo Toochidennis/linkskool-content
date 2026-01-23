@@ -108,9 +108,9 @@ const processFiles = (files: File[]) => {
   justify-content: center;
   min-height: 140px;
   padding: 24px;
-  border: 2px dashed #d1d5db;
+  border: 2px dashed var(--theme-border-strong);
   border-radius: 12px;
-  background: #f9fafb;
+  background: var(--theme-surface-soft);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -130,7 +130,7 @@ const processFiles = (files: File[]) => {
 .upload-icon {
   width: 40px;
   height: 40px;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   margin-bottom: 12px;
   stroke-width: 1.5;
   transition: color 0.3s ease;
@@ -144,13 +144,13 @@ const processFiles = (files: File[]) => {
 .upload-text {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--theme-text-muted);
   margin: 0 0 4px 0;
 }
 
 .upload-hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--theme-text-subtle);
   margin: 0;
 }
 </style>
