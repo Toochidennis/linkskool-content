@@ -26,7 +26,7 @@ export const readCSVFile = (file: File): Promise<Array<Record<string, string>>> 
       dynamicTyping: false,
       encoding: 'utf-8',
       complete: (results) => {
-        console.log('CSV Data:', results.data);
+        // console.log('CSV Data:', results.data);
         resolve(results.data as Array<Record<string, string>>);
       },
       error: (error) => {
@@ -89,7 +89,7 @@ export const readHTMLFile = (file: File): Promise<Array<Record<string, string>>>
         }
       }
 
-      console.log("Extracted HTML Data:", results);
+      // console.log("Extracted HTML Data:", results);
       resolve(results);
     };
 
@@ -128,7 +128,7 @@ export const readJSONFile = (file: File): Promise<Array<Record<string, string>>>
           });
           return record;
         });
-        console.log('Normalized JSON Data:', normalized);
+        // console.log('Normalized JSON Data:', normalized);
 
         resolve(normalized);
       } catch (error) {
@@ -211,12 +211,68 @@ export const extractImagesFromZip = async (
     // Wait for all FileReader operations to complete
     await Promise.all(fileReaderPromises);
 
-    console.log(`Extracted ${images.length} images from ZIP file`);
+    // console.log(`Extracted ${images.length} images from ZIP file`);
     return images;
   } catch (error) {
-    console.error('Error extracting ZIP file:', error); 
+    console.error('Error extracting ZIP file:', error);
     throw error;
   }
+};
+
+/**
+ * Extract images and data files from a ZIP for validation purposes.
+ * Returns images plus any data-file entries (csv, json, html, htm, docx)
+ */
+export const extractZipForValidation = async (
+  zipFile: File
+): Promise<{
+  images: Array<{ name: string; data: string; type: string }>;
+  dataFiles: Array<{ name: string; blob: Blob }>
+}> => {
+  const JSZip = (await import('jszip')).default;
+  const zip = new JSZip();
+  const content = await zip.loadAsync(zipFile);
+
+  const images: Array<{ name: string; data: string; type: string }> = [];
+  const dataFiles: Array<{ name: string; blob: Blob }> = [];
+  const allowedImageExt = ['jpg', 'jpeg', 'png'];
+  const allowedDataExt = ['csv', 'json', 'html', 'htm', 'docx'];
+
+  const filePromises: Promise<void>[] = [];
+
+  for (const [fileName, file] of Object.entries(content.files)) {
+    if (file.dir) continue;
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+
+    if (allowedImageExt.includes(ext)) {
+      const p = (async () => {
+        const fileData = await file.async('arraybuffer');
+        const blob = new Blob([fileData], { type: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+        const reader = new FileReader();
+        await new Promise<void>((resolve, reject) => {
+          reader.onload = () => {
+            images.push({ name: fileName, data: reader.result as string, type: blob.type });
+            resolve();
+          };
+          reader.onerror = () => reject(new Error('Failed to read image from zip'));
+          reader.readAsDataURL(blob);
+        });
+      })();
+      filePromises.push(p as Promise<void>);
+    }
+
+    if (allowedDataExt.includes(ext)) {
+      const p = (async () => {
+        const fileData = await file.async('blob');
+        dataFiles.push({ name: fileName, blob: fileData });
+      })();
+      filePromises.push(p as Promise<void>);
+    }
+  }
+
+  await Promise.all(filePromises);
+
+  return { images, dataFiles };
 };
 
 
@@ -293,23 +349,23 @@ export const readDocxFile = async (
 
   return { data, images };
 
-function extractTextOrFormula(cell: Element): string {
-  const omml = cell.getElementsByTagName("m:oMath")[0];
-  if (omml) {
-    try {
-      //const mathML = convert(omml.outerHTML); // OMML → MathML
-      //const latex = toLatex.convert(mathML);           // MathML → LaTeX
-      return omml.outerHTML.trim();
-    } catch {
-      // Fallback to plain text if conversion fails
-      const texts = Array.from(omml.getElementsByTagName("m:t"));
-      return texts.map(t => t.textContent?.trim() || "").join(" ");
+  function extractTextOrFormula(cell: Element): string {
+    const omml = cell.getElementsByTagName("m:oMath")[0];
+    if (omml) {
+      try {
+        //const mathML = convert(omml.outerHTML); // OMML → MathML
+        //const latex = toLatex.convert(mathML);           // MathML → LaTeX
+        return omml.outerHTML.trim();
+      } catch {
+        // Fallback to plain text if conversion fails
+        const texts = Array.from(omml.getElementsByTagName("m:t"));
+        return texts.map(t => t.textContent?.trim() || "").join(" ");
+      }
     }
+    // Regular text
+    const texts = Array.from(cell.getElementsByTagName("w:t"));
+    return texts.map(t => t.textContent?.trim() || "").join(" ");
   }
-  // Regular text
-  const texts = Array.from(cell.getElementsByTagName("w:t"));
-  return texts.map(t => t.textContent?.trim() || "").join(" ");
-}
 
   function blobToDataURL(blob: Blob): Promise<string> {
     return new Promise(resolve => {

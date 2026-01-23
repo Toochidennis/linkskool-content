@@ -17,7 +17,7 @@
               <div class="border-t border-gray-300 dark:border-gray-600 mb-2"></div>
               <div class="px-3 py-2">
                 <h3
-                  class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center">
+                  class="text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wide flex items-center">
                   <i :class="item.icon" class="text-sm mr-2"></i>
                   {{ item.name }}
                 </h3>
@@ -107,10 +107,11 @@ const menuItems: MenuItem[] = [
     icon: 'fas fa-layer-group',
     children: [
       { name: 'Courses', route: '/dashboard/courses', icon: 'fas fa-book' },
-      { name: 'Programs', route: '/dashboard/programs', icon: 'fas fa-sitemap' },
+      { name: 'Exam Types', route: '/dashboard/exam-types', icon: 'fas fa-file-alt' },
       { name: 'Topics', route: '/dashboard/topics', icon: 'fas fa-list' },
       { name: 'Syllabus', route: '/dashboard/syllabus', icon: 'fas fa-graduation-cap' },
       { name: 'Assessments', route: '/dashboard/assessments', icon: 'fas fa-question-circle' },
+      { name: 'Challenges', route: '/dashboard/challenges', icon: 'fas fa-trophy' },
     ]
   },
   {
@@ -118,7 +119,18 @@ const menuItems: MenuItem[] = [
     icon: 'fas fa-bell',
     children: [
       { name: 'Announcements', route: '/dashboard/announcements', icon: 'fas fa-newspaper' },
+      {name: 'Advertisements', route: '/dashboard/ads', icon: 'fas fa-ad' },
       { name: 'Admissions', route: '/dashboard/admissions', icon: 'fas fa-user-plus' },
+    ]
+  },
+    {
+    name: 'Learn',
+    icon: 'fas fa-graduation-cap',
+    children: [
+      {name: 'Levels', route: '/dashboard/levels', icon: 'fas fa-layer-group' },
+      { name: 'Videos', route: '/dashboard/video-library', icon: 'fas fa-video' },
+      {name: 'Courses', route: '/dashboard/learn-courses', icon: 'fas fa-book' },
+      { name: 'Programs', route: '/dashboard/learn-programs', icon: 'fas fa-sitemap' },
     ]
   },
 ]

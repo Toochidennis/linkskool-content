@@ -7,6 +7,7 @@ import ToastPlugin from 'vue-toast-notification'
 import '@fortawesome/fontawesome-free/css/all.css'
 import 'vue-toast-notification/dist/theme-bootstrap.css'
 import '@/assets/styles/index.css'
+import '@/assets/styles/form.css'
 
 const app = createApp(App)
 

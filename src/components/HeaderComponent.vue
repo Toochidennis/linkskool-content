@@ -73,28 +73,32 @@ const auth = useAuthStore()
 const isDark = ref(false)
 const showUserMenu = ref(false)
 
-const initializeTheme = () => {
-  const isDarkMode = document.documentElement.classList.contains('dark')
-  isDark.value = isDarkMode
+const themeControl = typeof window !== 'undefined' ? (window as any).__themeControl : null
+
+const syncThemeState = () => {
+  isDark.value =
+    themeControl?.isDark?.value ?? document.documentElement.classList.contains('dark')
 }
 
 const toggleTheme = () => {
-  isDark.value = !isDark.value
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
-    localStorage.setItem('theme', 'dark')
+  if (themeControl?.toggleTheme) {
+    themeControl.toggleTheme()
   } else {
-    document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', 'light')
+    const nextValue = !document.documentElement.classList.contains('dark')
+    document.documentElement.classList.toggle('dark', nextValue)
+    localStorage.setItem('theme', nextValue ? 'dark' : 'light')
   }
+  syncThemeState()
 }
 
-// Watch for external theme changes
 watch(
-  () => document.documentElement.classList.contains('dark'),
+  () => themeControl?.isDark?.value,
   (newValue) => {
-    isDark.value = newValue
-  }
+    if (typeof newValue === 'boolean') {
+      isDark.value = newValue
+    }
+  },
+  { immediate: true }
 )
 
 const handleLogout = () => {
@@ -150,7 +154,7 @@ const isValidImageUrl = (url: string | undefined): boolean => {
 }
 
 onMounted(() => {
-  initializeTheme()
+  syncThemeState()
 
   // Add click-outside listener
   document.addEventListener('click', handleClickOutside)

@@ -45,18 +45,18 @@ onBeforeUnmount(() => {
 const handleSessionExpired = () => {
   toast.warning('Your session has expired. Please log in again.', {
     position: 'top',
-    duration: 5000
+    duration: 5000,
   })
   router.push('/login')
 }
 
 // Expose theme control globally
 if (typeof window !== 'undefined') {
-  (window as any).__themeControl = {
+  ; (window as any).__themeControl = {
     isDark,
     toggleTheme: () => {
       isDark.value = !isDark.value
-    }
+    },
   }
 }
 </script>
@@ -64,5 +64,3 @@ if (typeof window !== 'undefined') {
 <template>
   <RouterView />
 </template>
-
-<style scoped></style>
