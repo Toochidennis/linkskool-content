@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { Lesson } from '@/api/models/lesson'
+import type { QuizQuestion } from '@/api/models/quiz'
 import { programService } from '@/api/services/serviceFactory'
 
 export function useLesson() {
@@ -49,6 +50,51 @@ export function useLesson() {
     } catch (error) {
       console.error('Error fetching lessons:', error)
       lessons.value = []
+      throw error
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transformQuizQuestionFromServer = (question: any): QuizQuestion => {
+    const options = Array.isArray(question.options) ? question.options : []
+    return {
+      questionId: question.questionId ?? question.question_id,
+      questionText: question.questionText ?? question.question_text ?? '',
+      options: options.map((opt: any) => ({
+        text: opt.text ?? '',
+        optionFiles: opt.optionFiles || opt.option_files || [],
+      })),
+      correct: {
+        text: question.correct?.text ?? '',
+        order: question.correct?.order ?? 0,
+      },
+    }
+  }
+
+  const fetchQuizQuestions = async (lessonId: number | string) => {
+    try {
+      const response = await programService.get(`lessons/${lessonId}/quizzes`)
+      if (response.success && response.data) {
+        return response.data.map(transformQuizQuestionFromServer)
+      }
+      return []
+    } catch (error) {
+      console.error('Error fetching quiz questions:', error)
+      throw error
+    }
+  }
+
+  const saveQuizQuestion = async (
+    lessonId: number | string,
+    payload: Record<string, unknown>,
+  ) => {
+    try {
+      return await programService.post(
+        `lessons/${lessonId}/quizzes`,
+        payload as Record<string, unknown>,
+      )
+    } catch (error) {
+      console.error('Error saving quiz question:', error)
       throw error
     }
   }
@@ -103,11 +149,6 @@ export function useLesson() {
       }
     }
 
-    // For quiz, just upload the new file - server will handle deletion
-    if (lesson.quiz) {
-      formData.append('quiz', lesson.quiz)
-    }
-
     if (lesson.certificateFile) {
       formData.append('certificate', lesson.certificateFile)
 
@@ -123,11 +164,8 @@ export function useLesson() {
   }
 
   const saveLesson = async (cohortId: number, formData: FormData) => {
-    // TODO: Implement API call to save lesson
-    console.log('Sending lesson data:', formData)
-
     try {
-      const response = programService.post(
+      const response = await programService.post(
         `cohorts/${cohortId}/lessons`,
         formData as unknown as Record<string, unknown>,
       )
@@ -141,7 +179,7 @@ export function useLesson() {
 
   const updateLesson = async (lessonId: number, cohortId: number, formData: FormData) => {
     try {
-      const response = programService.post(
+      const response = await programService.post(
         `cohorts/${cohortId}/lessons/${lessonId}`,
         formData as unknown as Record<string, unknown>,
       )
@@ -153,10 +191,10 @@ export function useLesson() {
     }
   }
 
-  const deleteLesson = async (lessonId: number, cohortId: number) => {
+  const deleteLesson = async (lessonId: number) => {
     try {
       const response = programService.delete(
-        `cohorts/${cohortId}/lessons/${lessonId}`,
+        `cohorts/lessons/${lessonId}`,
       )
 
       return response
@@ -169,6 +207,8 @@ export function useLesson() {
   return {
     lessons,
     fetchLessons,
+    fetchQuizQuestions,
+    saveQuizQuestion,
     packageLesson,
     saveLesson,
     updateLesson,

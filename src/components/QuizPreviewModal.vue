@@ -190,13 +190,14 @@ const handleClose = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(15, 23, 42, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
   animation: fadeIn 0.3s ease;
   padding: 20px;
+  backdrop-filter: blur(6px);
 }
 
 @keyframes fadeIn {
@@ -210,14 +211,17 @@ const handleClose = () => {
 }
 
 .quiz-modal {
-  background: white;
-  border-radius: 16px;
+  background: #f8fafc;
+  border-radius: 18px;
   width: 100%;
-  max-width: 900px;
+  max-width: 820px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid #e2e8f0;
+  box-shadow:
+    0 30px 70px rgba(15, 23, 42, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
   animation: slideUp 0.3s ease;
 }
 
@@ -237,17 +241,17 @@ const handleClose = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 32px;
-  border-bottom: 2px solid #f3f4f6;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px 16px 0 0;
+  padding: 20px 26px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border-radius: 18px 18px 0 0;
 }
 
 .quiz-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: white;
+  color: #1f2937;
 }
 
 .quiz-title svg {
@@ -263,21 +267,21 @@ const handleClose = () => {
 }
 
 .quiz-close-btn {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.5);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: white;
+  color: #475569;
 }
 
 .quiz-close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.95);
   transform: rotate(90deg);
 }
 
@@ -340,46 +344,47 @@ const handleClose = () => {
 .quiz-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 20px 22px 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .question-top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  padding: 10px 14px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .question-counter {
-  font-size: 14px;
-  font-weight: 600;
-  color: #667eea;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #b45309;
 }
 
 .btn-toggle-answer {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 7px 14px;
   background: white;
-  border: 2px solid #667eea;
-  border-radius: 6px;
+  border: 1px solid #f59e0b;
+  border-radius: 999px;
   font-weight: 600;
-  font-size: 13px;
-  color: #667eea;
+  font-size: 12px;
+  color: #b45309;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-toggle-answer:hover {
-  background: #667eea;
-  color: white;
+  background: #f59e0b;
+  color: #1f2937;
 }
 
 .btn-toggle-answer svg {
@@ -389,81 +394,81 @@ const handleClose = () => {
 }
 
 .question-section {
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  padding: 16px 18px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
 .question-text {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   color: #1f2937;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .options-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .option-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .option-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
+  border-color: #f59e0b;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.12);
 }
 
 .option-card.selected {
-  border-color: #667eea;
-  background: #f0f4ff;
+  border-color: #f59e0b;
+  background: #fffbeb;
 }
 
 .option-card.correct {
-  border-color: #10b981;
-  background: #ecfdf5;
+  border-color: #22c55e;
+  background: #f0fdf4;
 }
 
 .option-card.incorrect {
   border-color: #ef4444;
-  background: #fef2f2;
+  background: #fff1f2;
 }
 
 .option-marker {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
-  background: #f3f4f6;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  min-width: 30px;
+  height: 30px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
   font-weight: 700;
-  color: #6b7280;
+  color: #64748b;
   transition: all 0.2s ease;
 }
 
 .option-card.selected .option-marker {
-  background: #667eea;
-  border-color: #667eea;
-  color: white;
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #1f2937;
 }
 
 .option-card.correct .option-marker {
-  background: #10b981;
-  border-color: #10b981;
+  background: #22c55e;
+  border-color: #22c55e;
   color: white;
 }
 
@@ -479,7 +484,7 @@ const handleClose = () => {
 
 .option-text {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   color: #374151;
   line-height: 1.5;
 }
@@ -491,9 +496,9 @@ const handleClose = () => {
 }
 
 .option-files img {
-  max-width: 100px;
-  max-height: 100px;
-  border-radius: 6px;
+  max-width: 72px;
+  max-height: 72px;
+  border-radius: 8px;
   object-fit: cover;
 }
 
@@ -522,10 +527,10 @@ const handleClose = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-top: 2px solid #f3f4f6;
-  background: #fafafa;
-  border-radius: 0 0 16px 16px;
+  padding: 12px 18px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 0 0 18px 18px;
   gap: 16px;
 }
 
@@ -533,21 +538,21 @@ const handleClose = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 10px 18px;
   background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   color: #374151;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-nav:hover:not(:disabled) {
-  border-color: #667eea;
-  color: #667eea;
-  background: #f0f4ff;
+  border-color: #f59e0b;
+  color: #b45309;
+  background: #fffbeb;
 }
 
 .btn-nav:disabled {

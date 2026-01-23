@@ -354,7 +354,6 @@ export function useCohorts() {
       console.log('Fetched cohorts response:', response)
       const data = Array.isArray(response.data) ? response.data.map(normalizeCohort) : []
       cohorts.value = data
-      console.log('Normalized cohorts:', cohorts.value)
     } catch (error: unknown) {
       console.error('Failed to fetch cohorts', error)
       const message = error instanceof Error ? error.message : 'Failed to load cohorts'
@@ -387,8 +386,8 @@ export function useCohorts() {
     try {
       const payload = buildFormData(programId, courseId, courseName)
       const path = editingCohortId.value
-        ? `${programId}/courses/${courseId}/cohorts/${editingCohortId.value}`
-        : `${programId}/courses/${courseId}/cohorts`
+        ? `courses/cohorts/${editingCohortId.value}`
+        : `courses/cohorts`
 
       await programService.post(path, payload as unknown as Record<string, unknown>)
       toast.success(
@@ -437,16 +436,19 @@ export function useCohorts() {
     }
 
     try {
-      const payload = new FormData()
-      payload.append('status', status)
-
-      await programService.post(
-        `${programId}/courses/${courseId}/cohorts/${cohortId}`,
-        payload as unknown as Record<string, unknown>,
+      const response = await programService.put(
+        `courses/cohorts/${cohortId}/status`,
+        { status },
       )
-      toast.success('Status updated successfully')
-      await fetchCohorts(programId, courseId)
-      return true
+      if (response.success) {
+        toast.success('Status updated successfully')
+        await fetchCohorts(programId, courseId)
+
+        return true
+      } else {
+        toast.error('Failed to update status')
+        return false
+      }
     } catch (error: unknown) {
       console.error('Failed to update status', error)
       const message = error instanceof Error ? error.message : 'Failed to update status'

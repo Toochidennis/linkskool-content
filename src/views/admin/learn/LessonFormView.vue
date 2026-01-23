@@ -136,8 +136,8 @@
 
                     <div class="form-row">
                         <div class="form-group full">
-                            <label class="form-label">Material File (PDF, Max 5MB)</label>
-                            <FileUploadZone accept=".pdf" :max-size="5242880" @files-selected="handleMaterialUpload" />
+                            <label class="form-label">Material File (PDF, Max 2MB)</label>
+                            <FileUploadZone accept=".pdf" :max-size="2097152" @files-selected="handleMaterialUpload" />
                             <div v-if="localLesson.materialFile || localLesson.materialUrl" class="file-list">
                                 <div class="file-item">
                                     <span class="file-name">{{
@@ -191,8 +191,8 @@
 
                     <div class="form-row">
                         <div class="form-group full">
-                            <label class="form-label">Assignment File (PDF, Max 5MB)</label>
-                            <FileUploadZone accept=".pdf" :max-size="5242880"
+                            <label class="form-label">Assignment File (PDF, Max 2MB)</label>
+                            <FileUploadZone accept=".pdf" :max-size="2097152"
                                 @files-selected="handleAssignmentUpload" />
                             <div v-if="localLesson.assignmentFile || localLesson.assignmentUrl" class="file-list">
                                 <div class="file-item">
@@ -202,28 +202,6 @@
                                         'Existing Assignment File'
                                         }}</span>
                                     <button class="btn-remove" @click="removeAssignmentFile">Remove</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quiz Section -->
-                <div v-if="!localLesson.isFinalLesson" class="form-section">
-                    <h4 class="section-title">❓ Quiz</h4>
-                    <div class="form-row">
-                        <div class="form-group full">
-                            <label class="form-label">Upload Quiz (JSON Format)</label>
-                            <FileUploadZone accept=".json" :max-size="5242880" @files-selected="handleQuizUpload" />
-                            <p class="form-hint">Upload quiz in JSON format only</p>
-                            <div v-if="localLesson.quiz || localLesson.hasQuiz" class="file-list">
-                                <div class="file-item">
-                                    <span class="file-name">{{
-                                        (localLesson.quiz as any)?.file_name ||
-                                        localLesson.quiz?.name ||
-                                        'Existing Quiz'
-                                        }}</span>
-                                    <button class="btn-remove" @click="removeQuizFile">Remove</button>
                                 </div>
                             </div>
                         </div>
@@ -344,7 +322,6 @@ const localLesson = ref<Lesson>({
     assignmentInstructions: '',
     assignmentFile: null,
     assignmentDueDate: '',
-    quiz: null,
     lessonDate: '',
     isFinalLesson: false,
     certificateFile: null,
@@ -379,7 +356,6 @@ onMounted(() => {
             assignmentInstructions: '',
             assignmentFile: null,
             assignmentDueDate: today,
-            quiz: null,
             lessonDate: today,
             isFinalLesson: false,
             certificateFile: null,
@@ -401,8 +377,6 @@ const validateField = (fieldName: string): string => {
             return localLesson.value.materialFile || localLesson.value.materialUrl
                 ? ''
                 : 'Material file is required'
-        case 'quiz':
-            return localLesson.value.quiz || localLesson.value.hasQuiz ? '' : 'Quiz file is required'
         case 'lessonDate':
             return localLesson.value.lessonDate?.trim() ? '' : 'Lesson date is required'
         case 'displayOrder':
@@ -418,12 +392,7 @@ const validateField = (fieldName: string): string => {
                 return 'Certificate template is required for final lessons'
             return ''
         case 'assignmentInstructions':
-            if (localLesson.value.assignmentFile && !localLesson.value.assignmentInstructions?.trim())
-                return 'Assignment instructions are required when assignment file is uploaded'
-            return ''
         case 'assignmentDueDate':
-            if (localLesson.value.assignmentFile && !localLesson.value.assignmentDueDate?.trim())
-                return 'Assignment due date is required when assignment file is uploaded'
             return ''
         default:
             return ''
@@ -492,12 +461,9 @@ const handleSave = async () => {
         'goals',
         'videoUrl',
         'materialFile',
-        'quiz',
         'lessonDate',
         'displayOrder',
         'certificateFile',
-        'assignmentInstructions',
-        'assignmentDueDate',
     ]
 
     fieldsToValidate.forEach((field) => {
@@ -577,8 +543,8 @@ const handleMaterialUpload = (files: File[]) => {
         })
         return
     }
-    if (file.size > 5242880) {
-        toast.error('File size must not exceed 5MB', {
+    if (file.size > 2097152) {
+        toast.error('File size must not exceed 2MB', {
             position: 'top-right',
             duration: 3000,
         })
@@ -606,8 +572,8 @@ const handleAssignmentUpload = (files: File[]) => {
         })
         return
     }
-    if (file.size > 5242880) {
-        toast.error('File size must not exceed 5MB', {
+    if (file.size > 2097152) {
+        toast.error('File size must not exceed 2MB', {
             position: 'top-right',
             duration: 3000,
         })
@@ -624,47 +590,6 @@ const handleAssignmentUpload = (files: File[]) => {
     clearFieldError('assignmentFile')
     clearFieldError('assignmentInstructions')
     clearFieldError('assignmentDueDate')
-}
-
-const handleQuizUpload = (files: File[]) => {
-    const file = files[0]
-    if (!file || !file.name.endsWith('.json')) {
-        toast.error('Only JSON files are allowed for quizzes', {
-            position: 'top-right',
-            duration: 3000,
-        })
-        return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-        try {
-            const content = e.target?.result as string
-            const cleanedContent = content.replace(/,(\s*[}\]])/g, '$1').trim()
-
-            JSON.parse(cleanedContent)
-            const cleanedFile = new File([cleanedContent], file.name, { type: 'application/json' })
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            localLesson.value.quiz = cleanedFile as any
-            clearFieldError('quiz')
-        } catch (error) {
-            toast.error('Invalid JSON file. Please check the file format.', {
-                position: 'top-right',
-                duration: 5000,
-            })
-            console.error('JSON validation error:', error)
-        }
-    }
-
-    reader.onerror = () => {
-        toast.error('Failed to read the quiz file', {
-            position: 'top-right',
-            duration: 3000,
-        })
-    }
-
-    reader.readAsText(file)
 }
 
 const handleCertificateUpload = (files: File[]) => {
@@ -709,12 +634,6 @@ const removeAssignmentFile = () => {
         ; (localLesson.value as any).oldAssignmentUrl = undefined
 }
 
-const removeQuizFile = () => {
-    localLesson.value.quiz = null
-    localLesson.value.hasQuiz = false
-    handleBlur('quiz')
-}
-
 const removeCertificateFile = () => {
     localLesson.value.certificateFile = null
     localLesson.value.certificateUrl = undefined
@@ -739,10 +658,11 @@ const removeCertificateFile = () => {
 }
 
 .lesson-form-page {
-    min-height: 100vh;
+    height: 100vh;
     background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* Header */
@@ -863,6 +783,9 @@ const removeCertificateFile = () => {
     max-width: 900px;
     margin: 0 auto;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .lesson-form {
@@ -870,6 +793,8 @@ const removeCertificateFile = () => {
     border-radius: 16px;
     padding: 32px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    flex: 1;
+    overflow-y: auto;
 }
 
 .form-section {

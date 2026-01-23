@@ -120,8 +120,8 @@
                     @click="previewAssignment(lesson.assignmentUrl!, $event)">
                     Assignment
                   </button>
-                  <button v-if="lesson.hasQuiz" class="meta-tag quiz" @click="previewQuiz(lesson.lessonId!, $event)">
-                    Quiz
+                  <button class="meta-tag quiz" @click="openQuizBuilder(lesson, $event)">
+                    {{ lesson.hasQuiz ? 'Quiz' : 'Create Quiz' }}
                   </button>
                   <button v-if="lesson.certificateUrl && lesson.isFinalLesson" class="meta-tag certificate"
                     @click="previewCertificate(lesson.certificateUrl!, $event)">
@@ -159,9 +159,6 @@
       </div>
     </Teleport>
 
-    <!-- Quiz Preview Modal -->
-    <QuizPreviewModal :is-open="quizPreviewOpen" :questions="quizQuestions" :loading="quizLoading" :error="quizError"
-      @close="closeQuizPreview" @retry="retryQuizFetch" />
   </div>
 </template>
 
@@ -170,10 +167,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import type { Lesson } from '@/api/models/lesson'
-import type { QuizQuestion } from '@/api/models/quiz'
-import QuizPreviewModal from '@/components/QuizPreviewModal.vue'
 import { useLesson } from '@/composables/useLesson'
-import { programService } from '@/api/services/serviceFactory'
 
 const route = useRoute()
 const router = useRouter()
@@ -343,7 +337,7 @@ const deleteLesson = async (lesson: Lesson, event: Event) => {
       duration: 2000,
     })
 
-    await deleteLessonApi(Number(lesson.lessonId), cohortId.value)
+    await deleteLessonApi(Number(lesson.lessonId))
 
     // Remove from local list
     const index = lessons.value.findIndex((l: Lesson) => l.lessonId === lesson.lessonId)
@@ -396,68 +390,10 @@ const previewCertificate = (certificateUrl: string, event: Event) => {
   }
 }
 
-const previewQuiz = async (lessonId: number | string, event: Event) => {
-  event.stopPropagation()
-
-  quizPreviewOpen.value = true
-  quizLoading.value = true
-  quizError.value = null
-  quizQuestions.value = []
-
-  try {
-    const response = await programService.get(`cohorts/${cohortId.value}/lessons/${lessonId}/quiz`)
-
-    if (response.success && response.data) {
-      // Transform server response to QuizQuestion format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      quizQuestions.value = response.data.map((q: any) => ({
-        questionId: q.questionId || q.question_id,
-        questionText: q.questionText || q.question_text,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        options: q.options.map((opt: any) => ({
-          text: opt.text,
-          optionFiles: opt.optionFiles || opt.option_files || [],
-        })),
-        correct: {
-          text: q.correct.text,
-          order: q.correct.order,
-        },
-      }))
-    } else {
-      quizError.value = 'No quiz questions found'
-    }
-  } catch (error) {
-    console.error('Error fetching quiz:', error)
-    quizError.value = 'Failed to load quiz. Please try again.'
-  } finally {
-    quizLoading.value = false
-  }
-}
-
-const closeQuizPreview = () => {
-  quizPreviewOpen.value = false
-  quizQuestions.value = []
-  quizError.value = null
-}
-
-const retryQuizFetch = () => {
-  // Get the current lesson ID and retry
-  const currentLesson = lessons.value.find((l) => l.hasQuiz)
-  if (currentLesson?.lessonId) {
-    previewQuiz(currentLesson.lessonId, new Event('click'))
-  }
-}
-
 // Video player state
 const videoPlayerOpen = ref(false)
 const currentVideoUrl = ref('')
 const currentVideoType = ref<'youtube' | 'regular'>('regular')
-
-// Quiz preview state
-const quizPreviewOpen = ref(false)
-const quizQuestions = ref<QuizQuestion[]>([])
-const quizLoading = ref(false)
-const quizError = ref<string | null>(null)
 
 const isYouTubeUrl = (url: string): boolean => {
   return url.includes('youtube.com') || url.includes('youtu.be')
@@ -498,6 +434,22 @@ const previewVideo = (videoUrl: string, event: Event) => {
 const closeVideoPlayer = () => {
   videoPlayerOpen.value = false
   currentVideoUrl.value = ''
+}
+
+const openQuizBuilder = (lesson: Lesson, event: Event) => {
+  event.stopPropagation()
+  router.push({
+    name: 'Lesson Quiz',
+    query: {
+      programId: programId.value,
+      courseId: courseId.value,
+      cohortId: cohortId.value,
+      courseName: courseTitle.value,
+      lessonId: lesson.lessonId,
+      lessonTitle: lesson.title || 'Lesson Quiz',
+      hasQuiz: lesson.hasQuiz ? '1' : '0',
+    },
+  })
 }
 
 const formatDate = (dateString: string): string => {
