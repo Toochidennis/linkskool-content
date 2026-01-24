@@ -411,7 +411,14 @@ const toggleLessonStatus = async (lesson: Lesson, event: Event) => {
   const nextStatus = normalizeLessonStatus(lesson.status) === 'published' ? 'archived' : 'published'
 
   try {
-    statusUpdatingId.value = lesson.lessonId
+    if(!lessonId){
+      toast.error('Invalid lesson ID. Cannot update status.', {
+        position: 'top-right',
+        duration: 3000,
+      })
+      return
+    }
+    statusUpdatingId.value = lesson.lessonId!
     const response = await updateLessonStatus(lessonId, nextStatus)
     if (response && response.success === false) {
       throw new Error(response.message || 'Failed to update lesson status')
