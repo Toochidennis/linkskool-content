@@ -1,6 +1,7 @@
 <template>
-  <div class="quiz-page">
-    <header class="quiz-header">
+  <div ref="quizPageRef" class="quiz-page">
+    <header ref="quizHeaderRef" class="quiz-header" :class="{ 'is-hidden': headerHidden }"
+      :style="floatingHeaderStyle">
       <div class="header-left">
         <button class="back-btn" @click="goBack" aria-label="Go back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -20,6 +21,7 @@
         <button class="primary-btn" @click="addQuestion">Add question</button>
       </div>
     </header>
+    <div class="quiz-header-spacer" :style="{ height: headerSpacerHeight }"></div>
 
     <section v-if="isLoading" class="state-card">
       <p>Loading quiz questions...</p>
@@ -117,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import type { QuizQuestion } from '@/api/models/quiz'
@@ -156,6 +158,46 @@ const isLoading = ref(false)
 const previewOpen = ref(false)
 const expandedQuestionId = ref<string | null>(null)
 const questionListRef = ref<HTMLElement | null>(null)
+const quizPageRef = ref<HTMLElement | null>(null)
+const quizHeaderRef = ref<HTMLElement | null>(null)
+const headerHidden = ref(false)
+const headerSpacerHeight = ref('0px')
+const floatingHeaderStyle = ref<Record<string, string>>({})
+
+let scrollTarget: HTMLElement | Window | null = null
+let scrollTimeoutId: number | undefined
+let resizeObserver: ResizeObserver | null = null
+
+const updateHeaderMetrics = () => {
+  const page = quizPageRef.value
+  if (!page || typeof window === 'undefined') return
+
+  const pageRect = page.getBoundingClientRect()
+  const pageStyles = window.getComputedStyle(page)
+  const paddingLeft = parseFloat(pageStyles.paddingLeft) || 0
+  const paddingRight = parseFloat(pageStyles.paddingRight) || 0
+
+  floatingHeaderStyle.value = {
+    left: `${pageRect.left + paddingLeft}px`,
+    width: `${pageRect.width - paddingLeft - paddingRight}px`,
+  }
+
+  if (quizHeaderRef.value) {
+    const headerStyles = window.getComputedStyle(quizHeaderRef.value)
+    const marginBottom = parseFloat(headerStyles.marginBottom) || 0
+    headerSpacerHeight.value = `${quizHeaderRef.value.offsetHeight + marginBottom}px`
+  }
+}
+
+const handleScroll = () => {
+  headerHidden.value = true
+  if (scrollTimeoutId !== undefined) {
+    window.clearTimeout(scrollTimeoutId)
+  }
+  scrollTimeoutId = window.setTimeout(() => {
+    headerHidden.value = false
+  }, 160)
+}
 
 const createLocalId = () => `q-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
@@ -383,6 +425,33 @@ const goBack = () => {
 
 onMounted(() => {
   loadQuiz()
+  nextTick(() => {
+    updateHeaderMetrics()
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => updateHeaderMetrics())
+      if (quizPageRef.value) resizeObserver.observe(quizPageRef.value)
+      if (quizHeaderRef.value) resizeObserver.observe(quizHeaderRef.value)
+    } else {
+      window.addEventListener('resize', updateHeaderMetrics)
+    }
+
+    scrollTarget = document.querySelector('main') || window
+    scrollTarget.addEventListener('scroll', handleScroll, { passive: true })
+  })
+})
+
+onBeforeUnmount(() => {
+  if (scrollTarget) {
+    scrollTarget.removeEventListener('scroll', handleScroll as EventListener)
+  }
+  if (scrollTimeoutId !== undefined) {
+    window.clearTimeout(scrollTimeoutId)
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  } else {
+    window.removeEventListener('resize', updateHeaderMetrics)
+  }
 })
 </script>
 
@@ -411,10 +480,21 @@ onMounted(() => {
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: fixed;
+  top: 4rem;
+  z-index: 45;
   background: var(--theme-bg);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.quiz-header.is-hidden {
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.quiz-header-spacer {
+  width: 100%;
 }
 
 .header-left {
