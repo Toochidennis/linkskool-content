@@ -8,6 +8,7 @@ export interface Lesson {
   displayOrder: number
   title: string
   description: string
+  status?: 'draft' | 'published' | 'archived'
   goals: string // Rich text HTML
   objectives: string // Rich text HTML
   videoUrl: string

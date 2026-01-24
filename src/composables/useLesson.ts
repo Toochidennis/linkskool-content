@@ -16,6 +16,11 @@ export function useLesson() {
       slug: serverLesson.slug,
       title: serverLesson.title,
       description: serverLesson.description,
+      status:
+        (serverLesson.status ??
+          serverLesson.lessonStatus ??
+          serverLesson.lesson_status ??
+          'draft') as 'draft' | 'published' | 'archived',
       goals: serverLesson.goals || '',
       objectives: serverLesson.objectives || '',
       videoUrl: serverLesson.videoUrl || '',
@@ -110,6 +115,20 @@ export function useLesson() {
     }
   }
 
+  const updateStatus = async (lessonId: number, status: string) => {
+    try {
+      const response = await programService.put(
+        `cohorts/lessons/${lessonId}/status`,
+        { status } as Record<string, unknown>,
+      )
+
+      return response
+    } catch (error) {
+      console.error('Error updating status:', error)
+      throw error
+    }
+  }
+
   const packageLesson = (
     lesson: Lesson,
     programId: number,
@@ -126,6 +145,7 @@ export function useLesson() {
     formData.append('author_id', authorId.toString())
     formData.append('title', lesson.title || '')
     formData.append('description', lesson.description || '')
+    formData.append('status', (lesson.status || 'draft').toString().toLowerCase())
     formData.append('display_order', lesson.displayOrder?.toString() || '1')
     formData.append('goals', lesson.goals || '')
     formData.append('objectives', lesson.objectives || '')
@@ -221,6 +241,7 @@ export function useLesson() {
     fetchQuizQuestions,
     saveQuizQuestion,
     deleteQuiz,
+    updateStatus,
     packageLesson,
     saveLesson,
     updateLesson,

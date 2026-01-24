@@ -32,7 +32,7 @@
         <button class="primary-btn" @click="addQuestion">Add first question</button>
       </div>
 
-      <div v-else class="question-list">
+      <div v-else ref="questionListRef" class="question-list">
         <article v-for="(question, index) in questions" :key="question.localId" class="question-card"
           :class="{ collapsed: !isExpanded(question) }">
           <header class="card-header" @click="toggleQuestion(question)">
@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import type { QuizQuestion } from '@/api/models/quiz'
@@ -155,6 +155,7 @@ const questions = ref<EditableQuestion[]>([])
 const isLoading = ref(false)
 const previewOpen = ref(false)
 const expandedQuestionId = ref<string | null>(null)
+const questionListRef = ref<HTMLElement | null>(null)
 
 const createLocalId = () => `q-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
@@ -214,8 +215,17 @@ const addQuestion = () => {
     isDirty: true,
     isSaving: false,
   }
-  questions.value.unshift(newQuestion)
+  questions.value.push(newQuestion)
   expandedQuestionId.value = newQuestion.localId
+  nextTick(() => {
+    const list = questionListRef.value
+    if (!list) return
+    const cards = list.querySelectorAll<HTMLElement>('.question-card')
+    const lastCard = cards[cards.length - 1]
+    if (lastCard) {
+      lastCard.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  })
 }
 
 const duplicateQuestion = (question: EditableQuestion) => {
@@ -401,6 +411,10 @@ onMounted(() => {
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--theme-bg);
 }
 
 .header-left {

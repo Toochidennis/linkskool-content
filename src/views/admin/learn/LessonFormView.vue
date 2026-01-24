@@ -13,17 +13,31 @@
                     {{ isEditMode ? 'Update lesson details' : 'Create a new lesson for your course' }}
                 </p>
             </div>
-            <button class="save-btn" @click="handleSave" :disabled="isSaving">
-                <svg v-if="isSaving" class="spinner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10" stroke-width="2" />
-                </svg>
-                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                    <polyline points="17 21 17 13 7 13 7 21" />
-                    <polyline points="7 3 7 8 15 8" />
-                </svg>
-                <span>{{ isSaving ? 'Saving...' : 'Save Lesson' }}</span>
-            </button>
+            <div class="header-actions">
+                <button class="save-btn save-draft" @click="handleSave('draft')" :disabled="isSaving">
+                    <svg v-if="isSaving && pendingStatus === 'draft'" class="spinner-icon" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" stroke-width="2" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <polyline points="17 21 17 13 7 13 7 21" />
+                        <polyline points="7 3 7 8 15 8" />
+                    </svg>
+                    <span>{{ isSaving && pendingStatus === 'draft' ? 'Saving Draft...' : 'Save Draft' }}</span>
+                </button>
+                <button class="save-btn save-publish" @click="handleSave('published')" :disabled="isSaving">
+                    <svg v-if="isSaving && pendingStatus === 'published'" class="spinner-icon" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" stroke-width="2" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 12l4 4 10-10" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                    <span>{{ isSaving && pendingStatus === 'published' ? 'Publishing...' : 'Publish Now' }}</span>
+                </button>
+            </div>
         </div>
 
         <!-- Form Content -->
@@ -212,6 +226,27 @@
                 <div class="form-section">
                     <h4 class="section-title">Lesson Settings</h4>
                     <div class="form-row">
+                        <div class="form-group full">
+                            <label class="form-label">Status</label>
+                            <div class="status-toggle">
+                                <button type="button" class="status-option draft"
+                                    :class="{ active: localLesson.status === 'draft' }"
+                                    @click="setStatus('draft')">
+                                    Draft
+                                </button>
+                                <button type="button" class="status-option published"
+                                    :class="{ active: localLesson.status === 'published' }"
+                                    @click="setStatus('published')">
+                                    Published
+                                </button>
+                                <span v-if="localLesson.status === 'archived'" class="status-locked">
+                                    Archived
+                                </span>
+                            </div>
+                            <p class="form-hint">Draft lessons stay private until you publish them.</p>
+                        </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label class="checkbox-label">
                                 <input v-model="localLesson.isFinalLesson" type="checkbox" />
@@ -304,8 +339,11 @@ const authStore = useAuthStore()
 
 const { packageLesson, saveLesson, updateLesson } = useLesson()
 
+type LessonStatus = 'draft' | 'published' | 'archived'
+
 const isEditMode = ref(false)
 const isSaving = ref(false)
+const pendingStatus = ref<LessonStatus | null>(null)
 const fieldErrors = ref<Record<string, string>>({})
 const localLesson = ref<Lesson>({
     lessonId: '',
@@ -313,6 +351,7 @@ const localLesson = ref<Lesson>({
     displayOrder: 1,
     title: '',
     description: '',
+    status: 'draft',
     goals: '',
     objectives: '',
     videoUrl: '',
@@ -327,6 +366,14 @@ const localLesson = ref<Lesson>({
     certificateFile: null,
 })
 
+const normalizeStatus = (status?: Lesson['status']) => {
+    const value = (status || 'draft').toString().toLowerCase()
+    if (value === 'draft' || value === 'published' || value === 'archived') {
+        return value as LessonStatus
+    }
+    return 'draft'
+}
+
 onMounted(() => {
     // Get lesson data from route state
     const lessonData = history.state?.lesson
@@ -334,7 +381,11 @@ onMounted(() => {
 
     if (mode === 'edit' && lessonData) {
         isEditMode.value = true
-        localLesson.value = JSON.parse(JSON.stringify(lessonData))
+        const parsedLesson = JSON.parse(JSON.stringify(lessonData)) as Lesson
+        localLesson.value = {
+            ...parsedLesson,
+            status: normalizeStatus(parsedLesson.status),
+        }
     } else {
         // New lesson
         const today = new Date().toISOString().split('T')[0] || ''
@@ -347,6 +398,7 @@ onMounted(() => {
             displayOrder: displayOrder,
             title: '',
             description: '',
+            status: 'draft',
             goals: '',
             objectives: '',
             videoUrl: '',
@@ -362,6 +414,10 @@ onMounted(() => {
         }
     }
 })
+
+const setStatus = (status: LessonStatus) => {
+    localLesson.value.status = status
+}
 
 const validateField = (fieldName: string): string => {
     switch (fieldName) {
@@ -428,8 +484,11 @@ const handleCancel = () => {
     }
 }
 
-const handleSave = async () => {
+const handleSave = async (statusOverride?: LessonStatus) => {
     if (isSaving.value) return
+    const nextStatus = normalizeStatus(statusOverride ?? localLesson.value.status)
+    localLesson.value.status = nextStatus
+    pendingStatus.value = nextStatus
 
     // Validate required route parameters
     const programId = Number(route.query.programId)
@@ -529,6 +588,7 @@ const handleSave = async () => {
         })
     } finally {
         isSaving.value = false
+        pendingStatus.value = null
     }
 }
 
@@ -733,26 +793,54 @@ const removeCertificateFile = () => {
     font-weight: 500;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .save-btn {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 10px 18px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
+    background: var(--theme-surface);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border);
     border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
     flex-shrink: 0;
+}
+
+.save-btn.save-draft {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+.save-btn.save-publish {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 
 .save-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+}
+
+.save-btn.save-draft:hover:not(:disabled) {
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
+}
+
+.save-btn.save-publish:hover:not(:disabled) {
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
 }
 
 .save-btn:disabled {
@@ -885,6 +973,60 @@ const removeCertificateFile = () => {
     margin: 4px 0 0 0;
 }
 
+.status-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.status-option {
+    padding: 8px 16px;
+    border: 1px solid var(--theme-border);
+    background: var(--theme-surface-muted);
+    color: var(--theme-text-subtle);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-option:hover {
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+}
+
+.status-option.active {
+    color: #0f172a;
+    border-color: transparent;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.status-option.draft.active {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-option.published.active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-locked {
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: #6b7280;
+    background: #f3f4f6;
+    border: 1px dashed #d1d5db;
+}
+
 .checkbox-label {
     display: flex;
     align-items: center;
@@ -997,6 +1139,17 @@ const removeCertificateFile = () => {
 
     .page-title {
         font-size: 18px;
+    }
+
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .save-btn {
+        width: 100%;
+        justify-content: center;
     }
 
     .form-content {
