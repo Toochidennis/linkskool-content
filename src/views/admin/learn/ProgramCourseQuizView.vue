@@ -348,11 +348,11 @@ const saveQuestion = async (question: EditableQuestion) => {
     question_text: question.questionText.trim(),
     options: question.options.map((opt, index) => ({
       text: opt.text.trim(),
-      order: index + 1,
+      order: index,
     })),
     correct: {
       text: question.options[correctIndex]?.text.trim() || '',
-      order: correctIndex + 1,
+      order: correctIndex,
     },
   }
 
@@ -400,7 +400,7 @@ const previewQuestions = computed<QuizQuestion[]>(() =>
         question.correctIndex !== null
           ? question.options[question.correctIndex]?.text || ''
           : '',
-      order: question.correctIndex !== null ? question.correctIndex + 1 : 0,
+      order: question.correctIndex !== null ? question.correctIndex : 0,
     },
   })),
 )
