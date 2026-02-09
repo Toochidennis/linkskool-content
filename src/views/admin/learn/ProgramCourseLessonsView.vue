@@ -142,6 +142,10 @@
                     @click="previewAssignment(lesson.assignmentUrl!, $event)">
                     Assignment
                   </button>
+                  <button v-if="lesson.zoomInfo?.url" class="meta-tag live"
+                    @click="previewLiveSession(lesson.zoomInfo.url, $event)">
+                    Live Session
+                  </button>
                   <button class="meta-tag quiz" @click="openQuizBuilder(lesson, $event)">
                     {{ lesson.hasQuiz ? 'Quiz' : 'Create Quiz' }}
                   </button>
@@ -522,6 +526,13 @@ const previewCertificate = (certificateUrl: string, event: Event) => {
     const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || ''
     const fullUrl = `${assetsBaseUrl}/${certificateUrl}`
     window.open(fullUrl, '_blank')
+  }
+}
+
+const previewLiveSession = (zoomUrl: string, event: Event) => {
+  event.stopPropagation()
+  if (zoomUrl) {
+    window.open(zoomUrl, '_blank')
   }
 }
 
@@ -1102,6 +1113,11 @@ button.meta-tag.assignment:hover {
   box-shadow: 0 2px 8px rgba(254, 215, 170, 0.3);
 }
 
+button.meta-tag.live:hover {
+  border-color: #0ea5e9;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+}
+
 button.meta-tag.certificate:hover {
   border-color: #7c3aed;
   box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
@@ -1147,6 +1163,12 @@ button.meta-tag.certificate:hover {
   border-color: #fed7aa;
   color: #92400e;
   background: #fffbeb;
+}
+
+.meta-tag.live {
+  border-color: #bae6fd;
+  color: #075985;
+  background: #f0f9ff;
 }
 
 .meta-tag.final-badge {

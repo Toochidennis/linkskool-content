@@ -8,6 +8,7 @@ export function useLesson() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transformLessonFromServer = (serverLesson: any): Lesson => {
+    const zoomInfoRaw = serverLesson.zoomInfo || serverLesson.zoom_info || {}
     return {
       lessonId: serverLesson.id,
       programId: serverLesson.programId,
@@ -40,6 +41,13 @@ export function useLesson() {
       authorId: serverLesson.authorId,
       createdAt: serverLesson.createdAt,
       updatedAt: serverLesson.updatedAt,
+      zoomInfo: {
+        url: zoomInfoRaw.url || '',
+        meetingId: zoomInfoRaw.meetingId || zoomInfoRaw.meeting_id || '',
+        passcode: zoomInfoRaw.passcode || '',
+        startTime: zoomInfoRaw.startTime || zoomInfoRaw.start_time || zoomInfoRaw.starttime || '',
+        endTime: zoomInfoRaw.endTime || zoomInfoRaw.end_time || zoomInfoRaw.endtime || '',
+      },
     }
   }
 
@@ -156,6 +164,12 @@ export function useLesson() {
     formData.append('assignment_due_date', lesson.assignmentDueDate || '')
     formData.append('lesson_date', lesson.lessonDate || '')
     formData.append('is_final_lesson', lesson.isFinalLesson ? '1' : '0')
+    const zoomInfo = lesson.zoomInfo || {}
+    formData.append('zoom_info[url]', zoomInfo.url || '')
+    formData.append('zoom_info[meeting_id]', zoomInfo.meetingId || '')
+    formData.append('zoom_info[passcode]', zoomInfo.passcode || '')
+    formData.append('zoom_info[start_time]', zoomInfo.startTime || '')
+    formData.append('zoom_info[end_time]', zoomInfo.endTime || '')
 
     // Add files - with old URL tracking for deletion
     if (lesson.materialFile) {

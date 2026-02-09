@@ -31,6 +31,13 @@ export interface Lesson {
   authorId?: number
   createdAt?: string
   updatedAt?: string
+  zoomInfo?: {
+    url?: string
+    meetingId?: string
+    passcode?: string
+    startTime?: string
+    endTime?: string
+  }
 }
 
 export interface ProgramCourseLesson {
