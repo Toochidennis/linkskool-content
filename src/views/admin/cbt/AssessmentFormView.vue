@@ -54,30 +54,40 @@
 
     <!-- Questions List -->
     <div class="questions-wrapper">
-      <div v-for="(question, index) in filteredQuestions"
-        :key="question.questionId && question.questionId > 0 ? question.questionId : question.localId || `new-${index}`"
-        class="question-container">
-        <div class="question-card"
-          :class="{ 'is-edited': editedQuestions.has(String(question.questionId)), 'is-collapsed': collapsedCards.has(String(question.questionId)) }"
-          @click="handleCardClick(String(question.questionId!), $event)">
+      <div v-if="isLoadingQuestions" class="loading-questions-state">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading questions...</p>
+      </div>
+
+      <template v-else>
+        <div v-for="(question, index) in filteredQuestions"
+          :key="question.questionId && question.questionId > 0 ? question.questionId : question.localId || `new-${index}`"
+          class="question-container">
+          <div class="question-card"
+            :class="{ 'is-edited': editedQuestions.has(questionKey(question)), 'is-collapsed': collapsedCards.has(questionKey(question)) }"
+            @click="handleCardClick(questionKey(question), $event)">
           <!-- Question Header -->
           <div class="question-header">
             <div class="question-number">Question {{ index + 1 }}</div>
             <div class="question-meta">
               <select v-model="question.questionType" class="meta-select"
-                @change="handleEdit(String(question.questionId!))">
+                @change="handleEdit(questionKey(question))">
                 <option value="multiple_choice">Multiple Choice</option>
                 <option value="short_answer">Short Answer</option>
               </select>
               <input v-model.number="question.year" type="number" class="meta-input small" placeholder="Year"
-                @input="handleEdit(String(question.questionId!))" />
+                @input="handleEdit(questionKey(question))" />
               <input v-model="question.topic" type="text" class="meta-input" placeholder="Topic"
-                @input="handleEdit(String(question.questionId!))" />
+                @input="handleEdit(questionKey(question))" />
             </div>
             <div class="question-actions">
-              <button class="icon-btn collapse-btn" @click="toggleCardCollapse(String(question.questionId!), $event)"
-                :title="collapsedCards.has(String(question.questionId)) ? 'Expand' : 'Collapse'">
-                <svg v-if="collapsedCards.has(String(question.questionId))" viewBox="0 0 24 24" fill="none"
+              <button class="save-question-btn" :disabled="!editedQuestions.has(questionKey(question)) ||
+                savingQuestionIds.has(questionKey(question))" @click="saveQuestionCard(question, $event)">
+                {{ savingQuestionIds.has(questionKey(question)) ? 'Saving...' : 'Save' }}
+              </button>
+              <button class="icon-btn collapse-btn" @click="toggleCardCollapse(questionKey(question), $event)"
+                :title="collapsedCards.has(questionKey(question)) ? 'Expand' : 'Collapse'">
+                <svg v-if="collapsedCards.has(questionKey(question))" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" width="18" height="18">
                   <polyline points="18 15 12 9 6 15"></polyline>
                 </svg>
@@ -92,7 +102,7 @@
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
               </button>
-              <button class="icon-btn delete-btn" @click="deleteQuestion(String(question.questionId!))"
+              <button class="icon-btn delete-btn" @click="deleteQuestion(questionKey(question))"
                 title="Delete question">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -106,7 +116,7 @@
           </div>
 
           <!-- Preview Mode (Collapsed) -->
-          <div v-if="collapsedCards.has(String(question.questionId))" class="question-preview">
+          <div v-if="collapsedCards.has(questionKey(question))" class="question-preview">
             <!-- Question Text Preview -->
             <div class="preview-question" v-html="question.questionText"></div>
 
@@ -130,17 +140,15 @@
             <!-- Passage Section -->
             <div v-if="question.passage || editMode" class="form-section">
               <label class="section-label">Passage</label>
-              <div class="editable-content" contenteditable="true"
-                :data-placeholder="question.passage ? '' : 'Add passage text here...'"
-                @input="(e) => handleContentEdit(question, 'passage', e)" v-html="question.passage"></div>
+              <RichTextEditor v-model="question.passage" placeholder="Add passage text here..."
+                @update:model-value="handleEdit(questionKey(question))" />
             </div>
 
             <!-- Instruction Section -->
             <div v-if="question.instruction || editMode" class="form-section">
               <label class="section-label">Instruction</label>
-              <div class="editable-content" contenteditable="true"
-                :data-placeholder="question.instruction ? '' : 'Add instruction for this question...'"
-                @input="(e) => handleContentEdit(question, 'instruction', e)" v-html="question.instruction"></div>
+              <RichTextEditor :model-value="question.instruction || ''" placeholder="Add instruction for this question..."
+                @update:model-value="(value) => { question.instruction = value; handleEdit(questionKey(question)); }" />
             </div>
 
             <!-- Question Text -->
@@ -148,16 +156,15 @@
               <label class="section-label">
                 Question <span class="required">*</span>
               </label>
-              <div class="editable-content question-text" contenteditable="true"
-                :data-placeholder="question.questionText ? '' : 'Enter your question here...'"
-                @input="(e) => handleContentEdit(question, 'questionText', e)" v-html="question.questionText"></div>
+              <RichTextEditor v-model="question.questionText" placeholder="Enter your question here..."
+                @update:model-value="handleEdit(questionKey(question))" />
             </div>
 
             <!-- Question Image -->
             <div class="form-section">
               <label class="section-label">Question Image</label>
               <div v-if="question.questionFiles && question.questionFiles.length > 0" class="image-preview-container">
-                <img :src="getImageUrl(question.questionFiles[0]?.file_name || question.questionFiles[0]?.file || '')"
+                <img :src="getImageUrl(getPreferredImagePath(question.questionFiles[0]))"
                   :alt="'Question ' + (index + 1)" class="uploaded-image" />
                 <button class="delete-image-btn" @click="deleteQuestionImage(question)" title="Delete image">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
@@ -193,9 +200,9 @@
                     <input type="radio" :name="`correct-${question.questionId}`"
                       :checked="Number(question.correct.order) === Number(option.order)"
                       @change="setCorrectAnswer(question, option.order)" class="option-radio" />
-                    <div class="editable-content option-text" contenteditable="true"
-                      :data-placeholder="option.text ? '' : `Option ${String.fromCharCode(64 + option.order)}`"
-                      @input="(e) => handleOptionEdit(question, optIndex, e)" v-html="option.text"></div>
+                    <RichTextEditor :model-value="option.text"
+                      :placeholder="`Option ${String.fromCharCode(64 + option.order)}`"
+                      @update:model-value="(value) => updateOptionText(question, optIndex, value)" />
                     <button class="icon-btn delete-option-btn" @click="deleteOption(question, optIndex)"
                       title="Delete option">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
@@ -207,7 +214,7 @@
                   <div class="option-image-section">
                     <div v-if="option.optionFiles && option.optionFiles.length > 0"
                       class="image-preview-container small">
-                      <img :src="getImageUrl(option.optionFiles[0]?.file_name || option.optionFiles[0]?.file || '')"
+                      <img :src="getImageUrl(getPreferredImagePath(option.optionFiles[0]))"
                         :alt="`Option ${optIndex + 1}`" class="uploaded-image" />
                       <button class="delete-image-btn" @click="deleteOptionImage(question, optIndex)"
                         title="Delete image">
@@ -250,31 +257,31 @@
             <!-- Short Answer -->
             <div v-if="question.questionType === 'short_answer'" class="form-section">
               <label class="section-label">Answer</label>
-              <input v-model="question.correct.text" type="text" class="answer-input" placeholder="Expected answer"
-                @input="handleEdit(String(question.questionId!))" />
+              <RichTextEditor v-model="question.correct.text" placeholder="Expected answer"
+                @update:model-value="handleEdit(questionKey(question))" />
             </div>
 
             <!-- Explanation -->
             <div class="form-section">
               <label class="section-label">Explanation</label>
-              <div class="editable-content" contenteditable="true"
-                :data-placeholder="question.explanation ? '' : 'Add explanation for the answer...'"
-                @input="(e) => handleContentEdit(question, 'explanation', e)" v-html="question.explanation"></div>
+              <RichTextEditor v-model="question.explanation" placeholder="Add explanation for the answer..."
+                @update:model-value="handleEdit(questionKey(question))" />
             </div>
           </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Empty State -->
-      <div v-if="filteredQuestions.length === 0" class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48">
-          <path d="M9 11l3 3L22 4" />
-          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-        </svg>
-        <h3>No questions found</h3>
-        <p>Loaded: {{ allQuestions.length }} | Filtered: {{ filteredQuestions.length }}</p>
-        <p>Try adjusting your filters</p>
-      </div>
+        <!-- Empty State -->
+        <div v-if="filteredQuestions.length === 0" class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+          </svg>
+          <h3>No questions found</h3>
+          <p>Loaded: {{ allQuestions.length }} | Filtered: {{ filteredQuestions.length }}</p>
+          <p>Try adjusting your filters</p>
+        </div>
+      </template>
     </div>
 
     <!-- Saving Indicator -->
@@ -296,6 +303,7 @@ import { useAssessment } from "@/composables/useAssessment";
 import { useFloatingActionCard } from '@/composables/useFloatingActionCard';
 import { useQuestionSave } from '@/composables/useQuestionSave';
 import FloatingActionCard from '@/components/FloatingActionCard.vue';
+import RichTextEditor from '@/components/RichTextEditor.vue';
 import type { Question, QuestionFile } from '@/composables/useQuestionUpload';
 import { questionService } from '@/api/services/serviceFactory';
 
@@ -303,18 +311,20 @@ import { questionService } from '@/api/services/serviceFactory';
 const { filters, fetchFilters } = useFilters();
 const { questions, fetchAssessments } = useAssessment();
 const { activeCard } = useFloatingActionCard();
-const { saveLocalDraft, initializeFromServer, loadDraftsFromIndexedDB, isValidForSubmission } = useQuestionSave();
+const { saveLocalDraft, initializeFromServer, loadDraftsFromIndexedDB, isValidForSubmission, getDraft } = useQuestionSave();
 
 type LocalQuestion = Question & { localId?: string };
 
 const allQuestions = ref<LocalQuestion[]>([]);
 const editedQuestions = ref(new Set<string>());
+const savingQuestionIds = ref(new Set<string>());
 const savedIndicator = ref(false);
-const isSaving = ref(false);
+const isSaving = computed(() => savingQuestionIds.value.size > 0);
 const editMode = ref(true);
 const collapsedCards = ref(new Set<string>());
 const isDragging = ref<string>('');
 const loadingStatus = ref<string>('initial');
+const isLoadingQuestions = ref(false);
 const tempIdCounter = ref(-1);
 
 // Filter state
@@ -362,36 +372,37 @@ const filteredQuestions = computed(() => {
 
 // Watch for filter changes and fetch new assessments
 const loadQuestionsForSelection = async () => {
+  isLoadingQuestions.value = true;
   loadingStatus.value = 'Loading...';
-  if (!selectedProgram.value || !selectedCourse.value || !selectedYear.value) {
-    loadingStatus.value = 'Missing filters';
-    return;
-  }
-
-  // Find the exam ID for selected filters
-  const programFilter = filters.value.find(f => f.examShortname === selectedProgram.value);
-  if (!programFilter) {
-    loadingStatus.value = 'Program not found';
-    return;
-  }
-
-  const courseData = programFilter.courses.find(c => c.courseName === selectedCourse.value);
-  if (!courseData) {
-    loadingStatus.value = 'Course not found';
-    return;
-  }
-
-  const yearData = courseData.years.find(y => y.year === selectedYear.value);
-  if (!yearData || !yearData.examId) {
-    loadingStatus.value = 'Year/Exam ID not found';
-    return;
-  }
-
-  loadingStatus.value = `Fetching exam ${yearData.examId}...`;
-  // Store the current exam ID
-  currentExamId.value = yearData.examId;
-  // Fetch questions for the exam
   try {
+    if (!selectedProgram.value || !selectedCourse.value || !selectedYear.value) {
+      loadingStatus.value = 'Missing filters';
+      return;
+    }
+
+    // Find the exam ID for selected filters
+    const programFilter = filters.value.find(f => f.examShortname === selectedProgram.value);
+    if (!programFilter) {
+      loadingStatus.value = 'Program not found';
+      return;
+    }
+
+    const courseData = programFilter.courses.find(c => c.courseName === selectedCourse.value);
+    if (!courseData) {
+      loadingStatus.value = 'Course not found';
+      return;
+    }
+
+    const yearData = courseData.years.find(y => y.year === selectedYear.value);
+    if (!yearData || !yearData.examId) {
+      loadingStatus.value = 'Year/Exam ID not found';
+      return;
+    }
+
+    loadingStatus.value = `Fetching exam ${yearData.examId}...`;
+    // Store the current exam ID
+    currentExamId.value = yearData.examId;
+    // Fetch questions for the exam
     await fetchAssessments(yearData.examId);
 
     // Transform server data: Convert 0-based correct.order to 1-based for UI
@@ -412,6 +423,8 @@ const loadQuestionsForSelection = async () => {
   } catch (error) {
     console.error('Error loading questions:', error);
     loadingStatus.value = 'Error loading questions';
+  } finally {
+    isLoadingQuestions.value = false;
   }
 };
 
@@ -529,26 +542,23 @@ const transformQuestionsFromServer = (serverQuestions: Question[]): Question[] =
   });
 };
 
-// Auto-save functionality
-let saveTimeout: ReturnType<typeof setTimeout>;
+const questionKey = (question: Partial<LocalQuestion>): string => {
+  if (question.questionId !== undefined && question.questionId !== null) {
+    return String(question.questionId);
+  }
+  return String(question.localId || '');
+};
 
 const handleEdit = (questionId: string) => {
+  if (!questionId) return;
   editedQuestions.value.add(questionId);
-  // console.log(`Question ${questionId} marked as edited. Total edited: ${editedQuestions.value.size}`);
+  savedIndicator.value = false;
 
-  // Immediately save to local draft
-  const question = allQuestions.value.find(q => String(q.questionId) === questionId);
+  // Save local draft only. Server save is now manual per question card.
+  const question = allQuestions.value.find(q => questionKey(q) === questionId);
   if (question) {
     saveLocalDraft(questionId, question);
   }
-
-  clearTimeout(saveTimeout);
-  isSaving.value = true;
-
-  saveTimeout = setTimeout(() => {
-    // console.log(`Auto-saving ${editedQuestions.value.size} edited question(s) to server...`);
-    saveToServer();
-  }, 3000); // Increased debounce time for more changes to batch
 };
 
 /**
@@ -624,16 +634,18 @@ const packageSettings = () => {
   };
 };
 
-const saveToServer = async () => {
+const saveToServer = async (targetQuestionId?: string) => {
   try {
-    isSaving.value = true;
-
-    // Filter questions: Only NEW (questionId <= 0) or EDITED (in editedQuestions Set)
+    // Filter questions: either the targeted question or all NEW/edited questions
     const questionsToSend = allQuestions.value
       .filter(question => {
+        const qId = questionKey(question);
+        if (targetQuestionId) {
+          return qId === targetQuestionId;
+        }
         const id = question.questionId || 0;
         const isNew = id <= 0;
-        const isEdited = editedQuestions.value.has(String(id));
+        const isEdited = editedQuestions.value.has(qId);
         return isNew || isEdited;
       })
       .filter(question => isValidForSubmission(question)) // Only send valid questions
@@ -697,10 +709,12 @@ const saveToServer = async () => {
 
     if (questionsToSend.length === 0) {
       // Nothing to save to server
-      isSaving.value = false;
       // console.log('No new or edited questions ready for server save');
       return;
     }
+
+    const questionIdsBeingSaved = questionsToSend.map(question => questionKey(question));
+    questionIdsBeingSaved.forEach(id => savingQuestionIds.value.add(id));
 
     const settings = packageSettings();
 
@@ -726,135 +740,83 @@ const saveToServer = async () => {
       console.error("Failed to update assessments:", error);
     }
 
-    // For now, simulate success
-    setTimeout(async () => {
-      // After successful save, refetch to get real IDs from server
-      await fetchAssessments(currentExamId.value || 0);
+    // Refresh from server to get persisted IDs while preserving unsaved local drafts.
+    await fetchAssessments(currentExamId.value || 0);
+    const transformedQuestions = transformQuestionsFromServer(questions.value);
+    const savedIdsSet = new Set(questionIdsBeingSaved);
+    const localUnsavedQuestions = allQuestions.value.filter(question => {
+      const id = questionKey(question);
+      return editedQuestions.value.has(id) && !savedIdsSet.has(id);
+    });
 
-      // Transform server data: Convert 0-based correct.order to 1-based for UI
-      const transformedQuestions = transformQuestionsFromServer(questions.value);
+    const mergedQuestions = transformedQuestions.map(question => {
+      const id = questionKey(question);
+      if (!editedQuestions.value.has(id) || savedIdsSet.has(id)) {
+        return question;
+      }
+      const localDraft = getDraft(id);
+      return localDraft?.isDirty ? { ...localDraft.data, questionId: question.questionId } : question;
+    });
 
-      // Replace the array completely to force Vue reactivity
-      allQuestions.value = [];
-      await nextTick();
-      allQuestions.value = transformedQuestions;
+    const unsavedLocalOnly = localUnsavedQuestions.filter(question => {
+      const id = questionKey(question);
+      return !mergedQuestions.some(serverQuestion => questionKey(serverQuestion) === id);
+    });
 
-      // Reinitialize drafts for all questions (mark as not dirty after successful save)
-      transformedQuestions.forEach(question => {
-        if (question.questionId && question.questionId > 0) {
-          initializeFromServer(String(question.questionId), question, question.questionId);
-        }
-      });
+    allQuestions.value = [...mergedQuestions, ...unsavedLocalOnly];
 
-      isSaving.value = false;
-      savedIndicator.value = true;
+    // Reinitialize synced questions only
+    allQuestions.value.forEach(question => {
+      const id = questionKey(question);
+      if (savedIdsSet.has(id) && question.questionId && question.questionId > 0) {
+        initializeFromServer(id, question, question.questionId);
+      }
+    });
 
-      setTimeout(() => {
-        savedIndicator.value = false;
-        editedQuestions.value.clear();
-      }, 2000);
-    }, 500);
+    questionIdsBeingSaved.forEach(id => editedQuestions.value.delete(id));
+    savedIndicator.value = true;
+    setTimeout(() => {
+      savedIndicator.value = false;
+    }, 2000);
   } catch (error) {
     console.error('Error saving to server:', error);
-    isSaving.value = false;
     // Draft still saved locally, so no data loss
-  }
-};
-
-// Helper function to save cursor position
-const saveCursorPosition = (element: HTMLElement) => {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return null;
-
-  const range = selection.getRangeAt(0);
-  const preCaretRange = range.cloneRange();
-  preCaretRange.selectNodeContents(element);
-  preCaretRange.setEnd(range.endContainer, range.endOffset);
-  const caretOffset = preCaretRange.toString().length;
-
-  return caretOffset;
-};
-
-// Helper function to restore cursor position
-const restoreCursorPosition = (element: HTMLElement, offset: number) => {
-  const selection = window.getSelection();
-  if (!selection) return;
-
-  let charCount = 0;
-  let foundNode: Node | null = null;
-  let foundOffset = 0;
-
-  const traverseNodes = (node: Node): boolean => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const textLength = node.textContent?.length || 0;
-      if (charCount + textLength >= offset) {
-        foundNode = node;
-        foundOffset = offset - charCount;
-        return true;
-      }
-      charCount += textLength;
+  } finally {
+    if (targetQuestionId) {
+      savingQuestionIds.value.delete(targetQuestionId);
     } else {
-      for (let i = 0; i < node.childNodes.length; i++) {
-        const childNode = node.childNodes[i];
-        if (childNode && traverseNodes(childNode)) {
-          return true;
-        }
-      }
+      savingQuestionIds.value.clear();
     }
-    return false;
-  };
-
-  traverseNodes(element);
-
-  if (foundNode) {
-    const range = document.createRange();
-    range.setStart(foundNode, foundOffset);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
   }
 };
 
-const handleContentEdit = (question: Question, field: keyof Question, event: Event) => {
-  const target = event.target as HTMLDivElement;
+const updateOptionText = (question: Question, optionIndex: number, value: string) => {
+  const option = question.options[optionIndex];
+  if (!option) return;
 
-  // Save cursor position before updating
-  const cursorPos = saveCursorPosition(target);
-
-  if (typeof question[field] === 'string') {
-    (question[field] as string) = target.innerHTML;
+  option.text = value;
+  if (question.correct.order === option.order) {
+    question.correct.text = value;
   }
-
-  // Restore cursor position after Vue re-render
-  nextTick(() => {
-    if (cursorPos !== null) {
-      restoreCursorPosition(target, cursorPos);
-    }
-  });
-
-  // Mark as edited after updating the value
-  handleEdit(String(question.questionId!));
+  handleEdit(questionKey(question));
 };
 
-const handleOptionEdit = (question: Question, optionIndex: number, event: Event) => {
-  const target = event.target as HTMLDivElement;
-
-  // Save cursor position before updating
-  const cursorPos = saveCursorPosition(target);
-
-  if (question.options[optionIndex]) {
-    question.options[optionIndex].text = target.innerHTML;
+const saveQuestionCard = async (question: LocalQuestion, event?: Event) => {
+  if (event) {
+    event.stopPropagation();
   }
 
-  // Restore cursor position after Vue re-render
-  nextTick(() => {
-    if (cursorPos !== null) {
-      restoreCursorPosition(target, cursorPos);
-    }
-  });
+  const id = questionKey(question);
+  if (!editedQuestions.value.has(id) || savingQuestionIds.value.has(id)) {
+    return;
+  }
 
-  // Mark as edited after updating the value
-  handleEdit(String(question.questionId!));
+  if (!isValidForSubmission(question)) {
+    alert('Please complete the required fields before saving this question.');
+    return;
+  }
+
+  await saveToServer(id);
 };
 
 const setCorrectAnswer = (question: Question, order: number) => {
@@ -863,7 +825,7 @@ const setCorrectAnswer = (question: Question, order: number) => {
   if (selectedOption) {
     question.correct.text = selectedOption.text;
   }
-  handleEdit(String(question.questionId!));
+  handleEdit(questionKey(question));
 };
 
 const addOption = (question: Question) => {
@@ -873,7 +835,12 @@ const addOption = (question: Question) => {
     text: `Option ${String.fromCharCode(64 + newOrder)}: New option`,
     optionFiles: []
   });
-  handleEdit(String(question.questionId!));
+  handleEdit(questionKey(question));
+};
+
+const getPreferredImagePath = (file?: Partial<QuestionFile> & { fileName?: string }): string => {
+  if (!file) return '';
+  return file.file_name || file.fileName || file.file || '';
 };
 
 const getImageUrl = (imageData: string): string => {
@@ -895,9 +862,11 @@ const getImageUrl = (imageData: string): string => {
     return `data:image/jpeg;base64,${imageData}`;
   }
 
-  // Otherwise, assume it's a file path from server - prepend ASSET_URL
+  // Otherwise, assume it's a file path from server - prepend assets base URL safely.
   const assetsBaseUrl = import.meta.env.VITE_ASSETS_BASE_URL || '';
-  return `${assetsBaseUrl}${imageData}`;
+  const cleanBase = assetsBaseUrl.endsWith('/') ? assetsBaseUrl.slice(0, -1) : assetsBaseUrl;
+  const cleanPath = imageData.startsWith('/') ? imageData : `/${imageData}`;
+  return `${cleanBase}${cleanPath}`;
 }
 
 // const switchToSpreadsheet = () => {
@@ -911,7 +880,7 @@ const toggleCardCollapse = (questionId: string, event?: Event) => {
 
   if (collapsedCards.value.has(questionId)) {
     // Collapse all other cards (accordion behavior)
-    const allQuestionIds = allQuestions.value.map(q => String(q.questionId));
+    const allQuestionIds = allQuestions.value.map(q => questionKey(q));
     allQuestionIds.forEach(id => {
       if (id !== questionId) {
         collapsedCards.value.add(id);
@@ -931,12 +900,12 @@ const handleCardClick = (questionId: string, event: Event) => {
   if (collapsedCards.value.has(questionId)) {
     // Don't trigger if clicking on interactive elements
     const target = event.target as HTMLElement;
-    if (target.closest('button') || target.closest('input') || target.closest('select')) {
+    if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('.rich-editor')) {
       return;
     }
 
     // Collapse all other cards (accordion behavior)
-    const allQuestionIds = allQuestions.value.map(q => String(q.questionId));
+    const allQuestionIds = allQuestions.value.map(q => questionKey(q));
     allQuestionIds.forEach(id => {
       if (id !== questionId) {
         collapsedCards.value.add(id);
@@ -975,12 +944,12 @@ const deleteOption = (question: Question, optionIndex: number) => {
     question.correct.order--;
   }
 
-  handleEdit(String(question.questionId!));
+  handleEdit(questionKey(question));
 };
 
 const deleteQuestion = (questionId: string) => {
   if (confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
-    const index = allQuestions.value.findIndex(q => String(q.questionId) === questionId);
+    const index = allQuestions.value.findIndex(q => questionKey(q) === questionId);
     if (index !== -1) {
       allQuestions.value.splice(index, 1);
       editedQuestions.value.delete(questionId);
@@ -1028,7 +997,9 @@ const duplicateQuestion = (question: Question, event?: Event) => {
   if (currentIndex !== -1) {
     allQuestions.value.splice(currentIndex + 1, 0, duplicatedQuestion);
     // Save to local draft only (don't trigger server save immediately)
-    saveLocalDraft(String(duplicatedQuestion.questionId), duplicatedQuestion);
+    const duplicatedId = questionKey(duplicatedQuestion);
+    editedQuestions.value.add(duplicatedId);
+    saveLocalDraft(duplicatedId, duplicatedQuestion);
   }
 };
 
@@ -1055,9 +1026,11 @@ const addQuestionAfter = (index: number) => {
   // Insert after the current index
   allQuestions.value.splice(index + 1, 0, newQuestion);
   // Expand the new question
-  collapsedCards.value.delete(String(newQuestion.questionId));
+  collapsedCards.value.delete(questionKey(newQuestion));
   // Save to local draft only (don't trigger server save immediately)
-  saveLocalDraft(String(newQuestion.questionId), newQuestion);
+  const newQuestionId = questionKey(newQuestion);
+  editedQuestions.value.add(newQuestionId);
+  saveLocalDraft(newQuestionId, newQuestion);
 };
 
 // Image upload handlers
@@ -1157,7 +1130,7 @@ const processImageFile = async (file: File, type: string, questionId: number, op
       }
     }
 
-    handleEdit(String(questionId));
+    handleEdit(questionKey(question));
   };
 
   reader.readAsDataURL(file);
@@ -1165,14 +1138,14 @@ const processImageFile = async (file: File, type: string, questionId: number, op
 
 const deleteQuestionImage = (question: Question) => {
   question.questionFiles = [];
-  handleEdit(String(question.questionId!));
+  handleEdit(questionKey(question));
 };
 
 const deleteOptionImage = (question: Question, optIndex: number) => {
   const option = question.options[optIndex];
   if (option) {
     option.optionFiles = [];
-    handleEdit(String(question.questionId!));
+    handleEdit(questionKey(question));
   }
 };
 
@@ -1240,7 +1213,64 @@ const handleFloatingCardDelete = () => {
   });
 
   if (activeIndex !== -1 && allQuestions.value[activeIndex]) {
-    deleteQuestion(String(allQuestions.value[activeIndex].questionId!));
+    deleteQuestion(questionKey(allQuestions.value[activeIndex]));
   }
 };
 </script>
+
+<style scoped>
+.save-question-btn {
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.save-question-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.option-row :deep(.rich-editor) {
+  flex: 1;
+}
+
+.question-content :deep(.ProseMirror) {
+  min-height: 96px;
+}
+
+.loading-questions-state {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.loading-text {
+  margin: 0;
+  color: var(--theme-text-subtle, #64748b);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  border-top-color: #2563eb;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>

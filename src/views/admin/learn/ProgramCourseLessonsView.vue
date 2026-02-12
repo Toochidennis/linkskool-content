@@ -149,6 +149,9 @@
                   <button class="meta-tag quiz" @click="openQuizBuilder(lesson, $event)">
                     {{ lesson.hasQuiz ? 'Quiz' : 'Create Quiz' }}
                   </button>
+                  <button class="meta-tag submissions" @click="openLessonSubmissions(lesson, $event)">
+                    View Submissions
+                  </button>
                   <button v-if="lesson.certificateUrl && lesson.isFinalLesson" class="meta-tag certificate"
                     @click="previewCertificate(lesson.certificateUrl!, $event)">
                     Certificate
@@ -610,6 +613,21 @@ const openQuizBuilder = (lesson: Lesson, event: Event) => {
       lessonId: lesson.lessonId,
       lessonTitle: lesson.title || 'Lesson Quiz',
       hasQuiz: lesson.hasQuiz ? '1' : '0',
+    },
+  })
+}
+
+const openLessonSubmissions = (lesson: Lesson, event: Event) => {
+  event.stopPropagation()
+  router.push({
+    name: 'Lesson Submissions',
+    query: {
+      programId: programId.value,
+      courseId: courseId.value,
+      cohortId: cohortId.value,
+      courseName: courseTitle.value,
+      lessonId: lesson.lessonId,
+      lessonTitle: lesson.title || 'Lesson Submissions',
     },
   })
 }
@@ -1123,6 +1141,11 @@ button.meta-tag.certificate:hover {
   box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
 }
 
+button.meta-tag.submissions:hover {
+  border-color: #059669;
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.3);
+}
+
 .meta-tag.video {
   border-color: #fbbf24;
   color: #92400e;
@@ -1139,6 +1162,12 @@ button.meta-tag.certificate:hover {
   border-color: #f472b6;
   color: #831843;
   background: #fce7f3;
+}
+
+.meta-tag.submissions {
+  border-color: #6ee7b7;
+  color: #065f46;
+  background: #ecfdf5;
 }
 
 .meta-tag.date {

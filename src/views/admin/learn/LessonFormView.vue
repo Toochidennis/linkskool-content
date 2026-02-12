@@ -200,6 +200,28 @@
           </div>
 
           <div class="form-row">
+            <div class="form-group" :class="{ 'has-error': fieldErrors.assignmentSubmissionType }">
+              <label class="form-label">
+                Assignment Submission Type
+                <span v-if="hasAssignmentSource" class="required">*</span>
+              </label>
+              <select v-model="localLesson.assignmentSubmissionType" class="form-input"
+                @blur="handleBlur('assignmentSubmissionType')" @change="handleInput('assignmentSubmissionType')">
+                <option value="">Select submission type</option>
+                <option v-for="type in assignmentSubmissionTypes" :key="type.value" :value="type.value">
+                  {{ type.label }}
+                </option>
+              </select>
+              <span v-if="fieldErrors.assignmentSubmissionType" class="error-message">{{
+                fieldErrors.assignmentSubmissionType
+              }}</span>
+              <p v-else class="form-hint">
+                Required when assignment instructions or assignment file is provided.
+              </p>
+            </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group full">
               <label class="form-label">Assignment File (PDF, Max 5MB)</label>
               <FileUploadZone accept=".pdf" :max-size="5242880" @files-selected="handleAssignmentUpload" />
@@ -382,10 +404,26 @@ type ZoomInfo = {
   endTime: string
 }
 
+type AssignmentSubmissionType = NonNullable<Lesson['assignmentSubmissionType']>
+
 const isEditMode = ref(false)
 const isSaving = ref(false)
 const pendingStatus = ref<LessonStatus | null>(null)
 const fieldErrors = ref<Record<string, string>>({})
+const assignmentSubmissionTypes: Array<{ value: Exclude<AssignmentSubmissionType, ''>; label: string }> = [
+  { value: 'upload', label: 'Upload' },
+  { value: 'text', label: 'Text' },
+  { value: 'link', label: 'Link' },
+  { value: 'mixed', label: 'Mixed (Multiple)' },
+]
+
+const normalizeAssignmentSubmissionType = (value: unknown): AssignmentSubmissionType => {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'upload' || normalized === 'text' || normalized === 'link' || normalized === 'mixed') {
+    return normalized
+  }
+  return ''
+}
 const createEmptyZoomInfo = (): ZoomInfo => ({
   url: '',
   meetingId: '',
@@ -407,6 +445,7 @@ const localLesson = ref<Lesson>({
   materialFile: null,
   writeupContent: '',
   assignmentInstructions: '',
+  assignmentSubmissionType: '',
   assignmentFile: null,
   assignmentDueDate: '',
   lessonDate: '',
@@ -443,6 +482,11 @@ onMounted(() => {
     localLesson.value = {
       ...parsedLesson,
       status: normalizeStatus(parsedLesson.status),
+      assignmentSubmissionType: normalizeAssignmentSubmissionType(
+        parsedLesson.assignmentSubmissionType ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (parsedLesson as any).assignment_submission_type,
+      ),
       zoomInfo: {
         url: zoomInfoRaw.url || '',
         meetingId: zoomInfoRaw.meetingId || '',
@@ -471,6 +515,7 @@ onMounted(() => {
       materialFile: null,
       writeupContent: '',
       assignmentInstructions: '',
+      assignmentSubmissionType: '',
       assignmentFile: null,
       assignmentDueDate: today,
       lessonDate: today,
@@ -479,6 +524,18 @@ onMounted(() => {
       zoomInfo: createEmptyZoomInfo(),
     }
   }
+})
+
+const stripHtml = (value?: string) =>
+  (value || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .trim()
+
+const hasAssignmentSource = computed(() => {
+  const hasInstructions = stripHtml(localLesson.value.assignmentInstructions).length > 0
+  const hasFile = Boolean(localLesson.value.assignmentFile || localLesson.value.assignmentUrl)
+  return hasInstructions || hasFile
 })
 
 const setStatus = (status: LessonStatus) => {
@@ -529,6 +586,11 @@ const validateField = (fieldName: string): string => {
     }
     case 'assignmentInstructions':
     case 'assignmentDueDate':
+      return ''
+    case 'assignmentSubmissionType':
+      if (!localLesson.value.isFinalLesson && hasAssignmentSource.value && !localLesson.value.assignmentSubmissionType) {
+        return 'Select an assignment submission type'
+      }
       return ''
     default:
       return ''
@@ -621,6 +683,7 @@ const handleSave = async (statusOverride?: LessonStatus) => {
     'certificateFile',
     'zoomStartTime',
     'zoomEndTime',
+    'assignmentSubmissionType',
   ]
 
   fieldsToValidate.forEach((field) => {
@@ -748,6 +811,7 @@ const handleAssignmentUpload = (files: File[]) => {
   clearFieldError('assignmentFile')
   clearFieldError('assignmentInstructions')
   clearFieldError('assignmentDueDate')
+  handleBlur('assignmentSubmissionType')
 }
 
 const handleCertificateUpload = (files: File[]) => {
@@ -790,6 +854,11 @@ const removeAssignmentFile = () => {
   localLesson.value.assignmentUrl = undefined
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ; (localLesson.value as any).oldAssignmentUrl = undefined
+  if (!hasAssignmentSource.value) {
+    clearFieldError('assignmentSubmissionType')
+  } else {
+    handleBlur('assignmentSubmissionType')
+  }
 }
 
 const removeCertificateFile = () => {

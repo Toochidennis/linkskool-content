@@ -27,6 +27,7 @@ import ProgramCourseCohortsView from '@/views/admin/learn/ProgramCourseCohortsVi
 import ProgramCourseLessonsView from '@/views/admin/learn/ProgramCourseLessonsView.vue'
 import LessonFormView from '@/views/admin/learn/LessonFormView.vue'
 import ProgramCourseQuizView from '@/views/admin/learn/ProgramCourseQuizView.vue'
+import LessonSubmissionsView from '@/views/admin/learn/LessonSubmissionsView.vue'
 import LearningCourseView from '@/views/admin/learn/LearningCourseView.vue'
 
 const routes: RouteRecordRaw[] = [
@@ -149,6 +150,11 @@ const routes: RouteRecordRaw[] = [
         path: 'lesson-quiz',
         name: 'Lesson Quiz',
         component: ProgramCourseQuizView,
+      },
+      {
+        path: 'lesson-submissions',
+        name: 'Lesson Submissions',
+        component: LessonSubmissionsView,
       },
       {
         path: 'levels',

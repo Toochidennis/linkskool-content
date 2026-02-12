@@ -1,10 +1,20 @@
 import { ref } from 'vue'
 import type { Lesson } from '@/api/models/lesson'
 import type { QuizQuestion } from '@/api/models/quiz'
+import type { LessonSubmission, SubmissionGradePayload } from '@/api/models/submission'
 import { programService } from '@/api/services/serviceFactory'
 
 export function useLesson() {
   const lessons = ref<Lesson[]>([])
+  const normalizeAssignmentSubmissionType = (
+    value: unknown,
+  ): Lesson['assignmentSubmissionType'] => {
+    const normalized = String(value || '').toLowerCase()
+    if (normalized === 'upload' || normalized === 'text' || normalized === 'link' || normalized === 'mixed') {
+      return normalized
+    }
+    return ''
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transformLessonFromServer = (serverLesson: any): Lesson => {
@@ -30,6 +40,9 @@ export function useLesson() {
       displayOrder: serverLesson.displayOrder,
       writeupContent: serverLesson.writeupContent || '',
       assignmentInstructions: serverLesson.assignmentInstructions || '',
+      assignmentSubmissionType: normalizeAssignmentSubmissionType(
+        serverLesson.assignmentSubmissionType || serverLesson.assignment_submission_type,
+      ),
       assignmentDueDate: serverLesson.assignmentDueDate || '',
       isFinalLesson: serverLesson.isFinalLesson === 1,
       lessonDate: serverLesson.lessonDate,
@@ -123,6 +136,122 @@ export function useLesson() {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transformSubmissionFromServer = (row: any): LessonSubmission => {
+    const files = Array.isArray(row?.submission?.files)
+      ? row.submission.files
+      : Array.isArray(row?.submission?.file)
+        ? row.submission.file
+        : []
+
+    return {
+      id: Number(row?.id || 0),
+      lessonId: Number(row?.lesson_id || row?.lessonId || 0),
+      cohortId: row?.cohort_id ?? row?.cohortId ?? null,
+      profile: {
+        id: Number(row?.profile?.id || row?.profile_id || 0),
+        firstName: row?.profile?.first_name ?? row?.profile?.firstName ?? row?.first_name ?? null,
+        lastName: row?.profile?.last_name ?? row?.profile?.lastName ?? row?.last_name ?? null,
+        fullName: row?.profile?.full_name ?? row?.profile?.fullName ?? null,
+      },
+      submission: {
+        type: row?.submission?.type ?? row?.submission_type ?? null,
+        textContent: row?.submission?.text_content ?? row?.submission?.textContent ?? row?.text_content ?? null,
+        linkUrl: row?.submission?.link_url ?? row?.submission?.linkUrl ?? row?.link_url ?? null,
+        files: files.length
+          ? files.map((file: any) => ({
+            fileName: file?.file_name || file?.fileName || '',
+            oldFileName: file?.old_file_name || file?.oldFileName || '',
+            file: file?.file || '',
+            type: file?.type || '',
+          }))
+          : null,
+        quizScore: row?.submission?.quiz_score ?? row?.submission?.quizScore ?? row?.quiz_score ?? null,
+      },
+      grading: {
+        assignedScore: row?.grading?.assigned_score ?? row?.grading?.assignedScore ?? row?.assigned_score ?? null,
+        remark: row?.grading?.remark ?? row?.remark ?? null,
+        comment: row?.grading?.comment ?? row?.comment ?? null,
+        gradedBy: row?.grading?.graded_by ?? row?.grading?.gradedBy ?? row?.graded_by ?? null,
+        gradedAt: row?.grading?.graded_at ?? row?.grading?.gradedAt ?? row?.graded_at ?? null,
+      },
+      notification: {
+        notifiedBy:
+          row?.notification?.notified_by ??
+          row?.notification?.notifiedBy ??
+          row?.notified_by ??
+          null,
+        notifiedAt:
+          row?.notification?.notified_at ??
+          row?.notification?.notifiedAt ??
+          row?.notified_at ??
+          null,
+      },
+      createdAt: row?.created_at ?? row?.createdAt ?? null,
+      updatedAt: row?.updated_at ?? row?.updatedAt ?? null,
+    }
+  }
+
+  const fetchLessonSubmissions = async (
+    lessonId: number | string,
+    cohortId?: number | string | null,
+  ): Promise<LessonSubmission[]> => {
+    const candidatePaths: string[] = []
+    if (cohortId) {
+      candidatePaths.push(`cohorts/${cohortId}/lessons/${lessonId}/submissions`)
+    }
+    candidatePaths.push(`lessons/${lessonId}/submissions`)
+    candidatePaths.push(`cohorts/lessons/${lessonId}/submissions`)
+
+    let lastError: unknown = null
+    for (const path of candidatePaths) {
+      try {
+        const response = await programService.get(path)
+        const list = Array.isArray(response?.data) ? response.data : []
+        return list.map(transformSubmissionFromServer)
+      } catch (error) {
+        lastError = error
+      }
+    }
+
+    if (lastError) throw lastError
+    return []
+  }
+
+  const fetchLessonAssignments = async (
+    lessonId: number | string,
+  ): Promise<LessonSubmission[]> => {
+    try {
+      const response = await programService.get(`cohorts/lessons/${lessonId}/assignments`)
+      const list = Array.isArray(response?.data) ? response.data : []
+      return list.map(transformSubmissionFromServer)
+    } catch (error) {
+      console.error('Error fetching lesson assignments:', error)
+      throw error
+    }
+  }
+
+  const gradeLessonSubmission = async (
+    submissionId: number | string,
+    payload: SubmissionGradePayload,
+  ) => {
+    const data: Record<string, unknown> = {
+      assigned_score: payload.assignedScore,
+      comment: payload.comment || '',
+      graded_by: payload.gradedBy,
+    }
+    if (payload.notifyStudent) {
+      data.notify_student = true
+    }
+
+    try {
+      return await programService.post(`submissions/${submissionId}/grade`, data)
+    } catch (error) {
+      console.error('Error grading lesson submission:', error)
+      throw error
+    }
+  }
+
   const updateStatus = async (lessonId: number, status: string) => {
     try {
       const response = await programService.put(
@@ -161,6 +290,7 @@ export function useLesson() {
     formData.append('recorded_video_url', lesson.recordedVideoUrl || '')
     formData.append('writeup_content', lesson.writeupContent || '')
     formData.append('assignment_instructions', lesson.assignmentInstructions || '')
+    formData.append('assignment_submission_type', lesson.assignmentSubmissionType || '')
     formData.append('assignment_due_date', lesson.assignmentDueDate || '')
     formData.append('lesson_date', lesson.lessonDate || '')
     formData.append('is_final_lesson', lesson.isFinalLesson ? '1' : '0')
@@ -255,6 +385,9 @@ export function useLesson() {
     fetchQuizQuestions,
     saveQuizQuestion,
     deleteQuiz,
+    fetchLessonSubmissions,
+    fetchLessonAssignments,
+    gradeLessonSubmission,
     updateStatus,
     packageLesson,
     saveLesson,

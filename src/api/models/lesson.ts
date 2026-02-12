@@ -18,6 +18,7 @@ export interface Lesson {
   materialUrl?: string // URL from server
   writeupContent: string // Rich text HTML content (replaces writeupFiles)
   assignmentInstructions: string
+  assignmentSubmissionType?: 'upload' | 'text' | 'link' | 'mixed' | ''
   assignmentFile?: File | null
   assignmentUrl?: string // URL from server
   quiz?: File | null
