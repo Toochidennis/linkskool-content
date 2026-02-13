@@ -1,7 +1,11 @@
 import { ref } from 'vue'
 import type { Lesson } from '@/api/models/lesson'
 import type { QuizQuestion } from '@/api/models/quiz'
-import type { LessonSubmission, SubmissionGradePayload } from '@/api/models/submission'
+import type {
+  LessonSubmission,
+  SubmissionBulkNotifyPayload,
+  SubmissionGradePayload,
+} from '@/api/models/submission'
 import { programService } from '@/api/services/serviceFactory'
 
 export function useLesson() {
@@ -252,6 +256,20 @@ export function useLesson() {
     }
   }
 
+  const notifyLessonSubmissions = async (payload: SubmissionBulkNotifyPayload) => {
+    const data: Record<string, unknown> = {
+      submissionIds: payload.submissionIds,
+      gradedBy: payload.gradedBy,
+    }
+
+    try {
+      return await programService.post('submissions/notify', data)
+    } catch (error) {
+      console.error('Error notifying lesson submissions:', error)
+      throw error
+    }
+  }
+
   const updateStatus = async (lessonId: number, status: string) => {
     try {
       const response = await programService.put(
@@ -388,6 +406,7 @@ export function useLesson() {
     fetchLessonSubmissions,
     fetchLessonAssignments,
     gradeLessonSubmission,
+    notifyLessonSubmissions,
     updateStatus,
     packageLesson,
     saveLesson,

@@ -47,3 +47,8 @@ export interface SubmissionGradePayload {
   gradedBy: number | null
   notifyStudent: boolean
 }
+
+export interface SubmissionBulkNotifyPayload {
+  submissionIds: number[]
+  gradedBy: number | null
+}

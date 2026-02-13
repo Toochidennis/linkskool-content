@@ -29,6 +29,16 @@
         <option value="link">Link</option>
         <option value="mixed">Mixed</option>
       </select>
+      <select v-model="gradingFilter" class="type-filter">
+        <option value="">All grading</option>
+        <option value="graded">Graded</option>
+        <option value="ungraded">Ungraded</option>
+      </select>
+      <select v-model="notificationFilter" class="type-filter">
+        <option value="">All notifications</option>
+        <option value="notified">Notified</option>
+        <option value="pending">Yet to be notified</option>
+      </select>
     </section>
 
     <section v-if="isLoading" class="state-card">
@@ -53,18 +63,19 @@
           <button class="ghost-btn small" @click="toggleSelectAllVisible">
             {{ allVisibleSelected ? 'Clear Visible' : 'Select Visible' }}
           </button>
-          <button class="primary-btn small" :disabled="selectedCount === 0" @click="bulkNotifySelected">
+          <button class="primary-btn small" :disabled="bulkNotifyCount === 0 || isBulkNotifying" @click="bulkNotifySelected">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 0 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
               <path d="M9 17a3 3 0 0 0 6 0" />
             </svg>
-            Notify Selected ({{ selectedCount }})
+            {{ isBulkNotifying ? 'Notifying...' : `Notify Selected (${bulkNotifyCount})` }}
           </button>
         </div>
 
         <div v-for="item in filteredSubmissions" :key="item.id" class="submission-row">
           <label class="row-check" @click.stop>
             <input type="checkbox" :checked="selectedSubmissionIds.has(item.id)"
+              :disabled="!canBulkNotify(item)"
               @change="toggleSubmissionSelection(item.id)" />
           </label>
           <button class="submission-item" :class="{ active: selectedSubmission?.id === item.id }" @click="selectSubmission(item)">
@@ -77,13 +88,20 @@
             <p class="item-meta">
               Submitted {{ formatDate(item.createdAt) }}
             </p>
-            <p class="item-grade" v-if="item.grading.assignedScore !== null">
+            <p class="item-grade" v-if="isGraded(item)">
               Score: {{ item.grading.assignedScore }}
             </p>
-            <p class="item-grade pending" v-else>Not graded</p>
-            <p class="item-grade success" v-if="item.notification.notifiedAt">
+            <p class="item-grade success" v-if="isNotified(item)">
               Notified {{ formatDate(item.notification.notifiedAt) }}
             </p>
+            <div class="status-badges">
+              <span class="status-badge" :class="isGraded(item) ? 'status-graded' : 'status-ungraded'">
+                {{ isGraded(item) ? 'Graded' : 'Ungraded' }}
+              </span>
+              <span class="status-badge" :class="isNotified(item) ? 'status-notified' : 'status-not-notified'">
+                {{ isNotified(item) ? 'Notified' : 'Not notified' }}
+              </span>
+            </div>
           </button>
         </div>
       </aside>
@@ -106,7 +124,7 @@
             <template v-if="selectedSubmission.submission.files?.length">
               <div class="file-row" v-for="(file, idx) in selectedSubmission.submission.files" :key="`${file.fileName}-${idx}`">
                 <div>
-                  <p class="file-name">{{ file.fileName || `File ${idx + 1}` }}</p>
+                  <p class="file-name">{{ submissionFileDisplayName(file, idx) }}</p>
                   <p class="file-meta">{{ file.type || 'file' }}</p>
                 </div>
                 <div class="file-actions">
@@ -207,21 +225,24 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
-const { fetchLessonAssignments, gradeLessonSubmission } = useLesson()
+const { fetchLessonAssignments, gradeLessonSubmission, notifyLessonSubmissions } = useLesson()
 
 const courseName = computed(() => (route.query.courseName as string) || 'Course')
 const lessonTitle = computed(() => (route.query.lessonTitle as string) || 'Lesson Submissions')
 const lessonId = computed(() => Number(route.query.lessonId) || 0)
-const cohortId = computed(() => Number(route.query.cohortId) || 0)
+//const cohortId = computed(() => Number(route.query.cohortId) || 0)
 
 const isLoading = ref(false)
 const loadError = ref('')
 const searchQuery = ref('')
 const typeFilter = ref('')
+const gradingFilter = ref('')
+const notificationFilter = ref('')
 const submissions = ref<LessonSubmission[]>([])
 const selectedSubmission = ref<LessonSubmission | null>(null)
 const selectedSubmissionIds = ref<Set<number>>(new Set())
 const isSavingGrade = ref(false)
+const isBulkNotifying = ref(false)
 
 const filePreviewOpen = ref(false)
 const filePreviewUrl = ref('')
@@ -231,7 +252,7 @@ const gradeForm = ref<SubmissionGradePayload>({
   assignedScore: null,
   comment: '',
   gradedBy: null,
-  notifyStudent: false,
+  notifyStudent: true,
 })
 
 const normalizeType = (value: LessonSubmission['submission']['type']): SubmissionType | string => {
@@ -254,33 +275,52 @@ const typeLabel = (value: LessonSubmission['submission']['type']) => {
 const displayName = (row: LessonSubmission) =>
   row.profile.fullName || [row.profile.firstName, row.profile.lastName].filter(Boolean).join(' ') || 'Unknown Student'
 
+const isGraded = (row: LessonSubmission) => row.grading.assignedScore !== null
+
+const isNotified = (row: LessonSubmission) => row.notification.notifiedAt !== null
+
+const canBulkNotify = (row: LessonSubmission) => isGraded(row) && !isNotified(row)
+
 const filteredSubmissions = computed(() =>
   submissions.value.filter((row) => {
     const name = displayName(row).toLowerCase()
     const type = normalizeType(row.submission.type)
     const matchesSearch = !searchQuery.value || name.includes(searchQuery.value.toLowerCase())
     const matchesType = !typeFilter.value || type === typeFilter.value
-    return matchesSearch && matchesType
+    const matchesGrading =
+      !gradingFilter.value ||
+      (gradingFilter.value === 'graded' ? isGraded(row) : !isGraded(row))
+    const matchesNotification =
+      !notificationFilter.value ||
+      (notificationFilter.value === 'notified' ? isNotified(row) : !isNotified(row))
+    return matchesSearch && matchesType && matchesGrading && matchesNotification
   }),
 )
 
-const selectedCount = computed(() => selectedSubmissionIds.value.size)
+//const selectedCount = computed(() => selectedSubmissionIds.value.size)
+
+const bulkNotifyCount = computed(() =>
+  submissions.value.reduce((count, row) => (
+    selectedSubmissionIds.value.has(row.id) && canBulkNotify(row) ? count + 1 : count
+  ), 0),
+)
 
 const allVisibleSelected = computed(() => {
-  if (filteredSubmissions.value.length === 0) return false
-  return filteredSubmissions.value.every((item) => selectedSubmissionIds.value.has(item.id))
+  const eligibleVisible = filteredSubmissions.value.filter(canBulkNotify)
+  if (eligibleVisible.length === 0) return false
+  return eligibleVisible.every((item) => selectedSubmissionIds.value.has(item.id))
 })
 
 const hydrateGradeForm = (row: LessonSubmission | null) => {
   if (!row) {
-    gradeForm.value = { assignedScore: null, comment: '', gradedBy: null, notifyStudent: false }
+    gradeForm.value = { assignedScore: null, comment: '', gradedBy: null, notifyStudent: true }
     return
   }
   gradeForm.value = {
     assignedScore: row.grading.assignedScore,
     comment: row.grading.comment || '',
     gradedBy: authStore.user?.id || null,
-    notifyStudent: false,
+    notifyStudent: true,
   }
 }
 
@@ -293,6 +333,8 @@ const selectSubmission = (row: LessonSubmission) => {
 }
 
 const toggleSubmissionSelection = (submissionId: number) => {
+  const row = submissions.value.find((item) => item.id === submissionId)
+  if (!row || !canBulkNotify(row)) return
   const next = new Set(selectedSubmissionIds.value)
   if (next.has(submissionId)) {
     next.delete(submissionId)
@@ -304,33 +346,63 @@ const toggleSubmissionSelection = (submissionId: number) => {
 
 const toggleSelectAllVisible = () => {
   const next = new Set(selectedSubmissionIds.value)
+  const eligibleVisible = filteredSubmissions.value.filter(canBulkNotify)
   if (allVisibleSelected.value) {
-    filteredSubmissions.value.forEach((item) => next.delete(item.id))
+    eligibleVisible.forEach((item) => next.delete(item.id))
   } else {
-    filteredSubmissions.value.forEach((item) => next.add(item.id))
+    eligibleVisible.forEach((item) => next.add(item.id))
   }
   selectedSubmissionIds.value = next
 }
 
-const bulkNotifySelected = () => {
-  if (selectedSubmissionIds.value.size === 0) return
-  const now = new Date().toISOString()
-  const notifiedBy = authStore.user?.id || null
-  submissions.value = submissions.value.map((row) => {
-    if (!selectedSubmissionIds.value.has(row.id)) return row
-    return {
-      ...row,
-      notification: {
-        ...row.notification,
-        notifiedAt: now,
-        notifiedBy,
-      },
-    }
-  })
-  toast.success(`Queued notifications for ${selectedSubmissionIds.value.size} student(s).`, {
-    position: 'top-right',
-    duration: 2500,
-  })
+const bulkNotifySelected = async () => {
+  if (isBulkNotifying.value) return
+
+  const submissionIds = submissions.value
+    .filter((row) => selectedSubmissionIds.value.has(row.id) && canBulkNotify(row))
+    .map((row) => row.id)
+  if (submissionIds.length === 0) {
+    toast.error('Only graded and not-yet-notified submissions can be notified.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+    return
+  }
+  const gradedBy = authStore.user?.id || null
+
+  isBulkNotifying.value = true
+  try {
+    await notifyLessonSubmissions({
+      submissionIds,
+      gradedBy,
+    })
+
+    const now = new Date().toISOString()
+    submissions.value = submissions.value.map((row) => {
+      if (!selectedSubmissionIds.value.has(row.id)) return row
+      return {
+        ...row,
+        notification: {
+          ...row.notification,
+          notifiedAt: now,
+          notifiedBy: gradedBy,
+        },
+      }
+    })
+
+    toast.success(`Notifications sent for ${submissionIds.length} student(s).`, {
+      position: 'top-right',
+      duration: 2500,
+    })
+  } catch (error) {
+    console.error('Failed to notify selected submissions:', error)
+    toast.error('Failed to notify selected students. Please try again.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+  } finally {
+    isBulkNotifying.value = false
+  }
 }
 
 const formatDate = (value: string | null) => {
@@ -351,15 +423,28 @@ const normalizedLink = (link: string) => {
   return /^https?:\/\//i.test(link) ? link : `https://${link}`
 }
 
+const sanitizeFilePathForName = (value: string) => {
+  const normalized = value.replace(/\\/g, '/')
+  const withoutKnownPrefix = normalized.replace(/^assets\/elearning\/lrm\//i, '')
+  const segments = withoutKnownPrefix.split('/').filter(Boolean)
+  return segments[segments.length - 1] || ''
+}
+
+const submissionFileDisplayName = (file: SubmissionFile, index = 0) => {
+  const source = file.fileName || file.oldFileName || ''
+  const cleaned = sanitizeFilePathForName(source)
+  return cleaned || `File ${index + 1}`
+}
+
 const resolveFileUrl = (file: SubmissionFile) => {
-  const source = file.file || file.fileName || ''
+  const source = file.fileName || file.oldFileName || ''
   if (!source) return ''
   if (source.startsWith('http://') || source.startsWith('https://')) return source
   if (source.startsWith('data:')) return source
   if (source.length > 100 && !source.includes('/') && !source.includes('\\')) {
     return `data:application/pdf;base64,${source}`
   }
-  const base = import.meta.env.VITE_ASSETS_BASE_URL || ''
+  const base = String(import.meta.env.VITE_ASSETS_BASE_URL || '')
   const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base
   const cleanPath = source.startsWith('/') ? source : `/${source}`
   return `${cleanBase}${cleanPath}`
@@ -371,7 +456,7 @@ const previewSubmissionFile = (file: SubmissionFile) => {
     toast.error('No preview URL found for this file.', { position: 'top-right', duration: 2500 })
     return
   }
-  filePreviewTitle.value = file.fileName || 'Submission File'
+  filePreviewTitle.value = submissionFileDisplayName(file)
   filePreviewUrl.value = url
   filePreviewOpen.value = true
 }
@@ -510,13 +595,19 @@ onMounted(() => {
 }
 
 .toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 170px));
+  align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
 .search-wrap {
-  flex: 1;
+  min-width: 0;
+}
+
+.type-filter {
+  min-width: 0;
 }
 
 .search-input,
@@ -645,6 +736,42 @@ onMounted(() => {
 
 .item-grade.success {
   color: #059669;
+}
+
+.status-badges {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  display: inline-flex;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.status-graded {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-ungraded {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-notified {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.status-not-notified {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .preview-panel {
@@ -922,6 +1049,10 @@ onMounted(() => {
 
   .submission-list {
     max-height: 280px;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
   }
 }
 
