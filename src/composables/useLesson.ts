@@ -3,10 +3,14 @@ import type { Lesson } from '@/api/models/lesson'
 import type { QuizQuestion } from '@/api/models/quiz'
 import type {
   LessonSubmission,
+  SubmissionAutoGradePayload,
+  SubmissionAutoGradeResponse,
+  SubmissionBulkGradePayload,
+  LessonSubmissionsMeta,
+  LessonSubmissionsPage,
   SubmissionBulkNotifyPayload,
-  SubmissionGradePayload,
 } from '@/api/models/submission'
-import { programService } from '@/api/services/serviceFactory'
+import { lessonSubmissionService, programService } from '@/api/services/serviceFactory'
 
 export function useLesson() {
   const lessons = ref<Lesson[]>([])
@@ -224,34 +228,57 @@ export function useLesson() {
 
   const fetchLessonAssignments = async (
     lessonId: number | string,
-  ): Promise<LessonSubmission[]> => {
+    page = 1,
+    limit = 20,
+  ): Promise<LessonSubmissionsPage> => {
     try {
-      const response = await programService.get(`cohorts/lessons/${lessonId}/assignments`)
-      const list = Array.isArray(response?.data) ? response.data : []
-      return list.map(transformSubmissionFromServer)
+      const response = await lessonSubmissionService.get(
+        `${lessonId}/submissions`,
+        { page, limit },
+      )
+      const list = Array.isArray(response?.data?.data) ? response.data.data : []
+      const metaRaw = response?.data?.meta || {}
+      const meta: LessonSubmissionsMeta = {
+        page: Number(metaRaw.page || page),
+        limit: Number(metaRaw.limit || limit),
+        total: Number(metaRaw.total || 0),
+        totalPages: Number(metaRaw.totalPages || 0),
+        hasNextPage: Boolean(metaRaw.hasNextPage),
+        hasPrevPage: Boolean(metaRaw.hasPrevPage),
+      }
+      return {
+        data: list.map(transformSubmissionFromServer),
+        meta,
+      }
     } catch (error) {
       console.error('Error fetching lesson assignments:', error)
       throw error
     }
   }
 
-  const gradeLessonSubmission = async (
-    submissionId: number | string,
-    payload: SubmissionGradePayload,
-  ) => {
-    const data: Record<string, unknown> = {
-      assigned_score: payload.assignedScore,
-      comment: payload.comment || '',
-      graded_by: payload.gradedBy,
-    }
-    if (payload.notifyStudent) {
-      data.notify_student = true
-    }
-
+  const gradeLessonSubmission = async (payload: SubmissionBulkGradePayload) => {
     try {
-      return await programService.post(`submissions/${submissionId}/grade`, data)
+      return await lessonSubmissionService.post(
+        'submissions/grade',
+        payload as unknown as Record<string, unknown>,
+      )
     } catch (error) {
       console.error('Error grading lesson submission:', error)
+      throw error
+    }
+  }
+
+  const autoGradeLessonSubmissions = async (
+    payload: SubmissionAutoGradePayload,
+  ): Promise<SubmissionAutoGradeResponse> => {
+    try {
+      const response = await lessonSubmissionService.post<SubmissionAutoGradeResponse>(
+        'submissions/auto-grade',
+        payload as unknown as Record<string, unknown>,
+      )
+      return response?.data as SubmissionAutoGradeResponse
+    } catch (error) {
+      console.error('Error auto-grading lesson submissions:', error)
       throw error
     }
   }
@@ -405,6 +432,7 @@ export function useLesson() {
     deleteQuiz,
     fetchLessonSubmissions,
     fetchLessonAssignments,
+    autoGradeLessonSubmissions,
     gradeLessonSubmission,
     notifyLessonSubmissions,
     updateStatus,

@@ -14,7 +14,7 @@
         </div>
       </div>
       <div class="header-right">
-        <div class="pill">{{ filteredSubmissions.length }} submissions</div>
+        <div class="pill">{{ submissionsMeta.total }} submissions</div>
       </div>
     </header>
 
@@ -41,6 +41,27 @@
       </select>
     </section>
 
+    <section class="pagination-toolbar" v-if="submissionsMeta.totalPages > 0">
+      <div class="pagination-left">
+        <label for="submissions-limit">Rows</label>
+        <select id="submissions-limit" v-model.number="pageLimit" class="type-filter" @change="onLimitChange">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+      </div>
+      <div class="pagination-right">
+        <button class="ghost-btn small" :disabled="!submissionsMeta.hasPrevPage || isLoading" @click="goToPreviousPage">
+          Previous
+        </button>
+        <span>Page {{ submissionsMeta.page }} of {{ submissionsMeta.totalPages }}</span>
+        <button class="ghost-btn small" :disabled="!submissionsMeta.hasNextPage || isLoading" @click="goToNextPage">
+          Next
+        </button>
+      </div>
+    </section>
+
     <section v-if="isLoading" class="state-card">
       <div class="spinner"></div>
       <p>Loading submissions...</p>
@@ -50,6 +71,90 @@
       <h3>Unable to load submissions</h3>
       <p>{{ loadError }}</p>
       <button class="primary-btn" @click="loadSubmissions">Retry</button>
+    </section>
+
+    <section v-else-if="autoGradePageOpen" class="autograde-page">
+      <div class="panel-header">
+        <div>
+          <h2>Auto Grade Results</h2>
+          <p>
+            Batch {{ autoGradeBatchId || 'N/A' }}:
+            {{ autoGradeSummary.processed }} processed, {{ autoGradeSummary.failed }} failed
+          </p>
+        </div>
+        <button class="ghost-btn small" @click="closeAutoGradePage">Back to submissions</button>
+      </div>
+      <div class="autograde-body">
+        <div class="autograde-table-wrap">
+          <table class="autograde-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Submitted</th>
+                <th>Assignment</th>
+                <th>Score</th>
+                <th>Comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in autoGradeRows" :key="row.submissionId">
+                <td>{{ row.studentName || `#${row.profileId}` }}</td>
+                <td>
+                  <div class="submitted-cell">
+                    <p class="submitted-type">{{ typeLabel(row.submitted.submissionType) }}</p>
+                    <p class="submitted-text" v-if="submittedTextPreview(row)">{{ submittedTextPreview(row) }}</p>
+                    <a
+                      v-if="row.submitted.linkUrl"
+                      :href="normalizedLink(row.submitted.linkUrl)"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {{ row.submitted.linkUrl }}
+                    </a>
+                    <ul v-if="row.submitted.files?.length" class="submitted-files">
+                      <li v-for="(file, idx) in row.submitted.files" :key="`${row.submissionId}-file-${idx}`">
+                        <div class="file-actions">
+                          <button class="ghost-btn" @click="previewSubmissionFile(file)">Preview</button>
+                          <a class="ghost-btn" :href="resolveFileUrl(file)" target="_blank" rel="noopener">
+                            {{ submissionFileDisplayName(file, idx) }}
+                          </a>
+                        </div>
+                      </li>
+                    </ul>
+                    <p v-if="!hasSubmittedContent(row.submitted)" class="muted">
+                      No content provided
+                    </p>
+                  </div>
+                </td>
+                <td>
+                  <div v-if="row.assignmentUrl" class="file-actions">
+                    <button class="ghost-btn" @click="previewAssignmentUrl(row)">Preview</button>
+                    <a class="ghost-btn" :href="normalizedLink(row.assignmentUrl)" target="_blank" rel="noopener">
+                      Open
+                    </a>
+                  </div>
+                  <span v-else class="muted">No URL</span>
+                </td>
+                <td>
+                  <input v-model.number="row.score" type="number" min="0" max="100" step="0.1" class="form-input autograde-score" />
+                </td>
+                <td>
+                  <textarea v-model.trim="row.comment" class="form-textarea autograde-comment"></textarea>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <label class="notify-check">
+          <input type="checkbox" v-model="autoGradeNotifyStudent" />
+          <span>Notify students after grading</span>
+        </label>
+        <div class="grading-actions">
+          <button class="primary-btn" :disabled="isSubmittingAutoGradeResults || autoGradeRows.length === 0" @click="submitAutoGradeResults">
+            {{ isSubmittingAutoGradeResults ? 'Saving...' : 'Grade Selected' }}
+          </button>
+        </div>
+      </div>
     </section>
 
     <section v-else-if="filteredSubmissions.length === 0" class="state-card empty">
@@ -63,6 +168,9 @@
           <button class="ghost-btn small" @click="toggleSelectAllVisible">
             {{ allVisibleSelected ? 'Clear Visible' : 'Select Visible' }}
           </button>
+          <button class="ghost-btn small" :disabled="bulkAutoGradeCount === 0 || isAutoGrading" @click="openAutoGradePage">
+            {{ isAutoGrading ? 'Auto grading...' : `Auto Grade Selected (${bulkAutoGradeCount})` }}
+          </button>
           <button class="primary-btn small" :disabled="bulkNotifyCount === 0 || isBulkNotifying" @click="bulkNotifySelected">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 0 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
@@ -75,7 +183,6 @@
         <div v-for="item in filteredSubmissions" :key="item.id" class="submission-row">
           <label class="row-check" @click.stop>
             <input type="checkbox" :checked="selectedSubmissionIds.has(item.id)"
-              :disabled="!canBulkNotify(item)"
               @change="toggleSubmissionSelection(item.id)" />
           </label>
           <button class="submission-item" :class="{ active: selectedSubmission?.id === item.id }" @click="selectSubmission(item)">
@@ -205,6 +312,7 @@
         </div>
       </div>
     </Teleport>
+
   </div>
 </template>
 
@@ -215,6 +323,10 @@ import { useToast } from 'vue-toast-notification'
 import { useAuthStore } from '@/stores/auth'
 import type {
   LessonSubmission,
+  LessonSubmissionsMeta,
+  SubmissionAutoGradeResult,
+  SubmissionAutoGradeSummary,
+  SubmissionBulkGradePayload,
   SubmissionFile,
   SubmissionGradePayload,
   SubmissionType,
@@ -225,7 +337,12 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
-const { fetchLessonAssignments, gradeLessonSubmission, notifyLessonSubmissions } = useLesson()
+const {
+  fetchLessonAssignments,
+  autoGradeLessonSubmissions,
+  gradeLessonSubmission,
+  notifyLessonSubmissions,
+} = useLesson()
 
 const courseName = computed(() => (route.query.courseName as string) || 'Course')
 const lessonTitle = computed(() => (route.query.lessonTitle as string) || 'Lesson Submissions')
@@ -239,14 +356,35 @@ const typeFilter = ref('')
 const gradingFilter = ref('')
 const notificationFilter = ref('')
 const submissions = ref<LessonSubmission[]>([])
+const currentPage = ref(1)
+const pageLimit = ref(20)
+const submissionsMeta = ref<LessonSubmissionsMeta>({
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPrevPage: false,
+})
 const selectedSubmission = ref<LessonSubmission | null>(null)
 const selectedSubmissionIds = ref<Set<number>>(new Set())
 const isSavingGrade = ref(false)
 const isBulkNotifying = ref(false)
+const isAutoGrading = ref(false)
+const isSubmittingAutoGradeResults = ref(false)
 
 const filePreviewOpen = ref(false)
 const filePreviewUrl = ref('')
 const filePreviewTitle = ref('')
+const autoGradePageOpen = ref(false)
+const autoGradeNotifyStudent = ref(true)
+const autoGradeBatchId = ref<string | number | null>(null)
+const autoGradeSummary = ref<SubmissionAutoGradeSummary>({
+  total: 0,
+  processed: 0,
+  failed: 0,
+})
+const autoGradeRows = ref<SubmissionAutoGradeResult[]>([])
 
 const gradeForm = ref<SubmissionGradePayload>({
   assignedScore: null,
@@ -279,7 +417,7 @@ const isGraded = (row: LessonSubmission) => row.grading.assignedScore !== null
 
 const isNotified = (row: LessonSubmission) => row.notification.notifiedAt !== null
 
-const canBulkNotify = (row: LessonSubmission) => isGraded(row) && !isNotified(row)
+const canBulkNotify = (row: LessonSubmission) => isGraded(row)
 
 const filteredSubmissions = computed(() =>
   submissions.value.filter((row) => {
@@ -305,10 +443,16 @@ const bulkNotifyCount = computed(() =>
   ), 0),
 )
 
+const bulkAutoGradeCount = computed(() =>
+  submissions.value.reduce((count, row) => (
+    selectedSubmissionIds.value.has(row.id) && !isGraded(row) ? count + 1 : count
+  ), 0),
+)
+
 const allVisibleSelected = computed(() => {
-  const eligibleVisible = filteredSubmissions.value.filter(canBulkNotify)
-  if (eligibleVisible.length === 0) return false
-  return eligibleVisible.every((item) => selectedSubmissionIds.value.has(item.id))
+  const visible = filteredSubmissions.value
+  if (visible.length === 0) return false
+  return visible.every((item) => selectedSubmissionIds.value.has(item.id))
 })
 
 const hydrateGradeForm = (row: LessonSubmission | null) => {
@@ -333,8 +477,6 @@ const selectSubmission = (row: LessonSubmission) => {
 }
 
 const toggleSubmissionSelection = (submissionId: number) => {
-  const row = submissions.value.find((item) => item.id === submissionId)
-  if (!row || !canBulkNotify(row)) return
   const next = new Set(selectedSubmissionIds.value)
   if (next.has(submissionId)) {
     next.delete(submissionId)
@@ -346,11 +488,11 @@ const toggleSubmissionSelection = (submissionId: number) => {
 
 const toggleSelectAllVisible = () => {
   const next = new Set(selectedSubmissionIds.value)
-  const eligibleVisible = filteredSubmissions.value.filter(canBulkNotify)
+  const visible = filteredSubmissions.value
   if (allVisibleSelected.value) {
-    eligibleVisible.forEach((item) => next.delete(item.id))
+    visible.forEach((item) => next.delete(item.id))
   } else {
-    eligibleVisible.forEach((item) => next.add(item.id))
+    visible.forEach((item) => next.add(item.id))
   }
   selectedSubmissionIds.value = next
 }
@@ -362,7 +504,7 @@ const bulkNotifySelected = async () => {
     .filter((row) => selectedSubmissionIds.value.has(row.id) && canBulkNotify(row))
     .map((row) => row.id)
   if (submissionIds.length === 0) {
-    toast.error('Only graded and not-yet-notified submissions can be notified.', {
+    toast.error('Only graded submissions can be notified.', {
       position: 'top-right',
       duration: 3000,
     })
@@ -378,8 +520,9 @@ const bulkNotifySelected = async () => {
     })
 
     const now = new Date().toISOString()
+    const notifiedIds = new Set(submissionIds)
     submissions.value = submissions.value.map((row) => {
-      if (!selectedSubmissionIds.value.has(row.id)) return row
+      if (!notifiedIds.has(row.id)) return row
       return {
         ...row,
         notification: {
@@ -461,13 +604,186 @@ const previewSubmissionFile = (file: SubmissionFile) => {
   filePreviewOpen.value = true
 }
 
+const previewAssignmentUrl = (row: SubmissionAutoGradeResult) => {
+  if (!row.assignmentUrl) {
+    toast.error('No assignment URL found.', { position: 'top-right', duration: 2500 })
+    return
+  }
+  filePreviewTitle.value = `Assignment Preview - ${row.studentName || `#${row.profileId}`}`
+  filePreviewUrl.value = normalizedLink(row.assignmentUrl)
+  filePreviewOpen.value = true
+}
+
 const closeFilePreview = () => {
   filePreviewOpen.value = false
   filePreviewUrl.value = ''
   filePreviewTitle.value = ''
 }
 
-const loadSubmissions = async () => {
+const hasSubmittedContent = (submitted: {
+  textContent?: string | null
+  linkUrl?: string | null
+  files?: SubmissionFile[] | null
+}) => {
+  const hasText = Boolean((submitted.textContent || '').trim())
+  const hasLink = Boolean((submitted.linkUrl || '').trim())
+  const hasFiles = Array.isArray(submitted.files) && submitted.files.length > 0
+  return hasText || hasLink || hasFiles
+}
+
+const closeAutoGradePage = () => {
+  autoGradePageOpen.value = false
+  autoGradeRows.value = []
+  autoGradeBatchId.value = null
+  autoGradeSummary.value = { total: 0, processed: 0, failed: 0 }
+  autoGradeNotifyStudent.value = true
+}
+
+const submittedTextPreview = (row: SubmissionAutoGradeResult) => {
+  const text = row.submitted.textContent || ''
+  if (!text) return ''
+  return text.length > 180 ? `${text.slice(0, 180)}...` : text
+}
+
+const openAutoGradePage = async () => {
+  if (isAutoGrading.value) return
+  const candidateSubmissions = submissions.value
+    .filter((row) => selectedSubmissionIds.value.has(row.id) && !isGraded(row))
+    .filter((row) => hasSubmittedContent({
+      textContent: row.submission.textContent,
+      linkUrl: row.submission.linkUrl,
+      files: row.submission.files,
+    }))
+  const submissionIds = candidateSubmissions.map((row) => row.id)
+
+  if (submissionIds.length === 0) {
+    toast.error('Select at least one ungraded submission with content for auto grading.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+    return
+  }
+
+  isAutoGrading.value = true
+  try {
+    const response = await autoGradeLessonSubmissions({
+      submissionIds,
+      gradedBy: authStore.user?.id || null,
+    })
+    const rows = Array.isArray(response?.results) ? response.results : []
+    if (rows.length === 0) {
+      toast.error('Auto grade returned no results for selected submissions.', {
+        position: 'top-right',
+        duration: 3000,
+      })
+      return
+    }
+    autoGradeRows.value = rows.map((row) => ({
+      ...row,
+      score: Number(row.score ?? 0),
+      comment: row.comment || '',
+    }))
+    autoGradeBatchId.value = response.batchId
+    autoGradeSummary.value = response.summary || { total: submissionIds.length, processed: rows.length, failed: 0 }
+    autoGradePageOpen.value = true
+  } catch (error) {
+    console.error('Failed to auto grade selected submissions:', error)
+    toast.error('Failed to auto grade selected submissions. Please try again.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+  } finally {
+    isAutoGrading.value = false
+  }
+}
+
+const submitAutoGradeResults = async () => {
+  if (isSubmittingAutoGradeResults.value || autoGradeRows.value.length === 0) return
+
+  const gradedBy = authStore.user?.id || null
+  const filteredRows = autoGradeRows.value.filter((row) => hasSubmittedContent(row.submitted))
+  if (filteredRows.length === 0) {
+    toast.error('No submittable rows found. Empty submissions were excluded.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+    return
+  }
+  const skippedRows = autoGradeRows.value.length - filteredRows.length
+  const results = filteredRows.map((row) => ({
+    submissionId: row.submissionId,
+    score: Math.max(0, Math.min(100, Number(row.score || 0))),
+    comment: row.comment || '',
+  }))
+
+  if (!gradedBy) {
+    toast.error('Missing grader identity. Please login again.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+    return
+  }
+
+  const payload: SubmissionBulkGradePayload = {
+    gradedBy,
+    notifyStudent: autoGradeNotifyStudent.value,
+    results,
+  }
+
+  isSubmittingAutoGradeResults.value = true
+  try {
+    await gradeLessonSubmission(payload)
+    const now = new Date().toISOString()
+    const resultsBySubmissionId = new Map(results.map((item) => [item.submissionId, item]))
+    submissions.value = submissions.value.map((row) => {
+      const graded = resultsBySubmissionId.get(row.id)
+      if (!graded) return row
+      return {
+        ...row,
+        grading: {
+          ...row.grading,
+          assignedScore: graded.score,
+          comment: graded.comment,
+          gradedBy,
+          gradedAt: now,
+        },
+        notification: autoGradeNotifyStudent.value
+          ? {
+            ...row.notification,
+            notifiedBy: gradedBy,
+            notifiedAt: now,
+          }
+          : row.notification,
+      }
+    })
+    if (selectedSubmission.value) {
+      const updated = submissions.value.find((item) => item.id === selectedSubmission.value?.id)
+      selectedSubmission.value = updated || selectedSubmission.value
+    }
+    if (skippedRows > 0) {
+      toast.info(`${skippedRows} empty submission(s) were skipped.`, {
+        position: 'top-right',
+        duration: 3000,
+      })
+    }
+    toast.success(`Saved grades for ${results.length} submission(s).`, {
+      position: 'top-right',
+      duration: 2500,
+    })
+    closeAutoGradePage()
+  } catch (error) {
+    console.error('Failed to save auto grade results:', error)
+    toast.error('Failed to save auto grade results. Please try again.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+  } finally {
+    isSubmittingAutoGradeResults.value = false
+  }
+}
+
+const loadSubmissions = async (page?: number | Event) => {
+  const targetPage = typeof page === 'number' ? page : currentPage.value
   if (!lessonId.value) {
     loadError.value = 'Missing lesson identifier.'
     return
@@ -476,8 +792,11 @@ const loadSubmissions = async () => {
   isLoading.value = true
   loadError.value = ''
   try {
-    const rows = await fetchLessonAssignments(lessonId.value)
+    const response = await fetchLessonAssignments(lessonId.value, targetPage, pageLimit.value)
+    const rows = response.data
     submissions.value = rows
+    submissionsMeta.value = response.meta
+    currentPage.value = response.meta.page
     selectedSubmissionIds.value = new Set()
     selectedSubmission.value = rows[0] || null
   } catch (error) {
@@ -486,6 +805,21 @@ const loadSubmissions = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const goToNextPage = async () => {
+  if (!submissionsMeta.value.hasNextPage || isLoading.value) return
+  await loadSubmissions(currentPage.value + 1)
+}
+
+const goToPreviousPage = async () => {
+  if (!submissionsMeta.value.hasPrevPage || isLoading.value) return
+  await loadSubmissions(currentPage.value - 1)
+}
+
+const onLimitChange = async () => {
+  currentPage.value = 1
+  await loadSubmissions(1)
 }
 
 const saveGrade = async () => {
@@ -497,14 +831,22 @@ const saveGrade = async () => {
 
   isSavingGrade.value = true
   try {
-    await gradeLessonSubmission(
-      selectedSubmission.value.id,
-      gradeForm.value,
-    )
+    const gradedBy = authStore.user?.id || null
+    await gradeLessonSubmission({
+      gradedBy,
+      notifyStudent: gradeForm.value.notifyStudent,
+      results: [{
+        submissionId: selectedSubmission.value.id,
+        score: Number(gradeForm.value.assignedScore),
+        comment: gradeForm.value.comment || '',
+      }],
+    })
     selectedSubmission.value.grading.assignedScore = Number(gradeForm.value.assignedScore)
     selectedSubmission.value.grading.comment = gradeForm.value.comment
     selectedSubmission.value.grading.gradedAt = new Date().toISOString()
+    selectedSubmission.value.grading.gradedBy = gradedBy
     if (gradeForm.value.notifyStudent) {
+      selectedSubmission.value.notification.notifiedBy = gradedBy
       selectedSubmission.value.notification.notifiedAt = new Date().toISOString()
     }
     toast.success('Grade saved successfully.', { position: 'top-right', duration: 2500 })
@@ -600,6 +942,26 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+.pagination-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pagination-left,
+.pagination-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.pagination-right span {
+  font-size: 0.85rem;
+  color: var(--theme-text-subtle);
 }
 
 .search-wrap {
@@ -1004,6 +1366,86 @@ onMounted(() => {
   grid-template-rows: auto 1fr;
 }
 
+.autograde-page {
+  background: var(--theme-surface);
+  color: var(--theme-text);
+  border-radius: 14px;
+  border: 1px solid var(--theme-border);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.autograde-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.autograde-table-wrap {
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.autograde-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.autograde-table th,
+.autograde-table td {
+  border-bottom: 1px solid var(--theme-border);
+  padding: 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.autograde-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--theme-bg);
+  z-index: 1;
+}
+
+.autograde-score {
+  min-width: 90px;
+  max-width: 120px;
+}
+
+.autograde-comment {
+  min-width: 260px;
+  min-height: 70px;
+}
+
+.submitted-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.submitted-type {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--theme-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.submitted-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.submitted-files {
+  margin: 0;
+  padding-left: 1rem;
+}
+
 .file-header {
   display: flex;
   align-items: center;
@@ -1053,6 +1495,15 @@ onMounted(() => {
 
   .toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .pagination-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .autograde-comment {
+    min-width: 180px;
   }
 }
 
