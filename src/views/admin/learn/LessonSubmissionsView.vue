@@ -62,6 +62,16 @@
       </div>
     </section>
 
+    <section v-if="isAutoGrading" class="autograde-progress">
+      <div class="spinner"></div>
+      <div class="autograde-progress-copy">
+        <p>Auto grading in progress...</p>
+        <div class="autograde-progress-bar">
+          <span></span>
+        </div>
+      </div>
+    </section>
+
     <section v-if="isLoading" class="state-card">
       <div class="spinner"></div>
       <p>Loading submissions...</p>
@@ -964,6 +974,44 @@ onMounted(() => {
   color: var(--theme-text-subtle);
 }
 
+.autograde-progress {
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.autograde-progress-copy {
+  flex: 1;
+}
+
+.autograde-progress-copy p {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  color: var(--theme-text-muted);
+}
+
+.autograde-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--theme-border) 70%, transparent);
+  overflow: hidden;
+}
+
+.autograde-progress-bar span {
+  display: block;
+  width: 35%;
+  height: 100%;
+  border-radius: 999px;
+  background: #0284c7;
+  animation: progress-slide 1.1s ease-in-out infinite;
+}
+
 .search-wrap {
   min-width: 0;
 }
@@ -1343,6 +1391,15 @@ onMounted(() => {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
   }
 }
 
