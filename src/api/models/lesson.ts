@@ -8,6 +8,7 @@ export interface Lesson {
   displayOrder: number
   title: string
   description: string
+  status?: 'draft' | 'published' | 'archived'
   goals: string // Rich text HTML
   objectives: string // Rich text HTML
   videoUrl: string
@@ -17,6 +18,7 @@ export interface Lesson {
   materialUrl?: string // URL from server
   writeupContent: string // Rich text HTML content (replaces writeupFiles)
   assignmentInstructions: string
+  assignmentSubmissionType?: 'upload' | 'text' | 'link' | 'mixed' | ''
   assignmentFile?: File | null
   assignmentUrl?: string // URL from server
   quiz?: File | null
@@ -30,6 +32,13 @@ export interface Lesson {
   authorId?: number
   createdAt?: string
   updatedAt?: string
+  zoomInfo?: {
+    url?: string
+    meetingId?: string
+    passcode?: string
+    startTime?: string
+    endTime?: string
+  }
 }
 
 export interface ProgramCourseLesson {

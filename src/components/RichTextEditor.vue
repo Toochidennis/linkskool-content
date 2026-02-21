@@ -17,6 +17,12 @@
         class="toolbar-btn" title="Strikethrough">
         <s>S</s>
       </button>
+      <button @click="insertSubscriptValue" class="toolbar-btn" title="Subscript selected text or enter value">
+        x₂
+      </button>
+      <button @click="insertSuperscriptValue" class="toolbar-btn" title="Superscript selected text or enter value">
+        x²
+      </button>
       <div class="toolbar-separator"></div>
       <button @click="editor.chain().focus().toggleBulletList().run()"
         :class="{ active: editor.isActive('bulletList') }" class="toolbar-btn" title="Bullet List">
@@ -25,6 +31,28 @@
       <button @click="editor.chain().focus().toggleOrderedList().run()"
         :class="{ active: editor.isActive('orderedList') }" class="toolbar-btn" title="Numbered List">
         1. List
+      </button>
+      <div class="toolbar-separator"></div>
+      <button @click="insertSymbol('α')" class="toolbar-btn symbol-btn" title="Alpha">
+        α
+      </button>
+      <button @click="insertSymbol('β')" class="toolbar-btn symbol-btn" title="Beta">
+        β
+      </button>
+      <button @click="insertSymbol('Δ')" class="toolbar-btn symbol-btn" title="Delta">
+        Δ
+      </button>
+      <button @click="insertSymbol('→')" class="toolbar-btn symbol-btn" title="Reaction Arrow">
+        →
+      </button>
+      <button @click="insertSymbol('⇌')" class="toolbar-btn symbol-btn" title="Equilibrium">
+        ⇌
+      </button>
+      <button @click="insertSymbol('±')" class="toolbar-btn symbol-btn" title="Plus minus">
+        ±
+      </button>
+      <button @click="insertFractionTemplate" class="toolbar-btn" title="Fraction template">
+        a/b
       </button>
     </div>
     <editor-content :editor="editor" class="editor-content" />
@@ -68,6 +96,100 @@ const editor = useEditor({
     emit('update:modelValue', editor.getHTML())
   },
 })
+
+const insertSymbol = (symbol: string) => {
+  if (!editor.value) return
+  editor.value.chain().focus().insertContent(symbol).run()
+}
+
+const SUPERSCRIPT_MAP: Record<string, string> = {
+  '0': '⁰',
+  '1': '¹',
+  '2': '²',
+  '3': '³',
+  '4': '⁴',
+  '5': '⁵',
+  '6': '⁶',
+  '7': '⁷',
+  '8': '⁸',
+  '9': '⁹',
+  '+': '⁺',
+  '-': '⁻',
+  '=': '⁼',
+  '(': '⁽',
+  ')': '⁾',
+  n: 'ⁿ',
+  i: 'ⁱ',
+}
+
+const SUBSCRIPT_MAP: Record<string, string> = {
+  '0': '₀',
+  '1': '₁',
+  '2': '₂',
+  '3': '₃',
+  '4': '₄',
+  '5': '₅',
+  '6': '₆',
+  '7': '₇',
+  '8': '₈',
+  '9': '₉',
+  '+': '₊',
+  '-': '₋',
+  '=': '₌',
+  '(': '₍',
+  ')': '₎',
+  a: 'ₐ',
+  e: 'ₑ',
+  h: 'ₕ',
+  i: 'ᵢ',
+  j: 'ⱼ',
+  k: 'ₖ',
+  l: 'ₗ',
+  m: 'ₘ',
+  n: 'ₙ',
+  o: 'ₒ',
+  p: 'ₚ',
+  r: 'ᵣ',
+  s: 'ₛ',
+  t: 'ₜ',
+  u: 'ᵤ',
+  v: 'ᵥ',
+  x: 'ₓ',
+}
+
+const convertWithMap = (value: string, map: Record<string, string>) =>
+  value
+    .split('')
+    .map((char) => map[char] ?? map[char.toLowerCase()] ?? char)
+    .join('')
+
+const applyMappedValue = (map: Record<string, string>) => {
+  if (!editor.value) return
+  const { from, to, empty } = editor.value.state.selection
+  const selectedText = empty ? '' : editor.value.state.doc.textBetween(from, to, ' ')
+  const source = selectedText || window.prompt('Enter value', '') || ''
+  if (!source.trim()) return
+
+  const converted = convertWithMap(source, map)
+  editor.value.chain().focus().insertContent(converted).run()
+}
+
+const insertSuperscriptValue = () => {
+  applyMappedValue(SUPERSCRIPT_MAP)
+}
+
+const insertSubscriptValue = () => {
+  applyMappedValue(SUBSCRIPT_MAP)
+}
+
+const insertFractionTemplate = () => {
+  if (!editor.value) return
+  editor.value
+    .chain()
+    .focus()
+    .insertContent('(<span>numerator</span>) / (<span>denominator</span>)')
+    .run()
+}
 
 watch(
   () => props.modelValue,
@@ -119,6 +241,11 @@ onBeforeUnmount(() => {
   font-weight: 600;
   font-size: 14px;
   transition: all 0.2s ease;
+}
+
+.symbol-btn {
+  min-width: 32px;
+  padding: 0 8px;
 }
 
 .toolbar-btn:hover {

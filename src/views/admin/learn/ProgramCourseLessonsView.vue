@@ -96,12 +96,34 @@
                 <div class="preview-stats">
                   <div class="stat-item">
                     <span class="stat-label">Status:</span>
-                    <span class="stat-value">✅ Saved</span>
+                    <span class="status-pill" :class="getStatusClass(lesson.status)">
+                      {{ getStatusLabel(lesson.status) }}
+                    </span>
                   </div>
                   <div class="stat-item">
                     <span class="stat-label">Date:</span>
                     <span class="stat-value">{{ formatDate(lesson.lessonDate) }}</span>
                   </div>
+                </div>
+                <div class="status-actions">
+                  <button class="status-action-btn" :class="getStatusActionClass(lesson.status)"
+                    @click="toggleLessonStatus(lesson, $event)"
+                    :disabled="statusUpdatingId === lesson.lessonId || !canUpdateStatus(lesson)">
+                    <svg v-if="getStatusActionLabel(lesson.status) === 'Archive'" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor">
+                      <path d="M3 7h18" stroke-width="2" stroke-linecap="round" />
+                      <path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M9 11h6" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M5 12l4 4 10-10" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    </svg>
+                    <span>
+                      {{ statusUpdatingId === lesson.lessonId ? 'Updating...' : getStatusActionLabel(lesson.status) }}
+                    </span>
+                  </button>
                 </div>
                 <div class="preview-meta">
                   <button v-if="lesson.videoUrl" class="meta-tag video" @click="previewVideo(lesson.videoUrl!, $event)">
@@ -120,8 +142,15 @@
                     @click="previewAssignment(lesson.assignmentUrl!, $event)">
                     Assignment
                   </button>
+                  <button v-if="lesson.zoomInfo?.url" class="meta-tag live"
+                    @click="previewLiveSession(lesson.zoomInfo.url, $event)">
+                    Live Session
+                  </button>
                   <button class="meta-tag quiz" @click="openQuizBuilder(lesson, $event)">
                     {{ lesson.hasQuiz ? 'Quiz' : 'Create Quiz' }}
+                  </button>
+                  <button class="meta-tag submissions" @click="openLessonSubmissions(lesson, $event)">
+                    View Submissions
                   </button>
                   <button v-if="lesson.certificateUrl && lesson.isFinalLesson" class="meta-tag certificate"
                     @click="previewCertificate(lesson.certificateUrl!, $event)">
@@ -215,8 +244,9 @@ const cohortId = computed(() => {
 })
 const courseTitle = ref((route.query.courseName as string) || formatCourseSlug(courseSlug.value))
 const savedIndicator = ref(false)
+const statusUpdatingId = ref<number | string | null>(null)
 
-const { lessons, fetchLessons, deleteLesson: deleteLessonApi } = useLesson()
+const { lessons, fetchLessons, deleteLesson: deleteLessonApi, updateStatus: updateLessonStatus } = useLesson()
 
 const loadLessons = async () => {
   if (cohortId.value > 0) {
@@ -330,6 +360,98 @@ const duplicateLesson = (lesson: Lesson, event: Event) => {
   })
 }
 
+const normalizeLessonStatus = (status?: Lesson['status'] | string) => {
+  const value = (status || 'draft').toString().toLowerCase()
+  if (value === 'published' || value === 'archived' || value === 'draft') {
+    return value as 'draft' | 'published' | 'archived'
+  }
+  return 'draft'
+}
+
+const getStatusLabel = (status?: Lesson['status']) => {
+  const normalized = normalizeLessonStatus(status)
+  if (normalized === 'published') return 'Published'
+  if (normalized === 'archived') return 'Archived'
+  return 'Draft'
+}
+
+const getStatusClass = (status?: Lesson['status']) => {
+  return `status-${normalizeLessonStatus(status)}`
+}
+
+const getStatusActionLabel = (status?: Lesson['status']) => {
+  return normalizeLessonStatus(status) === 'published' ? 'Archive' : 'Publish'
+}
+
+const getStatusActionClass = (status?: Lesson['status']) => {
+  return normalizeLessonStatus(status) === 'published'
+    ? 'status-action-archive'
+    : 'status-action-publish'
+}
+
+const canUpdateStatus = (lesson: Lesson) => {
+  return Boolean(lesson.lessonId) && !String(lesson.lessonId).startsWith('temp-')
+}
+
+const toggleLessonStatus = async (lesson: Lesson, event: Event) => {
+  event.stopPropagation()
+
+  if (!canUpdateStatus(lesson)) {
+    toast.error('Please save the lesson before changing its status.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+    return
+  }
+
+  if (statusUpdatingId.value === lesson.lessonId) return
+
+  const lessonId = Number(lesson.lessonId)
+  if (!Number.isFinite(lessonId)) {
+    toast.error('Unable to update this lesson status right now.', {
+      position: 'top-right',
+      duration: 3000,
+    })
+    return
+  }
+
+  const nextStatus = normalizeLessonStatus(lesson.status) === 'published' ? 'archived' : 'published'
+
+  try {
+    if(!lessonId){
+      toast.error('Invalid lesson ID. Cannot update status.', {
+        position: 'top-right',
+        duration: 3000,
+      })
+      return
+    }
+    statusUpdatingId.value = lesson.lessonId!
+    const response = await updateLessonStatus(lessonId, nextStatus)
+    if (response && response.success === false) {
+      throw new Error(response.message || 'Failed to update lesson status')
+    }
+    lesson.status = nextStatus
+    toast.success(
+      nextStatus === 'published' ? 'Lesson published successfully!' : 'Lesson archived successfully!',
+      {
+        position: 'top-right',
+        duration: 2500,
+      },
+    )
+  } catch (err) {
+    console.error('Error updating lesson status:', err)
+    const errorMessage =
+      err instanceof Error ? err.message : 'Failed to update lesson status. Please try again.'
+    toast.error(errorMessage, {
+      position: 'top-right',
+      duration: 5000,
+    })
+  } finally {
+    statusUpdatingId.value = null
+  }
+}
+
+
 const deleteLesson = async (lesson: Lesson, event: Event) => {
   event.stopPropagation()
 
@@ -410,6 +532,13 @@ const previewCertificate = (certificateUrl: string, event: Event) => {
   }
 }
 
+const previewLiveSession = (zoomUrl: string, event: Event) => {
+  event.stopPropagation()
+  if (zoomUrl) {
+    window.open(zoomUrl, '_blank')
+  }
+}
+
 // Video player state
 const videoPlayerOpen = ref(false)
 const currentVideoUrl = ref('')
@@ -484,6 +613,21 @@ const openQuizBuilder = (lesson: Lesson, event: Event) => {
       lessonId: lesson.lessonId,
       lessonTitle: lesson.title || 'Lesson Quiz',
       hasQuiz: lesson.hasQuiz ? '1' : '0',
+    },
+  })
+}
+
+const openLessonSubmissions = (lesson: Lesson, event: Event) => {
+  event.stopPropagation()
+  router.push({
+    name: 'Lesson Submissions',
+    query: {
+      programId: programId.value,
+      courseId: courseId.value,
+      cohortId: cohortId.value,
+      courseName: courseTitle.value,
+      lessonId: lesson.lessonId,
+      lessonTitle: lesson.title || 'Lesson Submissions',
     },
   })
 }
@@ -987,9 +1131,19 @@ button.meta-tag.assignment:hover {
   box-shadow: 0 2px 8px rgba(254, 215, 170, 0.3);
 }
 
+button.meta-tag.live:hover {
+  border-color: #0ea5e9;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+}
+
 button.meta-tag.certificate:hover {
   border-color: #7c3aed;
   box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
+}
+
+button.meta-tag.submissions:hover {
+  border-color: #059669;
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.3);
 }
 
 .meta-tag.video {
@@ -1008,6 +1162,12 @@ button.meta-tag.certificate:hover {
   border-color: #f472b6;
   color: #831843;
   background: #fce7f3;
+}
+
+.meta-tag.submissions {
+  border-color: #6ee7b7;
+  color: #065f46;
+  background: #ecfdf5;
 }
 
 .meta-tag.date {
@@ -1032,6 +1192,12 @@ button.meta-tag.certificate:hover {
   border-color: #fed7aa;
   color: #92400e;
   background: #fffbeb;
+}
+
+.meta-tag.live {
+  border-color: #bae6fd;
+  color: #075985;
+  background: #f0f9ff;
 }
 
 .meta-tag.final-badge {
@@ -1073,6 +1239,87 @@ button.meta-tag.certificate:hover {
 .stat-value {
   color: var(--theme-text-muted);
   font-weight: 500;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.status-pill.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.status-pill.status-published {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.status-pill.status-archived {
+  background: #e5e7eb;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.status-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.status-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--theme-surface);
+  color: var(--theme-text);
+  transition: all 0.2s ease;
+}
+
+.status-action-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.status-action-btn.status-action-publish {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.status-action-btn.status-action-archive {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.status-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.status-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Form Actions */

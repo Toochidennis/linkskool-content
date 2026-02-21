@@ -1,6 +1,7 @@
 <template>
-  <div class="quiz-page">
-    <header class="quiz-header">
+  <div ref="quizPageRef" class="quiz-page">
+    <header ref="quizHeaderRef" class="quiz-header" :class="{ 'is-hidden': headerHidden }"
+      :style="floatingHeaderStyle">
       <div class="header-left">
         <button class="back-btn" @click="goBack" aria-label="Go back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -20,6 +21,7 @@
         <button class="primary-btn" @click="addQuestion">Add question</button>
       </div>
     </header>
+    <div class="quiz-header-spacer" :style="{ height: headerSpacerHeight }"></div>
 
     <section v-if="isLoading" class="state-card">
       <p>Loading quiz questions...</p>
@@ -32,7 +34,7 @@
         <button class="primary-btn" @click="addQuestion">Add first question</button>
       </div>
 
-      <div v-else class="question-list">
+      <div v-else ref="questionListRef" class="question-list">
         <article v-for="(question, index) in questions" :key="question.localId" class="question-card"
           :class="{ collapsed: !isExpanded(question) }">
           <header class="card-header" @click="toggleQuestion(question)">
@@ -117,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import type { QuizQuestion } from '@/api/models/quiz'
@@ -155,6 +157,47 @@ const questions = ref<EditableQuestion[]>([])
 const isLoading = ref(false)
 const previewOpen = ref(false)
 const expandedQuestionId = ref<string | null>(null)
+const questionListRef = ref<HTMLElement | null>(null)
+const quizPageRef = ref<HTMLElement | null>(null)
+const quizHeaderRef = ref<HTMLElement | null>(null)
+const headerHidden = ref(false)
+const headerSpacerHeight = ref('0px')
+const floatingHeaderStyle = ref<Record<string, string>>({})
+
+let scrollTarget: HTMLElement | Window | null = null
+let scrollTimeoutId: number | undefined
+let resizeObserver: ResizeObserver | null = null
+
+const updateHeaderMetrics = () => {
+  const page = quizPageRef.value
+  if (!page || typeof window === 'undefined') return
+
+  const pageRect = page.getBoundingClientRect()
+  const pageStyles = window.getComputedStyle(page)
+  const paddingLeft = parseFloat(pageStyles.paddingLeft) || 0
+  const paddingRight = parseFloat(pageStyles.paddingRight) || 0
+
+  floatingHeaderStyle.value = {
+    left: `${pageRect.left + paddingLeft}px`,
+    width: `${pageRect.width - paddingLeft - paddingRight}px`,
+  }
+
+  if (quizHeaderRef.value) {
+    const headerStyles = window.getComputedStyle(quizHeaderRef.value)
+    const marginBottom = parseFloat(headerStyles.marginBottom) || 0
+    headerSpacerHeight.value = `${quizHeaderRef.value.offsetHeight + marginBottom}px`
+  }
+}
+
+const handleScroll = () => {
+  headerHidden.value = true
+  if (scrollTimeoutId !== undefined) {
+    window.clearTimeout(scrollTimeoutId)
+  }
+  scrollTimeoutId = window.setTimeout(() => {
+    headerHidden.value = false
+  }, 160)
+}
 
 const createLocalId = () => `q-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
@@ -214,8 +257,17 @@ const addQuestion = () => {
     isDirty: true,
     isSaving: false,
   }
-  questions.value.unshift(newQuestion)
+  questions.value.push(newQuestion)
   expandedQuestionId.value = newQuestion.localId
+  nextTick(() => {
+    const list = questionListRef.value
+    if (!list) return
+    const cards = list.querySelectorAll<HTMLElement>('.question-card')
+    const lastCard = cards[cards.length - 1]
+    if (lastCard) {
+      lastCard.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  })
 }
 
 const duplicateQuestion = (question: EditableQuestion) => {
@@ -296,11 +348,11 @@ const saveQuestion = async (question: EditableQuestion) => {
     question_text: question.questionText.trim(),
     options: question.options.map((opt, index) => ({
       text: opt.text.trim(),
-      order: index + 1,
+      order: index,
     })),
     correct: {
       text: question.options[correctIndex]?.text.trim() || '',
-      order: correctIndex + 1,
+      order: correctIndex,
     },
   }
 
@@ -348,7 +400,7 @@ const previewQuestions = computed<QuizQuestion[]>(() =>
         question.correctIndex !== null
           ? question.options[question.correctIndex]?.text || ''
           : '',
-      order: question.correctIndex !== null ? question.correctIndex + 1 : 0,
+      order: question.correctIndex !== null ? question.correctIndex : 0,
     },
   })),
 )
@@ -373,6 +425,33 @@ const goBack = () => {
 
 onMounted(() => {
   loadQuiz()
+  nextTick(() => {
+    updateHeaderMetrics()
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => updateHeaderMetrics())
+      if (quizPageRef.value) resizeObserver.observe(quizPageRef.value)
+      if (quizHeaderRef.value) resizeObserver.observe(quizHeaderRef.value)
+    } else {
+      window.addEventListener('resize', updateHeaderMetrics)
+    }
+
+    scrollTarget = document.querySelector('main') || window
+    scrollTarget.addEventListener('scroll', handleScroll, { passive: true })
+  })
+})
+
+onBeforeUnmount(() => {
+  if (scrollTarget) {
+    scrollTarget.removeEventListener('scroll', handleScroll as EventListener)
+  }
+  if (scrollTimeoutId !== undefined) {
+    window.clearTimeout(scrollTimeoutId)
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  } else {
+    window.removeEventListener('resize', updateHeaderMetrics)
+  }
 })
 </script>
 
@@ -401,6 +480,21 @@ onMounted(() => {
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+  position: fixed;
+  top: 4rem;
+  z-index: 45;
+  background: var(--theme-bg);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.quiz-header.is-hidden {
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.quiz-header-spacer {
+  width: 100%;
 }
 
 .header-left {
