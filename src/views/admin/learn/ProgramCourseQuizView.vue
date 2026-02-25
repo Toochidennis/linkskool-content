@@ -82,7 +82,8 @@
             <div class="form-group">
               <label>Question</label>
               <textarea v-model="question.questionText" rows="2" class="form-textarea"
-                placeholder="Type your question here..." @input="markDirty(question)" />
+                placeholder="Type your question here..." @input="markDirty(question)"
+                @paste="handleStructuredPaste($event, question)" />
             </div>
 
             <div class="options-group">
@@ -94,7 +95,7 @@
                   <span class="radio-control"></span>
                 </label>
                 <input v-model="option.text" type="text" class="option-input" placeholder="Option text"
-                  @input="markDirty(question)" />
+                  @input="markDirty(question)" @paste="handleStructuredPaste($event, question)" />
                 <button v-if="question.options.length > 2" class="icon-btn"
                   @click="removeOption(question, optionIndex)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -246,6 +247,48 @@ const loadQuiz = async () => {
 
 const markDirty = (question: EditableQuestion) => {
   question.isDirty = true
+}
+
+const cleanPastedLine = (line: string, isFirstLine = false) => {
+  let cleaned = line.trim()
+  if (!cleaned) return ''
+
+  if (isFirstLine) {
+    // Remove question numbering like "1. ", "12) "
+    cleaned = cleaned.replace(/^\d+[\.\)]\s+/, '')
+  } else {
+    // Remove common option/list markers like "A. ", "b) ", "- ", "* ", "• ", "1. "
+    cleaned = cleaned.replace(/^([A-Za-z][\.\)]|\d+[\.\)]|[-*•])\s+/, '')
+  }
+
+  return cleaned.trim()
+}
+
+const handleStructuredPaste = (event: ClipboardEvent, question: EditableQuestion) => {
+  const raw = event.clipboardData?.getData('text/plain') || ''
+  if (!raw.trim()) return
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line, index) => cleanPastedLine(line, index === 0))
+    .filter((line) => line.length > 0)
+
+  // Keep default paste behavior for simple single-line pastes.
+  if (lines.length <= 1) return
+
+  event.preventDefault()
+
+  question.questionText = lines[0] || question.questionText
+
+  const optionLines = lines.slice(1)
+  const normalizedOptions = optionLines.length >= 2 ? optionLines : [...optionLines, '']
+  question.options = normalizedOptions.map((text) => ({ text }))
+
+  if (question.correctIndex !== null && question.correctIndex >= question.options.length) {
+    question.correctIndex = null
+  }
+
+  markDirty(question)
 }
 
 const addQuestion = () => {

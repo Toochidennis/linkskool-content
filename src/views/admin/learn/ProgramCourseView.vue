@@ -38,7 +38,12 @@
       </div>
     </div>
 
-    <div v-if="filteredCoursesList.length > 0" class="courses-grid">
+    <div v-if="isLoading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading courses...</p>
+    </div>
+
+    <div v-else-if="filteredCoursesList.length > 0" class="courses-grid">
       <div
         v-for="course in filteredCoursesList"
         :key="course.id"
@@ -377,6 +382,25 @@ onMounted(() => {
   flex: 1;
 }
 
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: var(--theme-text-subtle);
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  animation: program-course-spin 0.8s linear infinite;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -396,6 +420,12 @@ onMounted(() => {
 .empty-text {
   color: var(--theme-text-subtle);
   font-size: 1rem;
+}
+
+@keyframes program-course-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {

@@ -37,8 +37,13 @@
       </div>
     </div>
 
+    <div v-if="programsLoading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading programs...</p>
+    </div>
+
     <!-- Grid View -->
-    <div v-if="filteredProgramsList.length > 0" class="programs-grid" @click="closeMenuOutside">
+    <div v-else-if="filteredProgramsList.length > 0" class="programs-grid" @click="closeMenuOutside">
       <div v-for="program in filteredProgramsList" :key="program.id" class="program-card" @click="viewProgram(program)">
         <div class="program-image-container">
           <img :src="loadImage(program.imageUrl || '')" :alt="program.name" class="program-image" />
@@ -404,6 +409,7 @@ const isSubmitting = ref(false)
 const originalImageFileName = ref('')
 const statusLoadingId = ref<number | null>(null)
 const deleteLoadingId = ref<number | null>(null)
+const programsLoading = ref(false)
 const learningCourses = ref<LearningCourse[]>([])
 const learningCoursesLoading = ref(false)
 const courseSearchQuery = ref('')
@@ -620,6 +626,7 @@ const getCourseCount = (prog: Program): number => {
 
 // Fetch programs from API
 const fetchPrograms = async () => {
+  programsLoading.value = true
   try {
     const response = await programService.get()
     if (response.data) {
@@ -630,6 +637,8 @@ const fetchPrograms = async () => {
     console.error('Failed to fetch programs:', error)
     const message = error instanceof Error ? error.message : 'Failed to load programs'
     toast.error(message)
+  } finally {
+    programsLoading.value = false
   }
 }
 
@@ -1520,6 +1529,25 @@ const viewProgram = (prog: Program) => {
   transform: translateX(2px);
 }
 
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: var(--theme-text-subtle);
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  animation: program-lib-spin 0.8s linear infinite;
+}
+
 /* Empty State */
 .empty-state {
   display: flex;
@@ -1540,6 +1568,12 @@ const viewProgram = (prog: Program) => {
 .empty-text {
   color: var(--theme-text-subtle);
   font-size: 1rem;
+}
+
+@keyframes program-lib-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Modal */

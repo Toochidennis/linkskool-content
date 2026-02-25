@@ -93,7 +93,12 @@
       </div>
     </section>
 
-    <section class="cohort-stack" v-if="filteredCohorts.length">
+    <section v-if="isLoading" class="loading-card">
+      <div class="loading-spinner"></div>
+      <p>Loading cohorts...</p>
+    </section>
+
+    <section class="cohort-stack" v-else-if="filteredCohorts.length">
       <article v-for="cohort in filteredCohorts" :key="cohort.id" class="cohort-card">
         <div class="cohort-header" @click="toggleExpanded(cohort.id)">
           <div class="title-block">
@@ -634,6 +639,7 @@ const router = useRouter()
 // Use cohorts composable
 const {
   cohorts,
+  isLoading,
   isSubmitting,
   form,
   isFormValid,
@@ -1696,6 +1702,28 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.25rem;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: 16px;
+  color: var(--theme-text-subtle);
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 3px solid #dbeafe;
+  border-top-color: #0284c7;
+  animation: cohorts-spin 0.8s linear infinite;
+}
+
 .empty {
   text-align: center;
   padding: 3rem 1rem;
@@ -1725,6 +1753,12 @@ onMounted(() => {
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
   overflow: hidden;
+}
+
+@keyframes cohorts-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-overlay {

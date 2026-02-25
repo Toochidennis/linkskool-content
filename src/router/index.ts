@@ -7,7 +7,7 @@ import AssessmentView from '@/views/admin/cbt/AssessmentView.vue'
 import ExamTypeView from '@/views/admin/cbt/ExamTypeView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
-import CoursesVue from '@/views/admin/cbt/CoursesView.vue'
+import CoursesView from '@/views/admin/cbt/CoursesView.vue'
 import UploadView from '@/views/user/UploadView.vue'
 import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
 import TopicsView from '@/views/admin/cbt/TopicsView.vue'
@@ -63,18 +63,18 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        name: 'AdminDashboard',
-        component: DashboardView,
-      },
-      {
-        path: 'analytics',
         name: 'Dashboard',
         component: DashboardView,
       },
       {
+        path: 'analytics',
+        name: 'Dashboard Analytics',
+        component: DashboardView,
+      },
+      {
         path: 'courses',
-        name: 'Courses',
-        component: CoursesVue,
+        name: 'CBT Courses',
+        component: CoursesView,
       },
       {
         path: 'topics',
@@ -118,7 +118,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'learn-courses',
-        name: 'Courses',
+        name: 'Learn Courses',
         component: LearningCourseView,
       },
       {
