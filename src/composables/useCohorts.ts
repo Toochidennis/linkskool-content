@@ -34,6 +34,15 @@ export type Cohort = {
   trialType?: 'views' | 'days'
   trialValue?: number
   cost?: number
+  nextCohort?: LinkableCohortOption | null
+}
+
+export type LinkableCohortOption = {
+  id: number
+  title: string
+  description: string
+  startDate: string
+  endDate: string
 }
 
 export type CohortForm = {
@@ -52,6 +61,7 @@ export type CohortForm = {
   cost?: number
   trialType?: 'views' | 'days'
   trialValue?: number
+  nextCohortId: number
 }
 
 export function useCohorts() {
@@ -60,6 +70,7 @@ export function useCohorts() {
   const cohorts = ref<Cohort[]>([])
   const isLoading = ref(false)
   const isSubmitting = ref(false)
+  const linkableCohorts = ref<LinkableCohortOption[]>([])
   const editingCohortId = ref<number | null>(null)
   const originalImageUrl = ref<string>('')
   const fieldErrors = ref<Record<string, string>>({})
@@ -80,6 +91,7 @@ export function useCohorts() {
     cost: undefined,
     trialType: undefined,
     trialValue: undefined,
+    nextCohortId: 0,
   })
 
   // Helper functions
@@ -281,14 +293,16 @@ export function useCohorts() {
       }
     }
 
-    // Debug: Log all FormData entries
-    console.log('FormData being sent:', {
-      is_free: form.value.isFree,
-      cost: form.value.cost,
-      trialType: form.value.trialType,
-      trialValue: form.value.trialValue,
-      formDataEntries: Array.from(payload.entries()),
-    })
+    if (form.value.nextCohortId > 0) {
+      const selected = linkableCohorts.value.find((cohort) => cohort.id === form.value.nextCohortId)
+      if (selected) {
+        payload.append('next_cohort[id]', String(selected.id))
+        payload.append('next_cohort[title]', selected.title)
+        payload.append('next_cohort[description]', selected.description)
+        payload.append('next_cohort[start_date]', selected.startDate)
+        payload.append('next_cohort[end_date]', selected.endDate)
+      }
+    }
 
     return payload
   }
@@ -310,6 +324,7 @@ export function useCohorts() {
       cost: undefined,
       trialType: undefined,
       trialValue: undefined,
+      nextCohortId: 0,
     }
     originalImageUrl.value = ''
     editingCohortId.value = null
@@ -337,6 +352,34 @@ export function useCohorts() {
       cost: normalized.cost,
       trialType: cohort.trialType,
       trialValue: cohort.trialValue,
+      nextCohortId: cohort.nextCohort?.id ||  0,
+    }
+  }
+
+  const fetchLinkableCohorts = async (programId: number, cohortId?: number) => {
+    if (!programId) {
+      toast.error('Missing program id')
+      return
+    }
+
+    try {
+      const params = cohortId ? { cohort_id: cohortId } : undefined
+      const response = await programService.get<LinkableCohortOption[]>(
+        `${programId}/cohorts`,
+        params,
+      )
+      const rows = Array.isArray(response.data) ? response.data : []
+      linkableCohorts.value = rows.map((row) => ({
+        id: Number(row.id),
+        title: String(row.title),
+        description: String(row.description),
+        startDate: String(row.startDate),
+        endDate: String(row.endDate),
+      }))
+    } catch (error: unknown) {
+      console.error('Failed to fetch linkable cohorts', error)
+      const message = error instanceof Error ? error.message : 'Failed to load cohorts for linking'
+      toast.error(message)
     }
   }
 
@@ -351,7 +394,7 @@ export function useCohorts() {
       const response = await programService.get<Cohort[]>(
         `${programId}/courses/${courseId}/cohorts`,
       )
-      console.log('Fetched cohorts response:', response)
+
       const data = Array.isArray(response.data) ? response.data.map(normalizeCohort) : []
       cohorts.value = data
     } catch (error: unknown) {
@@ -440,6 +483,7 @@ export function useCohorts() {
         `courses/cohorts/${cohortId}/status`,
         { status },
       )
+
       if (response.success) {
         toast.success('Status updated successfully')
         await fetchCohorts(programId, courseId)
@@ -462,6 +506,7 @@ export function useCohorts() {
     cohorts,
     isLoading,
     isSubmitting,
+    linkableCohorts,
     editingCohortId,
     originalImageUrl,
     form,
@@ -473,6 +518,7 @@ export function useCohorts() {
 
     // Methods
     fetchCohorts,
+    fetchLinkableCohorts,
     saveCohort,
     deleteCohort,
     updateCohortStatus,

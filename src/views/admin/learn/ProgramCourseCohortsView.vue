@@ -402,6 +402,18 @@
                 fieldErrors.zoomLink
                 }}</span>
             </div>
+            <div class="field">
+              <label>Link to Next Cohort</label>
+              <select v-model.number="form.nextCohortId">
+                <option :value="0">Link cohort</option>
+                <option v-for="cohortOption in linkableCohorts" :key="cohortOption.id" :value="cohortOption.id">
+                  {{ cohortOption.title }}
+                </option>
+              </select>
+              <p class="field-hint">
+                Select the cohort learners should progress to next.
+              </p>
+            </div>
             <div class="field" :class="{ 'has-error': fieldErrors.image }">
               <label>Cover image<span class="required">*</span></label>
               <div v-if="!imagePreview" class="upload upload-large" @click="triggerUpload" @dragover.prevent
@@ -641,10 +653,12 @@ const {
   cohorts,
   isLoading,
   isSubmitting,
+  linkableCohorts,
   form,
   isFormValid,
   fieldErrors,
   fetchCohorts: _fetchCohorts,
+  fetchLinkableCohorts: _fetchLinkableCohorts,
   saveCohort: _saveCohort,
   deleteCohort: _deleteCohort,
   updateCohortStatus: _updateCohortStatus,
@@ -787,13 +801,19 @@ const openLessons = (cohort: Cohort) => {
   })
 }
 
-const startEditCohort = (cohort: Cohort) => {
+const startEditCohort = async (cohort: Cohort) => {
+  if (programId.value) {
+    await _fetchLinkableCohorts(programId.value, cohort.id)
+  }
   _startEditCohort(cohort)
   imagePreview.value = cohort.imageUrl ? loadImage(cohort.imageUrl) : ''
   showModal.value = true
 }
 
-const openCreateModal = () => {
+const openCreateModal = async () => {
+  if (programId.value) {
+    await _fetchLinkableCohorts(programId.value)
+  }
   resetForm()
   imagePreview.value = ''
   showModal.value = true
@@ -929,6 +949,9 @@ const handleAccessTypeChange = () => {
 
 onMounted(() => {
   fetchCohorts()
+  if (programId.value) {
+    _fetchLinkableCohorts(programId.value)
+  }
   document.addEventListener('click', closeMenu)
 
   onUnmounted(() => {
