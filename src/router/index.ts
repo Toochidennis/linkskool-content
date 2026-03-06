@@ -29,6 +29,8 @@ import LessonFormView from '@/views/admin/learn/LessonFormView.vue'
 import ProgramCourseQuizView from '@/views/admin/learn/ProgramCourseQuizView.vue'
 import LessonSubmissionsView from '@/views/admin/learn/LessonSubmissionsView.vue'
 import LearningCourseView from '@/views/admin/learn/LearningCourseView.vue'
+import NotificationComposerView from '@/views/admin/NotificationView.vue'
+import FaqsView from '@/views/admin/FaqsView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -190,6 +192,16 @@ const routes: RouteRecordRaw[] = [
         path: 'logs',
         name: 'Activities',
         component: RecentActivitiesView,
+      },
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: NotificationComposerView,
+      },
+      {
+        path: 'faqs',
+        name: 'FAQs',
+        component: FaqsView,
       },
       {
         path: 'config',

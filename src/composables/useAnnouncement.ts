@@ -87,16 +87,15 @@ export const useAnnouncement = () => {
         formData.append('date_posted', payload.date_posted);
       }
 
-      // Append images - use 'images[]' as key for Laravel
+      if (payload.deadline) {
+        formData.append('deadline', payload.deadline);
+      }
+
+      formData.append('notify', payload.notify ? '1' : '0');
+
       payload.images.forEach((image) => {
         formData.append('images[]', image, image.name);
       });
-
-      console.log('Creating news with FormData');
-      // Log FormData contents for debugging
-      for (const pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
 
       const response = await newsService.post(undefined, formData as unknown as Record<string, unknown>);
 
@@ -136,6 +135,12 @@ export const useAnnouncement = () => {
       if (payload.date_posted) {
         formData.append('date_posted', payload.date_posted);
       }
+
+      if (payload.deadline) {
+        formData.append('deadline', payload.deadline);
+      }
+
+      formData.append('notify', payload.notify ? '1' : '0');
 
       // Append old_images array if provided - tracks existing images and their deletion status
       if (payload.old_images && payload.old_images.length > 0) {
@@ -210,6 +215,21 @@ export const useAnnouncement = () => {
     }
   }
 
+  const notifyNews = async (id: number, notifiedBy: number) => {
+    try {
+      const response = await newsService.put(`${id}/notify`, {
+        notified_by: notifiedBy
+      });
+      return response;
+    } catch (error: any) {
+      throw {
+        success: false,
+        message: error.response?.data?.message || 'Failed to notify news',
+        error
+      };
+    }
+  }
+
 
   return {
     fetchCategories,
@@ -219,7 +239,7 @@ export const useAnnouncement = () => {
     createNews,
     updateNews,
     deleteNews,
-    updateNewsStatus
+    updateNewsStatus,
+    notifyNews
   }
 }
-

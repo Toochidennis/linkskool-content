@@ -3,6 +3,9 @@ export interface News {
   title: string;
   content: string;
   datePosted: string;
+  deadline?: string;
+  notified_at?: string | null;
+  notifiedAt?: string | null;
   categories: Category[];
   authorId: number;
   authorName: string;
@@ -36,6 +39,8 @@ export interface CreateNewsPayload {
   title: string;
   content: string;
   date_posted?: string;
+  deadline?: string;
+  notify?: boolean;
   category_ids: number[];
   author_id: number;
   author_name: string;

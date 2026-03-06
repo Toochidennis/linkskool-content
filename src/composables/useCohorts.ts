@@ -9,8 +9,10 @@ export type Cohort = {
   title: string
   code?: string
   imageUrl?: string
+  videoUrl?: string
   startDate: string
   endDate: string
+  enrollmentDeadline?: string
   status: CohortStatus
   statusLabel?: string
   participants?: number
@@ -30,10 +32,13 @@ export type Cohort = {
   courseName?: string
   programId?: number
   zoomLink?: string
+  instructorName?: string
+  learningType?: 'self_paced' | 'instructor_led'
   isFree?: boolean | number | string
   trialType?: 'views' | 'days'
   trialValue?: number
   cost?: number
+  discount?: number
   nextCohort?: LinkableCohortOption | null
 }
 
@@ -51,14 +56,19 @@ export type CohortForm = {
   status: CohortStatus
   startDate: string
   endDate: string
+  enrollmentDeadline: string
   capacity: number
   description: string
   whatYouWillLearn: string
   delivery: string
+  learningType: 'self_paced' | 'instructor_led'
+  instructorName: string
+  videoUrl: string
   image: string | File
   zoomLink: string
   isFree: boolean
   cost?: number
+  discount?: number
   trialType?: 'views' | 'days'
   trialValue?: number
   nextCohortId: number
@@ -81,14 +91,19 @@ export function useCohorts() {
     status: 'upcoming',
     startDate: '',
     endDate: '',
+    enrollmentDeadline: '',
     capacity: 40,
     description: '',
     whatYouWillLearn: '',
     delivery: 'virtual',
+    learningType: 'instructor_led',
+    instructorName: '',
+    videoUrl: '',
     image: '',
     zoomLink: '',
     isFree: true,
     cost: undefined,
+    discount: undefined,
     trialType: undefined,
     trialValue: undefined,
     nextCohortId: 0,
@@ -97,6 +112,12 @@ export function useCohorts() {
   // Helper functions
   const parseBoolean = (value: unknown) =>
     value === true || value === 1 || value === '1' || value === 'true'
+
+  const parseNumber = (value: unknown): number | undefined => {
+    if (value === undefined || value === null || value === '') return undefined
+    const numeric = Number(value)
+    return Number.isFinite(numeric) ? numeric : undefined
+  }
 
   const isValidZoomLink = (url: string) => {
     if (!url) return true // Empty is valid (optional field)
@@ -114,11 +135,52 @@ export function useCohorts() {
     return 'Upcoming'
   }
 
+  const toDateTimeLocalValue = (value?: string) => {
+    if (!value) return ''
+
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      return value.slice(0, 16)
+    }
+
+    const pad = (part: number) => String(part).padStart(2, '0')
+    const year = parsed.getFullYear()
+    const month = pad(parsed.getMonth() + 1)
+    const day = pad(parsed.getDate())
+    const hours = pad(parsed.getHours())
+    const minutes = pad(parsed.getMinutes())
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+
+  const toServerDatetime = (value?: string) => {
+    if (!value) return ''
+
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      return value
+    }
+
+    const pad = (part: number) => String(part).padStart(2, '0')
+    const year = parsed.getFullYear()
+    const month = pad(parsed.getMonth() + 1)
+    const day = pad(parsed.getDate())
+    const hours = pad(parsed.getHours())
+    const minutes = pad(parsed.getMinutes())
+    const seconds = pad(parsed.getSeconds())
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+
   const normalizeCohort = (cohort: Cohort): Cohort => {
     return {
       ...cohort,
       delivery: cohort.deliveryMode,
+      enrollmentDeadline: cohort.enrollmentDeadline,
       isFree: parseBoolean(cohort.isFree),
+      cost: parseNumber(cohort.cost),
+      discount: parseNumber(cohort.discount),
+      trialValue: parseNumber(cohort.trialValue),
       statusLabel: statusLabel((cohort.status ?? 'upcoming') as CohortStatus),
     }
   }
@@ -138,26 +200,46 @@ export function useCohorts() {
       case 'whatYouWillLearn':
         return form.value.whatYouWillLearn.trim() ? '' : 'Learning points are required'
       case 'image':
-        if (editingCohortId.value) return ''
-        return form.value.image instanceof File ? '' : 'Cover image is required'
+        return hasAtLeastOneMedia() ? '' : 'Provide at least a video URL or cover image'
       case 'zoomLink':
         if (!form.value.zoomLink) return ''
         return isValidZoomLink(form.value.zoomLink)
           ? ''
           : 'Invalid Zoom link (use zoom.us or zoom.com URL)'
+      case 'videoUrl':
+        if (!form.value.videoUrl) return ''
+        try {
+          new URL(form.value.videoUrl)
+          return ''
+        } catch {
+          return 'Video URL must be a valid URL'
+        }
       case 'cost':
         if (form.value.isFree) return ''
         if (form.value.cost === undefined || form.value.cost === null)
           return 'Cost is required for paid cohorts'
         if (form.value.cost <= 0) return 'Cost must be greater than 0'
         return ''
+      case 'discount':
+        if (form.value.isFree) return ''
+        if (form.value.discount === undefined || form.value.discount === null || form.value.discount === 0) return ''
+        if (form.value.discount < 0) return 'Discount cannot be negative'
+        if (form.value.discount > 100) return 'Discount cannot exceed 100%'
+        return ''
       case 'trialType':
         if (form.value.isFree) return ''
-        return form.value.trialType ? '' : 'Trial type is required for paid cohorts'
+        if (form.value.trialType === undefined && form.value.trialValue == null) return ''
+        if (form.value.trialValue != null && form.value.trialType === undefined)
+          return 'Select a trial type when providing trial value'
+        return ''
       case 'trialValue':
         if (form.value.isFree) return ''
-        if (!form.value.trialValue) return 'Trial value is required for paid cohorts'
-        if (form.value.trialValue <= 0) return 'Trial value must be greater than 0'
+        if (form.value.trialType === undefined && form.value.trialValue == null) return ''
+        if (form.value.trialType !== undefined && form.value.trialValue == null)
+          return 'Trial value is required when trial type is selected'
+        if (form.value.trialType === undefined && form.value.trialValue != null)
+          return 'Select a trial type when providing trial value'
+        if ((form.value.trialValue ?? 0) < 0) return 'Trial value cannot be negative'
         return ''
       default:
         return ''
@@ -172,8 +254,10 @@ export function useCohorts() {
       'endDate',
       'whatYouWillLearn',
       'image',
+      'videoUrl',
       'zoomLink',
       'cost',
+      'discount',
       'trialType',
       'trialValue',
     ]
@@ -195,6 +279,14 @@ export function useCohorts() {
     }
   }
 
+  const hasAtLeastOneMedia = () => {
+    const hasVideo = Boolean(form.value.videoUrl?.trim())
+    const hasImage =
+      form.value.image instanceof File ||
+      (typeof form.value.image === 'string' && form.value.image.trim() !== '')
+    return hasVideo || hasImage
+  }
+
   // Validation
   const isFormValid = computed(() => {
     const hasBasics = Boolean(
@@ -209,19 +301,39 @@ export function useCohorts() {
         ? new Date(form.value.endDate) > new Date(form.value.startDate)
         : false
 
-    const hasImage = editingCohortId.value ? true : form.value.image instanceof File
+    const hasMedia = hasAtLeastOneMedia()
     const hasValidZoom = isValidZoomLink(form.value.zoomLink)
+    const hasValidVideoUrl = (() => {
+      if (!form.value.videoUrl) return true
+      try {
+        new URL(form.value.videoUrl)
+        return true
+      } catch {
+        return false
+      }
+    })()
 
     // Validate paid cohort requirements
     const paidCohortValid = form.value.isFree
       ? true
-      : form.value.cost !== undefined &&
-      form.value.cost > 0 &&
-      form.value.trialType !== undefined &&
-      form.value.trialValue !== undefined &&
-      form.value.trialValue > 0
+      : (() => {
+        const hasTrialType = form.value.trialType !== undefined
+        const hasTrialValue = form.value.trialValue !== undefined && form.value.trialValue !== null
+        const trialValid =
+          (!hasTrialType && !hasTrialValue) ||
+          (hasTrialType && hasTrialValue && (form.value.trialValue ?? 0) >= 0)
 
-    return hasBasics && hasValidDateOrder && hasImage && hasValidZoom && paidCohortValid
+        return (
+          form.value.cost !== undefined &&
+          form.value.cost > 0 &&
+          (form.value.discount === undefined ||
+            form.value.discount === null ||
+            (form.value.discount >= 0 && form.value.discount <= 100)) &&
+          trialValid
+        )
+      })()
+
+    return hasBasics && hasValidDateOrder && hasMedia && hasValidZoom && hasValidVideoUrl && paidCohortValid
   })
 
   const validationMessage = computed(() => {
@@ -236,8 +348,14 @@ export function useCohorts() {
     ) {
       return 'End date must be after start date'
     }
-    if (!editingCohortId.value && !(form.value.image instanceof File))
-      return 'Cover image is required'
+    if (!hasAtLeastOneMedia()) return 'Provide at least a video URL or cover image'
+    if (form.value.videoUrl) {
+      try {
+        new URL(form.value.videoUrl)
+      } catch {
+        return 'Video URL must be a valid URL'
+      }
+    }
     if (form.value.zoomLink && !isValidZoomLink(form.value.zoomLink))
       return 'Invalid Zoom link. Use a valid zoom.us or zoom.com URL'
 
@@ -245,9 +363,15 @@ export function useCohorts() {
     if (!form.value.isFree) {
       if (form.value.cost === undefined || form.value.cost === null || form.value.cost <= 0)
         return 'Cost is required for paid cohorts'
-      if (!form.value.trialType) return 'Trial type is required for paid cohorts'
-      if (!form.value.trialValue || form.value.trialValue <= 0)
-        return 'Trial value is required for paid cohorts'
+      if (form.value.discount !== undefined && form.value.discount !== null) {
+        if (form.value.discount < 0) return 'Discount cannot be negative'
+        if (form.value.discount > 100) return 'Discount cannot exceed 100%'
+      }
+      const hasTrialType = form.value.trialType !== undefined
+      const hasTrialValue = form.value.trialValue !== undefined && form.value.trialValue !== null
+      if (hasTrialType && !hasTrialValue) return 'Trial value is required when trial type is selected'
+      if (!hasTrialType && hasTrialValue) return 'Select a trial type when providing trial value'
+      if (hasTrialValue && (form.value.trialValue ?? 0) < 0) return 'Trial value cannot be negative'
     }
 
     return ''
@@ -261,13 +385,19 @@ export function useCohorts() {
     payload.append('program_id', programId.toString())
     payload.append('title', form.value.title)
     if (form.value.code) payload.append('code', form.value.code)
-    payload.append('start_date', form.value.startDate)
-    payload.append('end_date', form.value.endDate)
+    payload.append('start_date', toServerDatetime(form.value.startDate))
+    payload.append('end_date', toServerDatetime(form.value.endDate))
+    if (form.value.enrollmentDeadline) {
+      payload.append('enrollment_deadline', toServerDatetime(form.value.enrollmentDeadline))
+    }
     payload.append('status', form.value.status)
     if (form.value.description) payload.append('description', form.value.description)
     if (form.value.whatYouWillLearn) payload.append('benefits', form.value.whatYouWillLearn)
     if (form.value.capacity) payload.append('capacity', String(form.value.capacity))
     payload.append('delivery_mode', form.value.delivery.toLowerCase())
+    payload.append('learning_type', form.value.learningType)
+    if (form.value.instructorName) payload.append('instructor_name', form.value.instructorName)
+    if (form.value.videoUrl) payload.append('video_url', form.value.videoUrl)
     if (form.value.zoomLink) payload.append('zoom_link', form.value.zoomLink)
     payload.append('is_free', form.value.isFree ? '1' : '0')
 
@@ -282,6 +412,10 @@ export function useCohorts() {
 
       if (form.value.cost != null) {
         payload.append('cost', String(form.value.cost))
+      }
+
+      if (form.value.discount != null) {
+        payload.append('discount', String(form.value.discount))
       }
     }
 
@@ -314,14 +448,19 @@ export function useCohorts() {
       status: 'upcoming',
       startDate: '',
       endDate: '',
+      enrollmentDeadline: '',
       capacity: 40,
       description: '',
       whatYouWillLearn: '',
       delivery: 'virtual',
+      learningType: 'instructor_led',
+      instructorName: '',
+      videoUrl: '',
       image: '',
       zoomLink: '',
       isFree: true,
       cost: undefined,
+      discount: undefined,
       trialType: undefined,
       trialValue: undefined,
       nextCohortId: 0,
@@ -340,18 +479,25 @@ export function useCohorts() {
       title: normalized.title,
       code: cohort.code || '',
       status: (cohort.status ?? 'upcoming') as CohortStatus,
-      startDate: cohort.startDate || '',
-      endDate: cohort.endDate || '',
+      startDate: toDateTimeLocalValue(cohort.startDate),
+      endDate: toDateTimeLocalValue(cohort.endDate),
+      enrollmentDeadline: toDateTimeLocalValue(cohort.enrollmentDeadline),
       capacity: cohort.capacity ?? 40,
       description: cohort.description || '',
       whatYouWillLearn: cohort.benefits || '',
       delivery: (normalized.delivery || 'virtual').toLowerCase(),
+      learningType: (cohort.learningType || 'instructor_led') as
+        | 'self_paced'
+        | 'instructor_led',
+      instructorName: cohort.instructorName || '',
+      videoUrl: cohort.videoUrl || '',
       image: normalized.imageUrl || '',
       zoomLink: cohort.zoomLink || '',
       isFree: Boolean(normalized.isFree),
       cost: normalized.cost,
+      discount: normalized.discount,
       trialType: cohort.trialType,
-      trialValue: cohort.trialValue,
+      trialValue: normalized.trialValue,
       nextCohortId: cohort.nextCohort?.id ||  0,
     }
   }
@@ -394,6 +540,7 @@ export function useCohorts() {
       const response = await programService.get<Cohort[]>(
         `${programId}/courses/${courseId}/cohorts`,
       )
+      console.log('Raw cohorts response:', response)
 
       const data = Array.isArray(response.data) ? response.data.map(normalizeCohort) : []
       cohorts.value = data
@@ -411,12 +558,14 @@ export function useCohorts() {
 
     const isValid = validateAllFields()
     if (!isValid) {
-      toast.error(validationMessage.value || 'Please fix the errors before submitting')
+      const firstFieldError = Object.values(fieldErrors.value)[0]
+      toast.error(firstFieldError || validationMessage.value || 'Please fix the errors before submitting')
       return false
     }
 
     if (!isFormValid.value) {
-      toast.error(validationMessage.value || 'Please fill all required fields')
+      const firstFieldError = Object.values(fieldErrors.value)[0]
+      toast.error(firstFieldError || validationMessage.value || 'Please fill all required fields')
       return false
     }
 
@@ -431,6 +580,17 @@ export function useCohorts() {
       const path = editingCohortId.value
         ? `courses/cohorts/${editingCohortId.value}`
         : `courses/cohorts`
+
+      if (editingCohortId.value) {
+        console.log('[Cohort Update] FormData payload:')
+        for (const [key, value] of payload.entries()) {
+          if (value instanceof File) {
+            console.log(`${key}: [File name=${value.name}, type=${value.type}, size=${value.size}]`)
+          } else {
+            console.log(`${key}:`, value)
+          }
+        }
+      }
 
       await programService.post(path, payload as unknown as Record<string, unknown>)
       toast.success(
