@@ -152,7 +152,7 @@
             </div>
 
             <!-- Question Text -->
-            <div class="form-section">
+            <div class="form-section" @paste.capture="handleStructuredPaste($event, question)">
               <label class="section-label">
                 Question <span class="required">*</span>
               </label>
@@ -194,7 +194,7 @@
             <!-- Multiple Choice Options -->
             <div v-if="question.questionType === 'multiple_choice'" class="form-section">
               <label class="section-label">Options</label>
-              <div class="options-list">
+              <div class="options-list" @paste.capture="handleStructuredPaste($event, question)">
                 <div v-for="(option, optIndex) in question.options" :key="optIndex" class="option-item">
                   <div class="option-row">
                     <input type="radio" :name="`correct-${question.questionId}`"
@@ -559,6 +559,60 @@ const handleEdit = (questionId: string) => {
   if (question) {
     saveLocalDraft(questionId, question);
   }
+};
+
+const cleanPastedLine = (line: string, isFirstLine = false) => {
+  let cleaned = line.trim();
+  if (!cleaned) return '';
+
+  if (isFirstLine) {
+    cleaned = cleaned.replace(/^\d+[\.\)]\s+/, '');
+  } else {
+    cleaned = cleaned.replace(/^([A-Za-z][\.\)]|\d+[\.\)]|[-*•])\s+/, '');
+  }
+
+  return cleaned.trim();
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const toEditorHtml = (value: string) => `<p>${escapeHtml(value)}</p>`;
+
+const handleStructuredPaste = (event: ClipboardEvent, question: LocalQuestion) => {
+  if (question.questionType !== 'multiple_choice') return;
+
+  const raw = event.clipboardData?.getData('text/plain') || '';
+  if (!raw.trim()) return;
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line, index) => cleanPastedLine(line, index === 0))
+    .filter((line) => line.length > 0);
+
+  if (lines.length <= 1) return;
+
+  event.preventDefault();
+
+  question.questionText = toEditorHtml(lines[0] || '');
+
+  const optionLines = lines.slice(1);
+  const normalizedOptionLines = optionLines.length >= 2 ? optionLines : [...optionLines, ''];
+  question.options = normalizedOptionLines.map((text, index) => ({
+    order: index + 1,
+    text: toEditorHtml(text),
+    optionFiles: [],
+  }));
+
+  question.correct.order = 0;
+  question.correct.text = '';
+
+  handleEdit(questionKey(question));
 };
 
 /**

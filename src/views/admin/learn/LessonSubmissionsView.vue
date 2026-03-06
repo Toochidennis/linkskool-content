@@ -205,6 +205,11 @@
             <p class="item-meta">
               Submitted {{ formatDate(item.createdAt) }}
             </p>
+            <div class="content-indicators">
+              <span class="content-dot" :class="{ active: hasTextSubmission(item) }" title="Has text content">T</span>
+              <span class="content-dot" :class="{ active: hasLinkSubmission(item) }" title="Has link">L</span>
+              <span class="content-dot" :class="{ active: hasFileSubmission(item) }" title="Has files">F</span>
+            </div>
             <p class="item-grade" v-if="isGraded(item)">
               Score: {{ item.grading.assignedScore }}
             </p>
@@ -356,15 +361,24 @@ const {
 
 const courseName = computed(() => (route.query.courseName as string) || 'Course')
 const lessonTitle = computed(() => (route.query.lessonTitle as string) || 'Lesson Submissions')
-const lessonId = computed(() => Number(route.query.lessonId) || 0)
+const lessonId = computed(() => {
+  const raw = route.query.lessonId ?? route.query.id
+  const value = Number(raw)
+  return Number.isFinite(value) && value > 0 ? value : 0
+})
 //const cohortId = computed(() => Number(route.query.cohortId) || 0)
 
 const isLoading = ref(false)
 const loadError = ref('')
 const searchQuery = ref('')
-const typeFilter = ref('')
-const gradingFilter = ref('')
-const notificationFilter = ref('')
+type SubmissionTypeFilter = '' | 'upload' | 'text' | 'link' | 'mixed'
+type GradingFilter = '' | 'graded' | 'ungraded'
+type NotificationFilter = '' | 'notified' | 'pending'
+type SubmissionStatusFilter = '' | 'graded' | 'ungraded' | 'notified'
+
+const typeFilter = ref<SubmissionTypeFilter>('')
+const gradingFilter = ref<GradingFilter>('')
+const notificationFilter = ref<NotificationFilter>('')
 const submissions = ref<LessonSubmission[]>([])
 const currentPage = ref(1)
 const pageLimit = ref(20)
@@ -429,6 +443,13 @@ const isNotified = (row: LessonSubmission) => row.notification.notifiedAt !== nu
 
 const canBulkNotify = (row: LessonSubmission) => isGraded(row)
 
+const hasTextSubmission = (row: LessonSubmission) => Boolean((row.submission.textContent || '').trim())
+
+const hasLinkSubmission = (row: LessonSubmission) => Boolean((row.submission.linkUrl || '').trim())
+
+const hasFileSubmission = (row: LessonSubmission) =>
+  Array.isArray(row.submission.files) && row.submission.files.length > 0
+
 const filteredSubmissions = computed(() =>
   submissions.value.filter((row) => {
     const name = displayName(row).toLowerCase()
@@ -465,6 +486,14 @@ const allVisibleSelected = computed(() => {
   return visible.every((item) => selectedSubmissionIds.value.has(item.id))
 })
 
+const resolvedStatusFilter = computed<SubmissionStatusFilter>(() => {
+  if (notificationFilter.value === 'notified') return 'notified'
+  if (gradingFilter.value === 'graded' || gradingFilter.value === 'ungraded') {
+    return gradingFilter.value
+  }
+  return ''
+})
+
 const hydrateGradeForm = (row: LessonSubmission | null) => {
   if (!row) {
     gradeForm.value = { assignedScore: null, comment: '', gradedBy: null, notifyStudent: true }
@@ -480,6 +509,24 @@ const hydrateGradeForm = (row: LessonSubmission | null) => {
 
 watch(selectedSubmission, (value) => {
   hydrateGradeForm(value)
+})
+
+watch(gradingFilter, (value) => {
+  if (value && notificationFilter.value) {
+    notificationFilter.value = ''
+  }
+})
+
+watch(notificationFilter, (value) => {
+  if (value && gradingFilter.value) {
+    gradingFilter.value = ''
+  }
+})
+
+watch([typeFilter, gradingFilter, notificationFilter], async () => {
+  if (!lessonId.value) return
+  currentPage.value = 1
+  await loadSubmissions(1)
 })
 
 const selectSubmission = (row: LessonSubmission) => {
@@ -641,12 +688,13 @@ const hasSubmittedContent = (submitted: {
   return hasText || hasLink || hasFiles
 }
 
-const closeAutoGradePage = () => {
+const closeAutoGradePage = async () => {
   autoGradePageOpen.value = false
   autoGradeRows.value = []
   autoGradeBatchId.value = null
   autoGradeSummary.value = { total: 0, processed: 0, failed: 0 }
   autoGradeNotifyStudent.value = true
+  await loadSubmissions(currentPage.value)
 }
 
 const submittedTextPreview = (row: SubmissionAutoGradeResult) => {
@@ -780,7 +828,7 @@ const submitAutoGradeResults = async () => {
       position: 'top-right',
       duration: 2500,
     })
-    closeAutoGradePage()
+    await closeAutoGradePage()
   } catch (error) {
     console.error('Failed to save auto grade results:', error)
     toast.error('Failed to save auto grade results. Please try again.', {
@@ -802,7 +850,12 @@ const loadSubmissions = async (page?: number | Event) => {
   isLoading.value = true
   loadError.value = ''
   try {
-    const response = await fetchLessonAssignments(lessonId.value, targetPage, pageLimit.value)
+    const status = resolvedStatusFilter.value || undefined
+    const submissionType = typeFilter.value || undefined
+    const response = await fetchLessonAssignments(lessonId.value, targetPage, pageLimit.value, {
+      status,
+      submissionType,
+    })
     const rows = response.data
     submissions.value = rows
     submissionsMeta.value = response.meta
@@ -1138,6 +1191,33 @@ onMounted(() => {
   margin: 0.35rem 0 0;
   font-size: 0.75rem;
   color: var(--theme-text-subtle);
+}
+
+.content-indicators {
+  margin-top: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.content-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.63rem;
+  font-weight: 700;
+  color: var(--theme-text-subtle);
+  background: var(--theme-surface);
+}
+
+.content-dot.active {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1e3a8a;
 }
 
 .item-grade.pending {

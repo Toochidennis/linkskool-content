@@ -1,7 +1,8 @@
 <template>
   <div>
-    <!-- Modern Header Section -->
-    <div class="header-section">
+    <template v-if="!showModal">
+      <!-- Modern Header Section -->
+      <div class="header-section">
       <div class="header-left">
         <h1 class="header-title">News & Announcements</h1>
         <p class="header-subtitle">Share and manage important news and announcements with your community</p>
@@ -30,10 +31,10 @@
       </div>
     </div>
 
-    <!-- Filter Modal -->
-    <Transition name="modal">
-      <div v-if="showFilterModal" class="modal-overlay" @click.self="showFilterModal = false">
-        <div class="filter-modal">
+      <!-- Filter Modal -->
+      <Transition name="modal">
+        <div v-if="showFilterModal" class="modal-overlay" @click.self="showFilterModal = false">
+          <div class="filter-modal">
           <div class="filter-modal-header">
             <h3 class="filter-modal-title">Filter News</h3>
             <button @click="showFilterModal = false" class="filter-close-button">
@@ -92,19 +93,19 @@
           <div class="filter-modal-footer">
             <button @click="showFilterModal = false" class="filter-btn-secondary">Apply Filters</button>
           </div>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
 
-    <!-- Floating Action Button -->
-    <button @click="openModal" class="floating-action-button" title="Add News">
+      <!-- Floating Action Button -->
+      <button @click="openModal" class="floating-action-button" title="Add News">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
       </svg>
-    </button>
+      </button>
 
-    <!-- Masonry Grid -->
-    <div v-if="newsList.length > 0" class="masonry-grid">
+      <!-- Masonry Grid -->
+      <div v-if="newsList.length > 0" class="masonry-grid">
       <div v-for="news in newsList" :key="news.id" class="masonry-item">
         <div class="news-card">
           <div class="news-image-container">
@@ -147,6 +148,18 @@
                       </svg>
                       {{ news.status === 'published' ? 'Archive' : 'Publish' }}
                     </button>
+                    <button
+                      v-if="news.notifiedAt === null"
+                      @click="notifyNewsItem(news)"
+                      class="menu-item"
+                      :disabled="notifyLoadingId === news.id"
+                      :class="{ 'menu-item-disabled': notifyLoadingId === news.id }">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      {{ notifyLoadingId === news.id ? 'Notifying...' : 'Notify' }}
+                    </button>
                     <button @click="deleteNews(news.id)" class="menu-item menu-item-danger">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -159,30 +172,32 @@
               </div>
             </div>
             <h3 class="news-title">{{ news.title }}</h3>
-            <p class="news-text">{{ news.content }}</p>
+            <div class="news-text" v-html="news.content"></div>
             <div class="news-footer">
+              <span v-if="news.notifiedAt" class="notified-badge">Notified</span>
               <span class="news-date">{{ formatDate(news.datePosted) }}</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
+      </div>
 
-    <!-- Empty State -->
-    <div v-else class="empty-state">
+      <!-- Empty State -->
+      <div v-else class="empty-state">
       <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
       </svg>
       <p class="empty-text">No news yet. Click "Add News" to create your first announcement.</p>
-    </div>
+      </div>
 
-    <!-- Modal -->
-    <Transition name="modal">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-container">
+    </template>
+
+    <Transition name="page">
+      <div v-if="showModal" class="announcement-page">
+        <div class="page-panel">
           <div class="modal-header">
-            <h3 class="modal-title">Add News</h3>
+            <h3 class="modal-title">{{ editingNewsId !== null ? 'Edit News' : 'Add News' }}</h3>
             <button @click="closeModal" class="close-button">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -198,10 +213,9 @@
             </div>
 
             <!-- Content -->
-            <div class="form-group">
+            <div class="form-group content-editor-group">
               <label class="form-label">Content <span class="required">*</span></label>
-              <textarea v-model="formData.content" required rows="5" class="form-input"
-                placeholder="Enter news content"></textarea>
+              <RichTextEditor v-model="formData.content" placeholder="Enter news content" />
             </div>
 
             <!-- Categories (Multi-select) -->
@@ -245,10 +259,22 @@
               <input v-model="formData.datePosted" type="datetime-local" class="form-input" />
             </div>
 
+            <div class="form-group">
+              <label class="form-label">Deadline (Optional)</label>
+              <input v-model="formData.deadline" type="datetime-local" class="form-input" />
+            </div>
+
             <!-- Author Name (Optional) -->
             <div class="form-group">
               <label class="form-label">Author Name (Optional)</label>
               <input v-model="formData.author" type="text" class="form-input" placeholder="Enter author name" />
+            </div>
+
+            <div class="form-group">
+              <label class="notify-check">
+                <input v-model="formData.notify" type="checkbox" />
+                <span>Notify users</span>
+              </label>
             </div>
 
             <!-- Multiple Image Upload -->
@@ -305,6 +331,7 @@ import { useToast } from 'vue-toast-notification';
 import { useAuthStore } from '@/stores/auth';
 import type { News, Category, CreateNewsPayload } from '@/api/models';
 import { useAnnouncement } from '@/composables/useAnnouncement';
+import RichTextEditor from '@/components/RichTextEditor.vue';
 
 const announcement = useAnnouncement();
 
@@ -316,6 +343,9 @@ interface NewsItem {
   title: string;
   content: string;
   datePosted: string;
+  deadline?: string;
+  notifiedAt: string | null;
+  authorId: number;
   images: string[];
   categories: string[];
   status: 'published' | 'draft' | 'archived';
@@ -337,6 +367,7 @@ const editingNewsId = ref<number | null>(null);
 const isSubmitting = ref(false);
 const isLoadingCategories = ref(false);
 const searchQuery = ref('');
+const notifyLoadingId = ref<number | null>(null);
 
 const filters = ref({
   status: 'all',
@@ -347,8 +378,10 @@ const formData = ref({
   title: '',
   content: '',
   datePosted: '',
+  deadline: '',
   categories: [] as string[],
   author: '',
+  notify: false,
 });
 
 const availableCategories = ref<Array<{ id: number; name: string }>>([]);
@@ -376,8 +409,6 @@ const fetchNews = async () => {
   try {
     const newsData = await announcement.fetchNews();
 
-    console.log('Fetched news data:', newsData);
-
     if (newsData) {
       // Map API response to local NewsItem format
       newsList.value = newsData.map((news: News) => ({
@@ -385,6 +416,9 @@ const fetchNews = async () => {
         title: news.title,
         content: news.content,
         datePosted: news.datePosted,
+        deadline: news.deadline,
+        notifiedAt: news.notifiedAt ?? news.notified_at ?? null,
+        authorId: news.authorId,
         images: news.images.map(img => img.fileName),
         categories: news.categories.map(cat => cat.name),
         status: news.status,
@@ -444,9 +478,11 @@ const clearAllFilters = () => {
   searchQuery.value = '';
 };
 
+const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ');
+
 const isFormValid = computed(() => {
   const hasTitle = formData.value.title.trim() !== '';
-  const hasContent = formData.value.content.trim() !== '';
+  const hasContent = stripHtml(formData.value.content).trim() !== '';
   const hasCategories = formData.value.categories.length > 0;
 
   // For editing mode: allow submission if there are original images (even if being deleted) or new images
@@ -473,8 +509,10 @@ const resetForm = () => {
     title: '',
     content: '',
     datePosted: '',
+    deadline: '',
     categories: [],
     author: '',
+    notify: false,
   };
   imagePreviews.value = [];
   imageFiles.value = [];
@@ -609,11 +647,16 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
       author_id: authorId,
       author_name: authorName,
       status,
+      notify: formData.value.notify,
       images: imageFiles.value,
     };
 
     if (formData.value.datePosted) {
       payload.date_posted = toServerDatetime(formData.value.datePosted);
+    }
+
+    if (formData.value.deadline) {
+      payload.deadline = toServerDatetime(formData.value.deadline);
     }
 
     // If editing, include old_images array for tracking changes
@@ -664,8 +707,10 @@ const editNews = (news: NewsItem) => {
     title: news.title,
     content: news.content,
     datePosted: toDatetimeLocal(news.datePosted),
+    deadline: toDatetimeLocal(news.deadline || ''),
     categories: [...news.categories],
     author: news.author || '',
+    notify: false,
   };
 
   // Load existing images as original images
@@ -684,6 +729,33 @@ const editNews = (news: NewsItem) => {
 
   activeMenu.value = null;
   showModal.value = true;
+};
+
+const notifyNewsItem = async (news: NewsItem) => {
+  try {
+    notifyLoadingId.value = news.id;
+    const notifiedBy = authStore.user?.id ?? news.authorId;
+    if (!notifiedBy) {
+      toast.error('Unable to notify: missing user ID');
+      return;
+    }
+
+    const response = await announcement.notifyNews(news.id, notifiedBy);
+    if (response && response.success) {
+      toast.success('News notification sent successfully');
+      await fetchNews();
+    } else {
+      const message = response?.message || 'Failed to notify news';
+      toast.error(message);
+    }
+  } catch (error: unknown) {
+    console.error('Failed to notify news:', error);
+    const message = error instanceof Error ? error.message : 'Failed to notify news';
+    toast.error(message);
+  } finally {
+    notifyLoadingId.value = null;
+    activeMenu.value = null;
+  }
 };
 
 const togglePublishStatus = async (newsId: number) => {
@@ -916,6 +988,18 @@ const toServerDatetime = (datetimeLocal: string) => {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
+.announcement-page {
+  width: 100%;
+}
+
+.page-panel {
+  width: 100%;
+  background: var(--theme-surface);
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -986,6 +1070,25 @@ const toServerDatetime = (datetimeLocal: string) => {
   outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.content-editor-group :deep(.ProseMirror) {
+  min-height: 180px;
+}
+
+.notify-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--theme-text-muted);
+  cursor: pointer;
+}
+
+.notify-check input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #4f46e5;
 }
 
 /* Categories Chips */
@@ -1369,6 +1472,18 @@ const toServerDatetime = (datetimeLocal: string) => {
   color: var(--theme-text-subtle);
 }
 
+.notified-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 /* Empty State */
 .empty-state {
   display: flex;
@@ -1446,6 +1561,11 @@ const toServerDatetime = (datetimeLocal: string) => {
 
 .menu-item:hover {
   background: var(--theme-surface-soft);
+}
+
+.menu-item-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .menu-item-danger {
@@ -1696,5 +1816,25 @@ const toServerDatetime = (datetimeLocal: string) => {
 .modal-enter-from .filter-modal,
 .modal-leave-to .filter-modal {
   transform: scale(0.95);
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+.page-enter-active .page-panel,
+.page-leave-active .page-panel {
+  transition: transform 0.3s ease;
+}
+
+.page-enter-from .page-panel,
+.page-leave-to .page-panel {
+  transform: translateX(6%);
 }
 </style>

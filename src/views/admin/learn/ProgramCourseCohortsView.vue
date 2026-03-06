@@ -21,7 +21,7 @@
           </svg>
           <span v-if="statusFilter" class="filter-badge">1</span>
         </button>
-        <button class="primary-btn" @click="openCreateModal">
+        <button v-if="cohorts.length === 0" class="primary-btn" @click="openCreateModal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M12 5v14m-7-7h14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -93,7 +93,12 @@
       </div>
     </section>
 
-    <section class="cohort-stack" v-if="filteredCohorts.length">
+    <section v-if="isLoading" class="loading-card">
+      <div class="loading-spinner"></div>
+      <p>Loading cohorts...</p>
+    </section>
+
+    <section class="cohort-stack" v-else-if="filteredCohorts.length">
       <article v-for="cohort in filteredCohorts" :key="cohort.id" class="cohort-card">
         <div class="cohort-header" @click="toggleExpanded(cohort.id)">
           <div class="title-block">
@@ -280,6 +285,7 @@
               </div>
               <div class="cta-row">
                 <button class="primary-btn" @click="openLessons(cohort)">Go to lessons</button>
+                <button class="ghost-light-btn" @click="openCohortNotifications(cohort)">Send updates</button>
               </div>
             </div>
           </div>
@@ -331,8 +337,8 @@
             </div>
             <div class="field inline">
               <div :class="{ 'has-error': fieldErrors.startDate }">
-                <label>Start date<span class="required">*</span></label>
-                <input v-model="form.startDate" type="date" @blur="handleBlur('startDate')" @change="
+                <label>Start date & time<span class="required">*</span></label>
+                <input v-model="form.startDate" type="datetime-local" step="60" @blur="handleBlur('startDate')" @change="
                   () => {
                     handleInput('startDate')
                     handleBlur('endDate')
@@ -343,13 +349,18 @@
                   }}</span>
               </div>
               <div :class="{ 'has-error': fieldErrors.endDate }">
-                <label>End date<span class="required">*</span></label>
-                <input v-model="form.endDate" type="date" @blur="handleBlur('endDate')"
+                <label>End date & time<span class="required">*</span></label>
+                <input v-model="form.endDate" type="datetime-local" step="60" @blur="handleBlur('endDate')"
                   @change="handleInput('endDate')" />
                 <span v-if="fieldErrors.endDate" class="error-message">{{
                   fieldErrors.endDate
                   }}</span>
               </div>
+            </div>
+            <div class="field">
+              <label>Enrollment Deadline</label>
+              <input v-model="form.enrollmentDeadline" type="datetime-local" step="60" />
+              <p class="field-hint">Optional. Leave empty if enrollment stays open until start date.</p>
             </div>
             <div class="field inline">
               <div>
@@ -364,6 +375,33 @@
                   <option value="onsite">Onsite</option>
                 </select>
               </div>
+            </div>
+            <div class="field">
+              <label>Lesson Type</label>
+              <div class="lesson-type-grid">
+                <label class="lesson-type-option">
+                  <input type="radio" v-model="form.learningType" value="self_paced" name="learning-type" />
+                  <span class="lesson-type-card" :class="{ 'lesson-type-card-active': form.learningType === 'self_paced' }">
+                    <span class="lesson-type-title">Self-paced</span>
+                    <span class="lesson-type-desc">Learn independently at your own speed.</span>
+                  </span>
+                </label>
+
+                <label class="lesson-type-option">
+                  <input type="radio" v-model="form.learningType" value="instructor_led" name="learning-type" />
+                  <span class="lesson-type-card"
+                    :class="{ 'lesson-type-card-active': form.learningType === 'instructor_led' }">
+                    <span class="lesson-type-title">Instructor-led</span>
+                    <span class="lesson-type-desc">Live guidance with structured teaching sessions.</span>
+                  </span>
+                </label>
+              </div>
+              <p class="field-hint">Choose how learners will take this cohort.</p>
+            </div>
+
+            <div class="field">
+              <label>Instructor Name</label>
+              <input v-model="form.instructorName" type="text" placeholder="e.g. Jane Doe" />
             </div>
             <div class="field">
               <label>Description</label>
@@ -397,8 +435,32 @@
                 fieldErrors.zoomLink
                 }}</span>
             </div>
+            <div class="field" :class="{ 'has-error': fieldErrors.videoUrl }">
+              <label>Video URL</label>
+              <input v-model="form.videoUrl" type="url" placeholder="https://..."
+                @blur="handleBlur('videoUrl')"
+                @input="
+                  () => {
+                    handleInput('videoUrl')
+                    clearFieldError('image')
+                  }
+                " />
+              <span v-if="fieldErrors.videoUrl" class="error-message">{{ fieldErrors.videoUrl }}</span>
+            </div>
+            <div class="field">
+              <label>Link to Next Cohort</label>
+              <select v-model.number="form.nextCohortId">
+                <option :value="0">Link cohort</option>
+                <option v-for="cohortOption in linkableCohorts" :key="cohortOption.id" :value="cohortOption.id">
+                  {{ cohortOption.title }}
+                </option>
+              </select>
+              <p class="field-hint">
+                Select the cohort learners should progress to next.
+              </p>
+            </div>
             <div class="field" :class="{ 'has-error': fieldErrors.image }">
-              <label>Cover image<span class="required">*</span></label>
+              <label>Cover image</label>
               <div v-if="!imagePreview" class="upload upload-large" @click="triggerUpload" @dragover.prevent
                 @drop.prevent="handleDrop">
                 <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFile" />
@@ -420,6 +482,7 @@
                 </button>
               </div>
               <span v-if="fieldErrors.image" class="error-message">{{ fieldErrors.image }}</span>
+              <p v-else class="field-hint">Provide at least a video URL or cover image.</p>
             </div>
 
             <!-- Pricing & Access Section -->
@@ -479,10 +542,20 @@
                 </p>
               </div>
 
+              <div v-if="!form.isFree" class="field" :class="{ 'has-error': fieldErrors.discount }">
+                <label>Discount (%)</label>
+                <input v-model.number="form.discount" type="number" min="0" max="100" step="0.01"
+                  placeholder="e.g. 10" @blur="handleBlur('discount')" @input="handleInput('discount')" />
+                <span v-if="fieldErrors.discount" class="error-message">{{ fieldErrors.discount }}</span>
+                <p v-else style="font-size: 0.75rem; color: var(--theme-text-subtle); margin-top: 0.25rem">
+                  Optional. Enter a value between 0 and 100.
+                </p>
+              </div>
+
               <!-- Trial Settings (Only if Paid) -->
               <div v-if="!form.isFree" style="margin-top: 1rem">
                 <label style="font-weight: 700; color: var(--theme-text-muted); display: block; margin-bottom: 0.75rem">
-                  Free Trial Setup<span class="required">*</span>
+                  Free Trial Setup
                 </label>
 
                 <div style="
@@ -554,9 +627,9 @@
                 <div v-if="form.trialType" class="field" :class="{ 'has-error': fieldErrors.trialValue }">
                   <label>{{
                     form.trialType === 'views' ? 'Number of Free Views' : 'Number of Trial Days'
-                  }}<span class="required">*</span></label>
-                  <input v-model.number="form.trialValue" type="number" min="1"
-                    :placeholder="form.trialType === 'views' ? 'e.g., 5 videos' : 'e.g., 7 days'"
+                  }}</label>
+                  <input v-model.number="form.trialValue" type="number" min="0"
+                    :placeholder="form.trialType === 'views' ? 'e.g., 0 videos' : 'e.g., 0 days'"
                     @blur="handleBlur('trialValue')" @input="handleInput('trialValue')" />
                   <span v-if="fieldErrors.trialValue" class="error-message">{{
                     fieldErrors.trialValue
@@ -567,7 +640,7 @@
           </div>
           <footer class="modal-footer">
             <button class="ghost" @click="closeModal">Cancel</button>
-            <button class="primary-btn" :disabled="!isFormValid || isSubmitting" @click="saveCohort">
+            <button class="primary-btn" :disabled="isSubmitting" @click="saveCohort">
               {{ isSubmitting ? 'Saving...' : 'Save cohort' }}
             </button>
           </footer>
@@ -634,11 +707,13 @@ const router = useRouter()
 // Use cohorts composable
 const {
   cohorts,
+  isLoading,
   isSubmitting,
+  linkableCohorts,
   form,
-  isFormValid,
   fieldErrors,
   fetchCohorts: _fetchCohorts,
+  fetchLinkableCohorts: _fetchLinkableCohorts,
   saveCohort: _saveCohort,
   deleteCohort: _deleteCohort,
   updateCohortStatus: _updateCohortStatus,
@@ -781,13 +856,33 @@ const openLessons = (cohort: Cohort) => {
   })
 }
 
-const startEditCohort = (cohort: Cohort) => {
+const openCohortNotifications = (cohort: Cohort) => {
+  router.push({
+    path: '/dashboard/notifications',
+    query: {
+      source: 'cohort',
+      cohortId: cohort.id,
+      cohortTitle: cohort.title,
+      courseId: courseId.value,
+      courseName: courseName.value,
+      programId: programId.value,
+    },
+  })
+}
+
+const startEditCohort = async (cohort: Cohort) => {
+  if (programId.value) {
+    await _fetchLinkableCohorts(programId.value, cohort.id)
+  }
   _startEditCohort(cohort)
   imagePreview.value = cohort.imageUrl ? loadImage(cohort.imageUrl) : ''
   showModal.value = true
 }
 
-const openCreateModal = () => {
+const openCreateModal = async () => {
+  if (programId.value) {
+    await _fetchLinkableCohorts(programId.value)
+  }
   resetForm()
   imagePreview.value = ''
   showModal.value = true
@@ -917,12 +1012,16 @@ const handleInput = (fieldName: string) => {
 const handleAccessTypeChange = () => {
   // Clear pricing-related errors when toggling between free/paid
   clearFieldError('cost')
+  clearFieldError('discount')
   clearFieldError('trialType')
   clearFieldError('trialValue')
 }
 
 onMounted(() => {
   fetchCohorts()
+  if (programId.value) {
+    _fetchLinkableCohorts(programId.value)
+  }
   document.addEventListener('click', closeMenu)
 
   onUnmounted(() => {
@@ -1696,6 +1795,47 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.ghost-light-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ghost-light-btn:hover {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+}
+
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.25rem;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: 16px;
+  color: var(--theme-text-subtle);
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 3px solid #dbeafe;
+  border-top-color: #0284c7;
+  animation: cohorts-spin 0.8s linear infinite;
+}
+
 .empty {
   text-align: center;
   padding: 3rem 1rem;
@@ -1725,6 +1865,12 @@ onMounted(() => {
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
   overflow: hidden;
+}
+
+@keyframes cohorts-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-overlay {
@@ -1886,6 +2032,67 @@ onMounted(() => {
   line-height: 1.4;
 }
 
+.lesson-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.lesson-type-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.lesson-type-option input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lesson-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 96px;
+  padding: 0.85rem 1rem;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
+  transition: all 0.2s ease;
+}
+
+.lesson-type-option:hover .lesson-type-card {
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
+
+.lesson-type-card-active {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  color: #4338ca;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.15);
+}
+
+.lesson-type-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.lesson-type-desc {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--theme-text-subtle);
+  line-height: 1.35;
+}
+
+.lesson-type-card-active .lesson-type-desc {
+  color: #4338ca;
+}
+
 .upload {
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
@@ -1974,9 +2181,18 @@ onMounted(() => {
   height: 34px;
   border-radius: 8px;
   border: 1px solid var(--theme-border);
+  color: #0f172a;
+  background: var(--theme-surface);
   display: grid;
   place-items: center;
   transition: all 0.2s ease;
+}
+
+.close-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.5;
 }
 
 .close-btn:hover {
@@ -2114,6 +2330,10 @@ onMounted(() => {
 
   .field.inline {
     flex-direction: column;
+  }
+
+  .lesson-type-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

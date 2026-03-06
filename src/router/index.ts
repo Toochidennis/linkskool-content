@@ -7,7 +7,7 @@ import AssessmentView from '@/views/admin/cbt/AssessmentView.vue'
 import ExamTypeView from '@/views/admin/cbt/ExamTypeView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
-import CoursesVue from '@/views/admin/cbt/CoursesView.vue'
+import CoursesView from '@/views/admin/cbt/CoursesView.vue'
 import UploadView from '@/views/user/UploadView.vue'
 import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
 import TopicsView from '@/views/admin/cbt/TopicsView.vue'
@@ -29,6 +29,8 @@ import LessonFormView from '@/views/admin/learn/LessonFormView.vue'
 import ProgramCourseQuizView from '@/views/admin/learn/ProgramCourseQuizView.vue'
 import LessonSubmissionsView from '@/views/admin/learn/LessonSubmissionsView.vue'
 import LearningCourseView from '@/views/admin/learn/LearningCourseView.vue'
+import NotificationComposerView from '@/views/admin/NotificationView.vue'
+import FaqsView from '@/views/admin/FaqsView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -63,18 +65,18 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        name: 'AdminDashboard',
-        component: DashboardView,
-      },
-      {
-        path: 'analytics',
         name: 'Dashboard',
         component: DashboardView,
       },
       {
+        path: 'analytics',
+        name: 'Dashboard Analytics',
+        component: DashboardView,
+      },
+      {
         path: 'courses',
-        name: 'Courses',
-        component: CoursesVue,
+        name: 'CBT Courses',
+        component: CoursesView,
       },
       {
         path: 'topics',
@@ -118,7 +120,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'learn-courses',
-        name: 'Courses',
+        name: 'Learn Courses',
         component: LearningCourseView,
       },
       {
@@ -190,6 +192,16 @@ const routes: RouteRecordRaw[] = [
         path: 'logs',
         name: 'Activities',
         component: RecentActivitiesView,
+      },
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: NotificationComposerView,
+      },
+      {
+        path: 'faqs',
+        name: 'FAQs',
+        component: FaqsView,
       },
       {
         path: 'config',

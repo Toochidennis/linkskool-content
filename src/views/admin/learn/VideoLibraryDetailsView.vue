@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between flex-wrap gap-3">
-      <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3">
         <button @click="router.push('/dashboard/video-library')"
           class="h-10 w-10 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
           aria-label="Back to courses">
@@ -25,6 +25,12 @@
           Add Video
         </button>
       </div>
+    </div>
+
+    <div v-if="isPageLoading"
+      class="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-3 text-gray-600 dark:text-gray-300">
+      <i class="fas fa-spinner fa-spin text-blue-600 dark:text-blue-400"></i>
+      <span>Loading course videos...</span>
     </div>
 
     <!-- Stats bar -->
@@ -417,6 +423,7 @@ const activeMenu = ref<number | null>(null)
 const editingVideoId = ref<number | null>(null)
 const originalThumbnailUrl = ref<string>('')
 const isSubmitting = ref(false)
+const isPageLoading = ref(false)
 const statusLoadingId = ref<number | null>(null)
 const deleteLoadingId = ref<number | null>(null)
 
@@ -981,10 +988,13 @@ const closeVideoPlayer = () => {
   document.body.style.overflow = ''
 }
 
-onMounted(() => {
-  fetchLevels()
-  fetchSyllabi()
-  fetchVideos()
+onMounted(async () => {
+  isPageLoading.value = true
+  try {
+    await Promise.all([fetchLevels(), fetchSyllabi(), fetchVideos()])
+  } finally {
+    isPageLoading.value = false
+  }
 })
 </script>
 

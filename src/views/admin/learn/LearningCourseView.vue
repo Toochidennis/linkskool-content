@@ -30,8 +30,13 @@
       </div>
     </div>
 
+    <div v-if="isLoading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading courses...</p>
+    </div>
+
     <!-- Grid View -->
-    <div v-if="filteredCoursesList.length > 0" class="courses-grid" @click="closeMenuOutside">
+    <div v-else-if="filteredCoursesList.length > 0" class="courses-grid" @click="closeMenuOutside">
       <div
         v-for="course in filteredCoursesList"
         :key="course.id"
@@ -947,6 +952,25 @@ const confirmDelete = async () => {
   border-radius: 0.375rem;
 }
 
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: var(--theme-text-subtle);
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  animation: learn-spin 0.8s linear infinite;
+}
+
 /* Empty State */
 .empty-state {
   display: flex;
@@ -967,6 +991,12 @@ const confirmDelete = async () => {
 .empty-text {
   color: var(--theme-text-subtle);
   font-size: 1rem;
+}
+
+@keyframes learn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Modal */

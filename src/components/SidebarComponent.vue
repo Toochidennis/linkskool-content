@@ -123,6 +123,13 @@ const menuItems: MenuItem[] = [
       { name: 'Admissions', route: '/dashboard/admissions', icon: 'fas fa-user-plus' },
     ]
   },
+  {
+    name: 'Help Center',
+    icon: 'fas fa-circle-question',
+    children: [
+      { name: 'FAQs', route: '/dashboard/faqs', icon: 'fas fa-comments' },
+    ],
+  },
     {
     name: 'Learn',
     icon: 'fas fa-graduation-cap',
@@ -139,7 +146,8 @@ const menuItems: MenuItem[] = [
 if (auth.isAdmin) {
   menuItems.push(
     { name: 'Team', route: '/dashboard/team', icon: 'fas fa-users', children: null },
-    { name: 'Logs', route: '/dashboard/logs', icon: 'fas fa-clipboard-list', children: null }
+    { name: 'Logs', route: '/dashboard/logs', icon: 'fas fa-clipboard-list', children: null },
+    { name: 'Notifications', route: '/dashboard/notifications', icon: 'fas fa-bell', children: null }
   )
 }
 
