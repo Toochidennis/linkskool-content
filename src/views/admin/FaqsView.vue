@@ -8,22 +8,23 @@
     </div>
 
     <section class="composer-card">
-      <h2 class="section-title">Add FAQ</h2>
+      <h2 class="section-title">{{ editingFaqId ? 'Edit FAQ' : 'Add FAQ' }}</h2>
       <div class="field">
         <label>Question</label>
         <input v-model="form.question" type="text" placeholder="e.g. How do I reset my password?" />
       </div>
       <div class="field">
         <label>Answer</label>
-        <textarea
+        <RichTextEditor
           v-model="form.answer"
-          rows="5"
           placeholder="Write a clear and concise answer users can follow."
         />
       </div>
       <div class="actions">
         <button class="btn ghost" @click="resetForm">Clear</button>
-        <button class="btn primary" :disabled="!canSave" @click="addFaq">Save FAQ</button>
+        <button class="btn primary" :disabled="!canSave || isSubmitting" @click="saveFaq">
+          {{ isSubmitting ? 'Saving...' : editingFaqId ? 'Update FAQ' : 'Save FAQ' }}
+        </button>
       </div>
     </section>
 
@@ -33,13 +34,22 @@
         <span class="count">{{ faqs.length }}</span>
       </div>
 
-      <div v-if="faqs.length" class="faq-list">
+      <div v-if="isLoading" class="empty-state">
+        <p>Loading FAQs...</p>
+      </div>
+
+      <div v-else-if="faqs.length" class="faq-list">
         <article v-for="item in faqs" :key="item.id" class="faq-item">
           <div class="faq-content">
             <h3 class="faq-question">{{ item.question }}</h3>
             <p class="faq-answer">{{ item.answer }}</p>
           </div>
-          <button class="delete-btn" @click="removeFaq(item.id)">Delete</button>
+          <div class="faq-actions">
+            <button class="edit-btn" @click="startEdit(item)">Edit</button>
+            <button class="delete-btn" :disabled="deletingFaqId === item.id" @click="removeFaq(item.id)">
+              {{ deletingFaqId === item.id ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
         </article>
       </div>
 
@@ -51,50 +61,118 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useToast } from 'vue-toast-notification'
-
-type FaqItem = {
-  id: number
-  question: string
-  answer: string
-}
+import { useFaqs } from '@/composables/useFaqs'
+import type { Faq } from '@/api/models'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 
 const toast = useToast()
+const { fetchFaqs, createFaq, updateFaq, deleteFaq } = useFaqs()
 
 const form = ref({
   question: '',
   answer: '',
 })
 
-const faqs = ref<FaqItem[]>([])
+const faqs = ref<Faq[]>([])
+const isLoading = ref(false)
+const isSubmitting = ref(false)
+const deletingFaqId = ref<number | null>(null)
+const editingFaqId = ref<number | null>(null)
 
-const canSave = computed(() => form.value.question.trim() !== '' && form.value.answer.trim() !== '')
+const stripHtml = (value: string) => {
+  const text = value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return text
+}
+
+const canSave = computed(
+  () => form.value.question.trim() !== '' && stripHtml(form.value.answer) !== '',
+)
 
 const resetForm = () => {
   form.value.question = ''
   form.value.answer = ''
+  editingFaqId.value = null
 }
 
-const addFaq = () => {
+const loadFaqs = async () => {
+  isLoading.value = true
+  try {
+    faqs.value = await fetchFaqs()
+  } catch (error: any) {
+    toast.error(error.message || 'Failed to load FAQs')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const saveFaq = async () => {
   if (!canSave.value) {
     toast.error('Question and answer are required')
     return
   }
 
-  faqs.value.unshift({
-    id: Date.now(),
-    question: form.value.question.trim(),
-    answer: form.value.answer.trim(),
-  })
-  resetForm()
-  toast.success('FAQ saved')
+  if (isSubmitting.value) return
+
+  isSubmitting.value = true
+
+  try {
+    const payload = {
+      question: form.value.question.trim(),
+      answer: form.value.answer.trim(),
+    }
+
+    if (editingFaqId.value) {
+      await updateFaq(editingFaqId.value, payload)
+      toast.success('FAQ updated')
+    } else {
+      await createFaq(payload)
+      toast.success('FAQ saved')
+    }
+
+    await loadFaqs()
+    resetForm()
+  } catch (error: any) {
+    toast.error(error.message || 'Failed to save FAQ')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
-const removeFaq = (id: number) => {
-  faqs.value = faqs.value.filter((item) => item.id !== id)
-  toast.success('FAQ removed')
+const startEdit = (item: Faq) => {
+  editingFaqId.value = item.id
+  form.value.question = item.question
+  form.value.answer = item.answer
 }
+
+const removeFaq = async (id: number) => {
+  if (deletingFaqId.value === id) return
+
+  deletingFaqId.value = id
+
+  try {
+    await deleteFaq(id)
+    faqs.value = faqs.value.filter((item) => item.id !== id)
+    if (editingFaqId.value === id) {
+      resetForm()
+    }
+    toast.success('FAQ removed')
+  } catch (error: any) {
+    toast.error(error.message || 'Failed to remove FAQ')
+  } finally {
+    deletingFaqId.value = null
+  }
+}
+
+onMounted(() => {
+  loadFaqs()
+})
 </script>
 
 <style scoped>
@@ -218,6 +296,12 @@ const removeFaq = (id: number) => {
   gap: 0.9rem;
 }
 
+.faq-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .faq-question {
   margin: 0;
   font-size: 0.95rem;
@@ -235,6 +319,16 @@ const removeFaq = (id: number) => {
   border: 1px solid #fecaca;
   background: #fef2f2;
   color: #b91c1c;
+  border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.edit-btn {
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #3730a3;
   border-radius: 8px;
   padding: 0.4rem 0.55rem;
   font-weight: 700;

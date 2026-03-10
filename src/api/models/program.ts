@@ -3,6 +3,8 @@ export interface Program {
   slug: string;
   name: string;
   shortname: string;
+  startDate?: string;
+  start_date?: string;
   expanded?: boolean;
   courseCount?: number;
   description?: string;
@@ -20,6 +22,7 @@ export interface CreateProgramPayload {
   shortname: string;
   description: string;
   sponsor?: string;
+  startDate?: string;
   status: 'published' | 'draft' | 'archived';
   banner_image?: File;
 }

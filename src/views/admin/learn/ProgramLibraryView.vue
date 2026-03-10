@@ -293,6 +293,12 @@
               placeholder="e.g., Digital Dreams Limited, Company Name" />
           </div>
 
+          <!-- Program Start Date -->
+          <div class="form-group">
+            <label class="form-label">Program Start Date</label>
+            <input v-model="formData.startDate" type="datetime-local" step="60" class="form-input" />
+          </div>
+
           <!-- Target Age Groups -->
           <div class="form-group" :class="{ 'has-error': fieldErrors.ageGroups }">
             <label class="form-label">Target Age Groups <span class="required">*</span></label>
@@ -434,6 +440,7 @@ const formData = ref({
   shortname: '',
   description: '',
   sponsor: '',
+  startDate: '',
   ageGroups: [] as Array<{ key: string; label: string; min: number; max: number | null }>,
 })
 
@@ -589,6 +596,53 @@ const resolveProgramAgeGroups = (prog: Program): Array<Record<string, unknown> |
   }
   const candidate = programAny.ageGroups ?? programAny.age_groups
   return Array.isArray(candidate) ? candidate : []
+}
+
+const toDateTimeLocalValue = (value?: string) => {
+  if (!value) return ''
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return value.slice(0, 16)
+  }
+
+  const pad = (part: number) => String(part).padStart(2, '0')
+  const year = parsed.getFullYear()
+  const month = pad(parsed.getMonth() + 1)
+  const day = pad(parsed.getDate())
+  const hours = pad(parsed.getHours())
+  const minutes = pad(parsed.getMinutes())
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const toServerDatetime = (value?: string) => {
+  if (!value) return ''
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return value
+  }
+
+  const pad = (part: number) => String(part).padStart(2, '0')
+  const year = parsed.getFullYear()
+  const month = pad(parsed.getMonth() + 1)
+  const day = pad(parsed.getDate())
+  const hours = pad(parsed.getHours())
+  const minutes = pad(parsed.getMinutes())
+  const seconds = pad(parsed.getSeconds())
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const resolveProgramStartDate = (prog: Program): string => {
+  const programAny = prog as Program & {
+    startDate?: string
+    start_date?: string
+  }
+
+  const rawStartDate = programAny.startDate ?? programAny.start_date
+  return toDateTimeLocalValue(rawStartDate)
 }
 
 const resolveProgramCourseIds = (prog: Program): number[] => {
@@ -788,6 +842,7 @@ const resetForm = () => {
     shortname: '',
     description: '',
     sponsor: '',
+    startDate: '',
     ageGroups: [],
   }
   unmappedAgeGroups.value = []
@@ -915,6 +970,9 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
     if (formData.value.sponsor) {
       payload.append('sponsor', formData.value.sponsor)
     }
+    if (formData.value.startDate) {
+      payload.append('start_date', toServerDatetime(formData.value.startDate))
+    }
 
     formData.value.ageGroups.forEach((ag, index) => {
       payload.append(`age_groups[${index}][key]`, ag.key)
@@ -988,6 +1046,7 @@ const editProgram = (prog: Program) => {
     shortname: prog.shortname,
     description: prog.description || '',
     sponsor: prog.sponsor || '',
+    startDate: resolveProgramStartDate(prog),
     ageGroups: [...mapped, ...unmapped],
   }
   unmappedAgeGroups.value = unmapped
@@ -1009,6 +1068,7 @@ const duplicateProgram = (prog: Program) => {
     shortname: prog.shortname + ' Copy',
     description: prog.description || '',
     sponsor: prog.sponsor || '',
+    startDate: resolveProgramStartDate(prog),
     ageGroups: [...mapped, ...unmapped],
   }
   unmappedAgeGroups.value = unmapped
