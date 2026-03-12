@@ -299,6 +299,70 @@
             <input v-model="formData.startDate" type="datetime-local" step="60" class="form-input" />
           </div>
 
+          <div class="form-group">
+            <label class="form-label">Video URL</label>
+            <input
+              v-model="formData.videoUrl"
+              type="url"
+              class="form-input"
+              placeholder="https://example.com/program-video"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Onboarding Steps</label>
+            <div class="onboarding-steps">
+              <div
+                v-for="(step, index) in formData.onboardingSteps"
+                :key="`onboarding-step-${index}`"
+                class="onboarding-step-row"
+                :class="{
+                  'is-dragging': draggingOnboardingStepIndex === index,
+                  'is-drop-target':
+                    onboardingStepDropIndex === index && draggingOnboardingStepIndex !== index,
+                }"
+                draggable="true"
+                @dragstart="handleOnboardingStepDragStart(index, $event)"
+                @dragover.prevent="handleOnboardingStepDragOver(index)"
+                @drop.prevent="handleOnboardingStepDrop(index)"
+                @dragend="handleOnboardingStepDragEnd"
+              >
+                <button
+                  type="button"
+                  class="onboarding-step-handle"
+                  aria-label="Drag to reorder onboarding step"
+                  title="Drag to reorder"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path
+                      d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+                <div class="onboarding-step-index">{{ index + 1 }}</div>
+                <textarea
+                  v-model="formData.onboardingSteps[index]"
+                  rows="3"
+                  class="form-input onboarding-step-input"
+                  :placeholder="`Step ${index + 1}`"
+                ></textarea>
+                <button
+                  type="button"
+                  class="onboarding-step-remove"
+                  @click="removeOnboardingStep(index)"
+                  :disabled="formData.onboardingSteps.length === 1"
+                >
+                  Remove
+                </button>
+              </div>
+              <button type="button" class="onboarding-step-add" @click="addOnboardingStep">
+                Add Step
+              </button>
+            </div>
+          </div>
+
           <!-- Target Age Groups -->
           <div class="form-group" :class="{ 'has-error': fieldErrors.ageGroups }">
             <label class="form-label">Target Age Groups <span class="required">*</span></label>
@@ -392,14 +456,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import type { LearningCourse, Program } from '@/api/models'
 import { learningCourseService, programService } from '@/api/services/serviceFactory'
 
 const toast = useToast()
 const router = useRouter()
+const route = useRoute()
 
 const showModal = ref(false)
 const showDeleteModal = ref(false)
@@ -420,6 +485,8 @@ const learningCourses = ref<LearningCourse[]>([])
 const learningCoursesLoading = ref(false)
 const courseSearchQuery = ref('')
 const selectedCourseIds = ref<number[]>([])
+const draggingOnboardingStepIndex = ref<number | null>(null)
+const onboardingStepDropIndex = ref<number | null>(null)
 const maxImageBytes = 2 * 1024 * 1024
 
 const ageRangeOptions = [
@@ -441,6 +508,8 @@ const formData = ref({
   description: '',
   sponsor: '',
   startDate: '',
+  videoUrl: '',
+  onboardingSteps: [''],
   ageGroups: [] as Array<{ key: string; label: string; min: number; max: number | null }>,
 })
 
@@ -645,6 +714,131 @@ const resolveProgramStartDate = (prog: Program): string => {
   return toDateTimeLocalValue(rawStartDate)
 }
 
+const resolveProgramVideoUrl = (prog: Program): string => {
+  const programAny = prog as Program & {
+    videUrl?: string
+    videoUrl?: string
+    video_url?: string
+  }
+
+  return programAny.videUrl ?? programAny.videoUrl ?? programAny.video_url ?? ''
+}
+
+const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()
+
+const normalizeOnboardingStep = (step: unknown): string | null => {
+  if (typeof step === 'string') {
+    const cleaned = stripHtml(step).trim()
+    return cleaned || null
+  }
+
+  if (typeof step === 'object' && step !== null) {
+    const stepRecord = step as Record<string, unknown>
+    const candidate =
+      stepRecord.description ??
+      stepRecord.content ??
+      stepRecord.title ??
+      stepRecord.step ??
+      stepRecord.text
+
+    if (typeof candidate === 'string') {
+      const cleaned = stripHtml(candidate).trim()
+      return cleaned || null
+    }
+  }
+
+  return null
+}
+
+const resolveProgramOnboardingSteps = (prog: Program): string[] => {
+  const programAny = prog as Program & {
+    onboardingSteps?: unknown
+    onboarding_steps?: unknown
+  }
+
+  const rawValue = programAny.onboardingSteps ?? programAny.onboarding_steps
+
+  if (Array.isArray(rawValue)) {
+    const normalized = rawValue
+      .map((step) => normalizeOnboardingStep(step))
+      .filter((step): step is string => Boolean(step))
+    return normalized.length ? normalized : ['']
+  }
+
+  if (typeof rawValue === 'string') {
+    const listMatches = Array.from(rawValue.matchAll(/<li[^>]*>(.*?)<\/li>/gis))
+      .map((match) => stripHtml(match[1] || '').trim())
+      .filter(Boolean)
+
+    if (listMatches.length) {
+      return listMatches
+    }
+
+    const plainText = stripHtml(rawValue)
+    if (!plainText) return ['']
+
+    const splitLines = plainText
+      .split(/\r?\n|•|(?=\d+\.)/g)
+      .map((line) => line.replace(/^\d+\.\s*/, '').trim())
+      .filter(Boolean)
+
+    return splitLines.length ? splitLines : [plainText]
+  }
+
+  return ['']
+}
+
+const addOnboardingStep = () => {
+  formData.value.onboardingSteps.push('')
+}
+
+const removeOnboardingStep = (index: number) => {
+  if (formData.value.onboardingSteps.length === 1) {
+    formData.value.onboardingSteps[0] = ''
+    return
+  }
+
+  formData.value.onboardingSteps.splice(index, 1)
+}
+
+const handleOnboardingStepDragStart = (index: number, event: DragEvent) => {
+  draggingOnboardingStepIndex.value = index
+  onboardingStepDropIndex.value = index
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(index))
+  }
+}
+
+const handleOnboardingStepDragOver = (index: number) => {
+  onboardingStepDropIndex.value = index
+}
+
+const handleOnboardingStepDrop = (index: number) => {
+  const sourceIndex = draggingOnboardingStepIndex.value
+  if (sourceIndex === null || sourceIndex === index) {
+    handleOnboardingStepDragEnd()
+    return
+  }
+
+  const updatedSteps = [...formData.value.onboardingSteps]
+  const [movedStep] = updatedSteps.splice(sourceIndex, 1)
+  if (movedStep === undefined) {
+    handleOnboardingStepDragEnd()
+    return
+  }
+
+  updatedSteps.splice(index, 0, movedStep)
+  formData.value.onboardingSteps = updatedSteps
+  handleOnboardingStepDragEnd()
+}
+
+const handleOnboardingStepDragEnd = () => {
+  draggingOnboardingStepIndex.value = null
+  onboardingStepDropIndex.value = null
+}
+
 const resolveProgramCourseIds = (prog: Program): number[] => {
   const programAny = prog as Program & {
     courseIds?: Array<number | string>
@@ -834,6 +1028,14 @@ const closeModal = () => {
   showModal.value = false
   resetForm()
   fieldErrors.value = {}
+  if (route.query.editProgramId) {
+    const nextQuery = { ...route.query }
+    delete nextQuery.editProgramId
+    router.replace({
+      name: 'Programs',
+      query: nextQuery,
+    })
+  }
 }
 
 const resetForm = () => {
@@ -843,6 +1045,8 @@ const resetForm = () => {
     description: '',
     sponsor: '',
     startDate: '',
+    videoUrl: '',
+    onboardingSteps: [''],
     ageGroups: [],
   }
   unmappedAgeGroups.value = []
@@ -973,6 +1177,15 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
     if (formData.value.startDate) {
       payload.append('start_date', toServerDatetime(formData.value.startDate))
     }
+    if (formData.value.videoUrl) {
+      payload.append('video_url', formData.value.videoUrl)
+    }
+    formData.value.onboardingSteps
+      .map((step) => step.trim())
+      .filter(Boolean)
+      .forEach((step, index) => {
+        payload.append(`onboarding_steps[${index}]`, step)
+      })
 
     formData.value.ageGroups.forEach((ag, index) => {
       payload.append(`age_groups[${index}][key]`, ag.key)
@@ -1047,6 +1260,8 @@ const editProgram = (prog: Program) => {
     description: prog.description || '',
     sponsor: prog.sponsor || '',
     startDate: resolveProgramStartDate(prog),
+    videoUrl: resolveProgramVideoUrl(prog),
+    onboardingSteps: resolveProgramOnboardingSteps(prog),
     ageGroups: [...mapped, ...unmapped],
   }
   unmappedAgeGroups.value = unmapped
@@ -1059,6 +1274,20 @@ const editProgram = (prog: Program) => {
   showModal.value = true
 }
 
+watch(
+  () => [route.query.editProgramId, programsLoading.value, programsList.value.length],
+  () => {
+    const requestedProgramId = Number(route.query.editProgramId)
+    if (!requestedProgramId || programsLoading.value || showModal.value) return
+
+    const program = programsList.value.find((item) => item.id === requestedProgramId)
+    if (program) {
+      editProgram(program)
+    }
+  },
+  { immediate: true },
+)
+
 const duplicateProgram = (prog: Program) => {
   editingProgramId.value = null
   const { mapped, unmapped } = splitMappedAgeGroups(resolveProgramAgeGroups(prog))
@@ -1069,6 +1298,8 @@ const duplicateProgram = (prog: Program) => {
     description: prog.description || '',
     sponsor: prog.sponsor || '',
     startDate: resolveProgramStartDate(prog),
+    videoUrl: resolveProgramVideoUrl(prog),
+    onboardingSteps: resolveProgramOnboardingSteps(prog),
     ageGroups: [...mapped, ...unmapped],
   }
   unmappedAgeGroups.value = unmapped
@@ -1762,6 +1993,107 @@ const viewProgram = (prog: Program) => {
   outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.onboarding-step-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.7rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.onboarding-step-row.is-dragging {
+  opacity: 0.55;
+}
+
+.onboarding-step-row.is-drop-target {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.onboarding-step-handle {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 0.6rem;
+  background: var(--theme-surface);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  margin-top: 0.35rem;
+}
+
+.onboarding-step-handle:active {
+  cursor: grabbing;
+}
+
+.onboarding-step-handle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.onboarding-step-index {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+}
+
+.onboarding-step-input {
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+.onboarding-step-add,
+.onboarding-step-remove {
+  border: 1px solid var(--theme-border-strong);
+  background: var(--theme-surface);
+  color: #111827;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.onboarding-step-add {
+  align-self: flex-start;
+  padding: 0.7rem 1rem;
+}
+
+.onboarding-step-remove {
+  padding: 0.7rem 0.9rem;
+}
+
+.onboarding-step-add:hover,
+.onboarding-step-remove:hover {
+  border-color: #4f46e5;
+  color: #4338ca;
+}
+
+.onboarding-step-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .course-chips,
@@ -2479,6 +2811,17 @@ const viewProgram = (prog: Program) => {
 .modal-enter-from .filter-modal,
 .modal-leave-to .filter-modal {
   transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .onboarding-step-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .onboarding-step-remove {
+    grid-column: 1 / -1;
+    justify-self: flex-end;
+  }
 }
 
 /* Error Styles */
