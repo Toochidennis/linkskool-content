@@ -20,3 +20,5 @@ export const levelService = serviceFactory<any>("levels");
 export const programService = serviceFactory<any>("learn/programs");
 export const learningCourseService = serviceFactory<any>("learn/courses");
 export const lessonSubmissionService = serviceFactory<any>("learn/lessons");
+export const faqsService = serviceFactory<type.Faq>("faqs");
+export const notificationService = serviceFactory<any>("notifications");

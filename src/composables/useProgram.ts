@@ -49,6 +49,9 @@ export const useProgram = () => {
       if (payload.sponsor) {
         formData.append('sponsor', payload.sponsor);
       }
+      if (payload.startDate) {
+        formData.append('start_date', payload.startDate);
+      }
       formData.append('status', payload.status);
 
       // Append banner image file - ensure it's a valid File object

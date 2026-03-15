@@ -435,6 +435,14 @@
                 fieldErrors.zoomLink
                 }}</span>
             </div>
+            <div class="field">
+              <label>Whatsapp Link</label>
+              <input
+                v-model="form.whatsappGroupLink"
+                type="url"
+                placeholder="https://chat.whatsapp.com/..."
+              />
+            </div>
             <div class="field" :class="{ 'has-error': fieldErrors.videoUrl }">
               <label>Video URL</label>
               <input v-model="form.videoUrl" type="url" placeholder="https://..."

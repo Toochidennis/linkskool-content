@@ -20,6 +20,17 @@
         </div>
 
         <div class="header-right">
+          <button type="button" class="header-action-button" @click="editProgram">
+            <svg class="header-action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+            <span>Edit</span>
+          </button>
           <div class="search-container">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -481,6 +492,20 @@ const goBack = () => {
   router.back()
 }
 
+const editProgram = () => {
+  if (!programId.value) {
+    toast.error('Program ID not found')
+    return
+  }
+
+  router.push({
+    name: 'Programs',
+    query: {
+      editProgramId: String(programId.value),
+    },
+  })
+}
+
 const navigateToCohorts = (course: ProgramCourse) => {
   router.push({
     name: 'Program Course Cohorts',
@@ -746,6 +771,33 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
+}
+
+.header-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid #c7d2fe;
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
+  color: #fff;
+  border-radius: 0.8rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.18);
+}
+
+.header-action-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(79, 70, 229, 0.24);
+}
+
+.header-action-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .search-container {
@@ -1209,9 +1261,12 @@ onMounted(() => {
 
   .header-right {
     width: 100%;
+    flex-wrap: wrap;
   }
 
+  .header-action-button,
   .search-container {
+    width: 100%;
     max-width: 100%;
   }
 
