@@ -310,6 +310,16 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Whatsapp Link</label>
+            <input
+              v-model="formData.whatsappGroupLink"
+              type="url"
+              class="form-input"
+              placeholder="https://chat.whatsapp.com/..."
+            />
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Onboarding Steps</label>
             <div class="onboarding-steps">
               <div
@@ -509,6 +519,7 @@ const formData = ref({
   sponsor: '',
   startDate: '',
   videoUrl: '',
+  whatsappGroupLink: '',
   onboardingSteps: [''],
   ageGroups: [] as Array<{ key: string; label: string; min: number; max: number | null }>,
 })
@@ -724,6 +735,15 @@ const resolveProgramVideoUrl = (prog: Program): string => {
   return programAny.videUrl ?? programAny.videoUrl ?? programAny.video_url ?? ''
 }
 
+const resolveProgramWhatsappGroupLink = (prog: Program): string => {
+  const programAny = prog as Program & {
+    whatsappGroupLink?: string
+    whatsapp_group_link?: string
+  }
+
+  return programAny.whatsappGroupLink ?? programAny.whatsapp_group_link ?? ''
+}
+
 const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()
 
 const normalizeOnboardingStep = (step: unknown): string | null => {
@@ -878,7 +898,12 @@ const fetchPrograms = async () => {
   try {
     const response = await programService.get()
     if (response.data) {
-      programsList.value = Array.isArray(response.data) ? response.data : []
+      programsList.value = Array.isArray(response.data)
+        ? response.data.map((program) => ({
+            ...program,
+            whatsappGroupLink: resolveProgramWhatsappGroupLink(program),
+          }))
+        : []
     }
     console.log('Loaded programs from backend')
   } catch (error: unknown) {
@@ -1046,6 +1071,7 @@ const resetForm = () => {
     sponsor: '',
     startDate: '',
     videoUrl: '',
+    whatsappGroupLink: '',
     onboardingSteps: [''],
     ageGroups: [],
   }
@@ -1180,6 +1206,9 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
     if (formData.value.videoUrl) {
       payload.append('video_url', formData.value.videoUrl)
     }
+    if (formData.value.whatsappGroupLink) {
+      payload.append('whatsapp_group_link', formData.value.whatsappGroupLink)
+    }
     formData.value.onboardingSteps
       .map((step) => step.trim())
       .filter(Boolean)
@@ -1261,6 +1290,7 @@ const editProgram = (prog: Program) => {
     sponsor: prog.sponsor || '',
     startDate: resolveProgramStartDate(prog),
     videoUrl: resolveProgramVideoUrl(prog),
+    whatsappGroupLink: resolveProgramWhatsappGroupLink(prog),
     onboardingSteps: resolveProgramOnboardingSteps(prog),
     ageGroups: [...mapped, ...unmapped],
   }
@@ -1299,6 +1329,7 @@ const duplicateProgram = (prog: Program) => {
     sponsor: prog.sponsor || '',
     startDate: resolveProgramStartDate(prog),
     videoUrl: resolveProgramVideoUrl(prog),
+    whatsappGroupLink: resolveProgramWhatsappGroupLink(prog),
     onboardingSteps: resolveProgramOnboardingSteps(prog),
     ageGroups: [...mapped, ...unmapped],
   }

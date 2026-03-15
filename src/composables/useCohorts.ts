@@ -32,6 +32,7 @@ export type Cohort = {
   courseName?: string
   programId?: number
   zoomLink?: string
+  whatsappGroupLink?: string
   instructorName?: string
   learningType?: 'self_paced' | 'instructor_led'
   isFree?: boolean | number | string
@@ -66,6 +67,7 @@ export type CohortForm = {
   videoUrl: string
   image: string | File
   zoomLink: string
+  whatsappGroupLink: string
   isFree: boolean
   cost?: number
   discount?: number
@@ -101,6 +103,7 @@ export function useCohorts() {
     videoUrl: '',
     image: '',
     zoomLink: '',
+    whatsappGroupLink: '',
     isFree: true,
     cost: undefined,
     discount: undefined,
@@ -173,10 +176,15 @@ export function useCohorts() {
   }
 
   const normalizeCohort = (cohort: Cohort): Cohort => {
+    const cohortWithAliases = cohort as Cohort & {
+      whatsapp_group_link?: string
+    }
+
     return {
       ...cohort,
       delivery: cohort.deliveryMode,
       enrollmentDeadline: cohort.enrollmentDeadline,
+      whatsappGroupLink: cohort.whatsappGroupLink ?? cohortWithAliases.whatsapp_group_link ?? '',
       isFree: parseBoolean(cohort.isFree),
       cost: parseNumber(cohort.cost),
       discount: parseNumber(cohort.discount),
@@ -399,6 +407,9 @@ export function useCohorts() {
     if (form.value.instructorName) payload.append('instructor_name', form.value.instructorName)
     if (form.value.videoUrl) payload.append('video_url', form.value.videoUrl)
     if (form.value.zoomLink) payload.append('zoom_link', form.value.zoomLink)
+    if (form.value.whatsappGroupLink) {
+      payload.append('whatsapp_group_link', form.value.whatsappGroupLink)
+    }
     payload.append('is_free', form.value.isFree ? '1' : '0')
 
     if (form.value.isFree === false) {
@@ -458,6 +469,7 @@ export function useCohorts() {
       videoUrl: '',
       image: '',
       zoomLink: '',
+      whatsappGroupLink: '',
       isFree: true,
       cost: undefined,
       discount: undefined,
@@ -493,6 +505,7 @@ export function useCohorts() {
       videoUrl: cohort.videoUrl || '',
       image: normalized.imageUrl || '',
       zoomLink: cohort.zoomLink || '',
+      whatsappGroupLink: normalized.whatsappGroupLink || '',
       isFree: Boolean(normalized.isFree),
       cost: normalized.cost,
       discount: normalized.discount,

@@ -5,6 +5,8 @@ export interface Program {
   shortname: string;
   startDate?: string;
   start_date?: string;
+  whatsappGroupLink?: string;
+  whatsapp_group_link?: string;
   expanded?: boolean;
   courseCount?: number;
   description?: string;
@@ -23,6 +25,7 @@ export interface CreateProgramPayload {
   description: string;
   sponsor?: string;
   startDate?: string;
+  whatsappGroupLink?: string;
   status: 'published' | 'draft' | 'archived';
   banner_image?: File;
 }
