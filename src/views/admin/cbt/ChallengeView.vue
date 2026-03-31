@@ -14,7 +14,9 @@
 
     <section v-else-if="sortedExamTypes.length" class="exam-type-grid">
       <article v-for="examType in sortedExamTypes" :key="examType.id" class="exam-type-card"
-        :class="getExamTypeTheme(examType).cardClass">
+        :class="getExamTypeTheme(examType).cardClass" role="button" tabindex="0"
+        @click="openExamTypeChallenges(examType)" @keydown.enter="openExamTypeChallenges(examType)"
+        @keydown.space.prevent="openExamTypeChallenges(examType)">
         <div class="exam-type-card__header">
           <p class="exam-type-card__shortname">{{ examType.shortname }}</p>
           <div class="exam-type-card__icon" :class="getExamTypeTheme(examType).iconClass">
@@ -40,9 +42,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import type { ExamType } from '@/api/models'
 import { useChallenge } from '@/composables/useChallenge'
 
+const router = useRouter()
 const { examTypes, isLoading, fetchExamTypes } = useChallenge()
 
 const sortedExamTypes = computed(() =>
@@ -100,6 +104,19 @@ const getExamTypeTheme = (examType: ExamType) => {
 
   const hash = normalizedName.split('').reduce((total, char) => total + char.charCodeAt(0), 0)
   return fallbackThemes[hash % fallbackThemes.length]!
+}
+
+const openExamTypeChallenges = (examType: ExamType) => {
+  router.push({
+    name: 'Challenge Detail',
+    params: {
+      examTypeId: String(examType.id),
+    },
+    query: {
+      name: examType.name,
+      shortname: examType.shortname,
+    },
+  })
 }
 
 onMounted(() => {

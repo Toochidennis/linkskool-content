@@ -15,6 +15,7 @@ import SyllabusView from '@/views/admin/cbt/SyllabusView.vue'
 import AnnouncementView from '@/views/admin/updates/AnnouncementView.vue'
 import AdmissionsView from '@/views/admin/updates/AdmissionsView.vue'
 import ChallengeView from '@/views/admin/cbt/ChallengeView.vue'
+import ChallengeDetailView from '@/views/admin/cbt/ChallengeDetailView.vue'
 import AssessmentSpreadsheetView from '@/views/admin/cbt/AssessmentSpreadsheetView.vue'
 import AssessmentFormView from '@/views/admin/cbt/AssessmentFormView.vue'
 import AdvertisementView from '@/views/admin/updates/AdvertisementView.vue'
@@ -182,6 +183,11 @@ const routes: RouteRecordRaw[] = [
         path: 'challenges',
         name: 'Challenges',
         component: ChallengeView,
+      },
+      {
+        path: 'challenges/:examTypeId',
+        name: 'Challenge Detail',
+        component: ChallengeDetailView,
       },
       {
         path: 'team',
