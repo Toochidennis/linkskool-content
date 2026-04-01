@@ -1,13 +1,26 @@
 import { ref } from 'vue'
 import { useToast } from 'vue-toast-notification'
 import type { ExamType } from '@/api/models'
-import { examTypeService } from '@/api/services/serviceFactory'
+import { assessmentService, examTypeService } from '@/api/services/serviceFactory'
+
+export interface ChallengeSubjectYear {
+  examId: number
+  year: number
+}
+
+export interface ChallengeSubjectOption {
+  courseId: number
+  courseName: string
+  years: ChallengeSubjectYear[]
+}
 
 export function useChallenge() {
   const toast = useToast()
 
   const examTypes = ref<ExamType[]>([])
   const isLoading = ref(false)
+  const subjectsWithYears = ref<ChallengeSubjectOption[]>([])
+  const isLoadingSubjects = ref(false)
 
   const normalizeExamType = (examType: ExamType): ExamType => ({
     id: examType.id,
@@ -41,9 +54,51 @@ export function useChallenge() {
     }
   }
 
+  const fetchSubjectsWithYears = async (examTypeId: number | string) => {
+    isLoadingSubjects.value = true
+
+    try {
+      const response = await assessmentService.get<ChallengeSubjectOption[]>(`${examTypeId}/courses`)
+
+      const payload = response?.data
+      const list = Array.isArray(payload) ? payload : []
+
+      subjectsWithYears.value = list
+        .map(item => {
+          const years = Array.isArray(item?.years)
+            ? item.years
+              .map(yearItem => ({
+                examId: Number(yearItem?.examId ?? 0),
+                year: Number(yearItem?.year ?? 0),
+              }))
+              .filter(yearItem => Number.isFinite(yearItem.year) && yearItem.year > 0)
+            : []
+
+          return {
+            courseId: Number(item?.courseId ?? 0),
+            courseName: String(item?.courseName ?? '').trim(),
+            years,
+          }
+        })
+        .filter(item => item.courseId > 0 && item.courseName)
+
+      return subjectsWithYears.value
+    } catch (error) {
+      console.error('Error fetching challenge subjects:', error)
+      subjectsWithYears.value = []
+      toast.error('Failed to load challenge subjects')
+      throw error
+    } finally {
+      isLoadingSubjects.value = false
+    }
+  }
+
   return {
     examTypes,
     isLoading,
     fetchExamTypes,
+    subjectsWithYears,
+    isLoadingSubjects,
+    fetchSubjectsWithYears,
   }
 }

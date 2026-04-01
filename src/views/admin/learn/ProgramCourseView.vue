@@ -15,7 +15,7 @@
           </div>
           <div>
             <h1 class="header-title">{{ programName }}</h1>
-            <p class="header-subtitle">{{ activeTab === 'courses' ? 'Courses attached to this program' : 'Curriculum flow for learner progression' }}</p>
+            <p class="header-subtitle">{{ headerSubtitle }}</p>
           </div>
         </div>
 
@@ -43,7 +43,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              :placeholder="activeTab === 'courses' ? 'Search courses...' : 'Search cohorts in flow...'"
+              :placeholder="searchPlaceholder"
               class="search-input"
             />
           </div>
@@ -71,12 +71,22 @@
           <span>Curriculum Flow</span>
           <small>{{ learningPathList.length }}</small>
         </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'users' }"
+          role="tab"
+          :aria-selected="activeTab === 'users'"
+          @click="activeTab = 'users'"
+        >
+          <span>Enrolled Users</span>
+          <small>{{ enrolledUsersCount }}</small>
+        </button>
       </div>
     </div>
 
-    <div v-if="isLoading" class="loading-state">
+    <div v-if="isLoading && activeTab !== 'users'" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>{{ activeTab === 'courses' ? 'Loading courses...' : 'Loading curriculum flow...' }}</p>
+      <p>{{ loadingText }}</p>
     </div>
 
     <template v-else>
@@ -104,7 +114,8 @@
         <div class="flow-banner">
           <p class="flow-title">Build the program flow</p>
           <p class="flow-subtitle">
-            Drag cohorts from Available into Program Flow, then reorder to control learner progression.
+            Drag cohorts from Available into Program Flow, then reorder to control learner
+            progression.
           </p>
         </div>
 
@@ -133,7 +144,11 @@
                 <div class="flow-left">
                   <div class="drag-handle" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" stroke-width="2.5" stroke-linecap="round" />
+                      <path
+                        d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                      />
                     </svg>
                   </div>
                   <div class="flow-content">
@@ -142,19 +157,27 @@
                       <span>{{ cohort.courseName || 'No course assigned' }}</span>
                       <span>{{ renderDateRange(cohort.startDate, cohort.endDate) }}</span>
                     </p>
-                    <p class="flow-description">{{ cohort.description || 'No cohort description provided.' }}</p>
+                    <p class="flow-description">
+                      {{ cohort.description || 'No cohort description provided.' }}
+                    </p>
                   </div>
                 </div>
 
                 <div class="flow-right">
                   <span class="status-pill" :class="cohort.status">{{ cohort.status }}</span>
-                  <span class="flow-count">{{ cohort.participants || 0 }} / {{ cohort.capacity || 0 }} learners</span>
+                  <span class="flow-count"
+                    >{{ cohort.participants || 0 }} / {{ cohort.capacity || 0 }} learners</span
+                  >
                 </div>
               </article>
             </div>
 
             <p v-else class="pool-empty">
-              {{ searchQuery ? 'No available cohorts match your search.' : 'No cohorts available to add.' }}
+              {{
+                searchQuery
+                  ? 'No available cohorts match your search.'
+                  : 'No cohorts available to add.'
+              }}
             </p>
           </section>
 
@@ -187,7 +210,11 @@
                 <div class="flow-left">
                   <div class="drag-handle" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" stroke-width="2.5" stroke-linecap="round" />
+                      <path
+                        d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                      />
                     </svg>
                   </div>
                   <div class="flow-order">{{ cohort.sequence }}</div>
@@ -197,23 +224,38 @@
                       <span>{{ cohort.courseName || 'No course assigned' }}</span>
                       <span>{{ renderDateRange(cohort.startDate, cohort.endDate) }}</span>
                     </p>
-                    <p class="flow-description">{{ cohort.description || 'No cohort description provided.' }}</p>
+                    <p class="flow-description">
+                      {{ cohort.description || 'No cohort description provided.' }}
+                    </p>
                   </div>
                 </div>
 
                 <div class="flow-right">
                   <span class="status-pill" :class="cohort.status">{{ cohort.status }}</span>
-                  <span class="flow-count">{{ cohort.participants || 0 }} / {{ cohort.capacity || 0 }} learners</span>
+                  <span class="flow-count"
+                    >{{ cohort.participants || 0 }} / {{ cohort.capacity || 0 }} learners</span
+                  >
                 </div>
               </article>
             </div>
 
             <p v-else class="pool-empty">
-              {{ searchQuery ? 'No flow cohorts match your search.' : 'Drop cohorts here to create the program flow.' }}
+              {{
+                searchQuery
+                  ? 'No flow cohorts match your search.'
+                  : 'Drop cohorts here to create the program flow.'
+              }}
             </p>
           </section>
         </div>
       </div>
+
+      <ProgramEnrolledUsersTab
+        v-else-if="activeTab === 'users'"
+        :program-id="programId"
+        :search-query="searchQuery"
+        @update:count="enrolledUsersCount = $event"
+      />
 
       <div v-else class="empty-state">
         <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,8 +288,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import { learningCourseService, programService } from '@/api/services/serviceFactory'
 import type { ProgramCourse } from '@/api/models'
+import ProgramEnrolledUsersTab from './ProgramEnrolledUsersTab.vue'
 
-type TabKey = 'courses' | 'curriculum'
+type TabKey = 'courses' | 'curriculum' | 'users'
 type CohortStatus = 'upcoming' | 'ongoing' | 'completed'
 
 interface LearningPathCohort {
@@ -321,6 +364,7 @@ const availableCohorts = ref<LearningPathCohort[]>([])
 const searchQuery = ref('')
 const isLoading = ref(false)
 const hasLoadedCurriculum = ref(false)
+const enrolledUsersCount = ref(0)
 
 const draggingCohortId = ref<number | null>(null)
 const draggingSource = ref<DragSource | null>(null)
@@ -329,6 +373,21 @@ const dropZoneTarget = ref<DragSource | null>(null)
 
 const programName = computed(() => (route.query.name as string) || 'Program Courses')
 const programId = computed(() => parseInt(route.query.id as string, 10) || 0)
+const headerSubtitle = computed(() => {
+  if (activeTab.value === 'curriculum') return 'Curriculum flow for learner progression'
+  if (activeTab.value === 'users') return 'Monitor enrolled learners and payment activity'
+  return 'Courses attached to this program'
+})
+const searchPlaceholder = computed(() => {
+  if (activeTab.value === 'curriculum') return 'Search cohorts in flow...'
+  if (activeTab.value === 'users') return 'Search learners or courses...'
+  return 'Search courses...'
+})
+const loadingText = computed(() => {
+  if (activeTab.value === 'curriculum') return 'Loading curriculum flow...'
+  if (activeTab.value === 'users') return 'Loading enrolled users...'
+  return 'Loading courses...'
+})
 
 const reindexLearningPath = () => {
   learningPathList.value = learningPathList.value.map((cohort, index) => ({
@@ -666,13 +725,18 @@ const handleDropOnCard = async (target: DragSource) => {
   }
 
   if (target === 'available' && draggingSource.value === 'flow') {
-    const sourceIndex = learningPathList.value.findIndex((cohort) => cohort.id === draggingCohortId.value)
+    const sourceIndex = learningPathList.value.findIndex(
+      (cohort) => cohort.id === draggingCohortId.value,
+    )
     if (sourceIndex >= 0) {
       const updatedFlow = [...learningPathList.value]
       const [moved] = updatedFlow.splice(sourceIndex, 1)
       if (moved) {
         learningPathList.value = updatedFlow
-        availableCohorts.value = [...availableCohorts.value, { ...moved, inFlow: false, sequence: 0 }]
+        availableCohorts.value = [
+          ...availableCohorts.value,
+          { ...moved, inFlow: false, sequence: 0 },
+        ]
         reindexLearningPath()
         await persistLearningPathOrder()
       }
@@ -786,7 +850,9 @@ onMounted(() => {
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   box-shadow: 0 12px 24px rgba(79, 70, 229, 0.18);
 }
 
@@ -992,7 +1058,9 @@ onMounted(() => {
   background: #ffffff;
   min-height: 22rem;
   padding: 0.9rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .pool-card.primary {
@@ -1075,7 +1143,10 @@ onMounted(() => {
   border: 1px solid #dbe3ee;
   border-radius: 0.9rem;
   background: #fff;
-  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s,
+    border-color 0.18s;
 }
 
 .flow-item:hover {

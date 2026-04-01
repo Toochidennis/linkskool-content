@@ -17,7 +17,7 @@
                 </div>
             </div>
 
-            <button class="create-button" type="button">
+            <button class="create-button" type="button" @click="goToCreateChallenge">
                 <i class="fas fa-plus"></i>
                 <span>Create Challenge</span>
             </button>
@@ -330,6 +330,19 @@ const goToPage = (page: number) => {
     }
 
     currentPage.value = page
+}
+
+const goToCreateChallenge = () => {
+    router.push({
+        name: 'Challenge Create',
+        params: {
+            examTypeId: String(route.params.examTypeId || ''),
+        },
+        query: {
+            name: examTypeName.value,
+            shortname: examTypeShortname.value,
+        },
+    })
 }
 
 const formatDate = (value: string) =>
