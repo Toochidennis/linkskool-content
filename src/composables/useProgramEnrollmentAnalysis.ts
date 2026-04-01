@@ -238,8 +238,14 @@ export function useProgramEnrollmentAnalysis() {
 
 const sanitizeParams = (params: ProgramEnrollmentAnalysisParams) => {
   return Object.fromEntries(
-    Object.entries(params).filter(
-      ([, value]) => value !== '' && value !== null && value !== undefined,
-    ),
+    Object.entries({
+      page: params.page,
+      limit: params.limit,
+      course_id: params.courseId,
+      cohort_id: params.cohortId,
+      payment_status: params.paymentStatus,
+      enrollment_status: params.enrollmentStatus,
+      enrollment_type: params.enrollmentType,
+    }).filter(([, value]) => value !== '' && value !== null && value !== undefined),
   )
 }
