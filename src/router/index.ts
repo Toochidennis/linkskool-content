@@ -25,6 +25,7 @@ import VideoLibraryDetailsView from '@/views/admin/learn/VideoLibraryDetailsView
 import LevelView from '@/views/admin/learn/LevelView.vue'
 import ProgramLibraryView from '@/views/admin/learn/ProgramLibraryView.vue'
 import ProgramCourseView from '@/views/admin/learn/ProgramCourseView.vue'
+import ProgramEnrollmentProfileView from '@/views/admin/learn/ProgramEnrollmentProfileView.vue'
 import ProgramCourseCohortsView from '@/views/admin/learn/ProgramCourseCohortsView.vue'
 import ProgramCourseLessonsView from '@/views/admin/learn/ProgramCourseLessonsView.vue'
 import LessonFormView from '@/views/admin/learn/LessonFormView.vue'
@@ -134,6 +135,11 @@ const routes: RouteRecordRaw[] = [
         path: 'program-courses/:slug',
         name: 'Program Courses',
         component: ProgramCourseView,
+      },
+      {
+        path: 'programs/:programId/profiles/:profileId',
+        name: 'Program Enrollment Profile',
+        component: ProgramEnrollmentProfileView,
       },
       {
         path: 'learn-course-cohorts/:courseSlug',

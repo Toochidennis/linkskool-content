@@ -4,7 +4,8 @@
       <div class="users-toolbar-copy">
         <p class="users-toolbar-title">Enrolled learners</p>
         <p class="users-toolbar-subtitle">
-          Review who joined this program, what they enrolled in, and how payment is tracking.
+          Server-backed profile analytics for this program, including enrollment and payment
+          summary.
         </p>
       </div>
 
@@ -22,26 +23,28 @@
       </button>
     </div>
 
-    <div class="users-stats">
+    <div v-if="summary" class="users-stats">
       <article class="stat-card">
-        <span class="stat-label">Learners</span>
-        <strong class="stat-value">{{ users.length }}</strong>
+        <span class="stat-label">Profiles</span>
+        <strong class="stat-value">{{ formatNumber(summary.totalProfiles) }}</strong>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Filtered</span>
-        <strong class="stat-value">{{ filteredUsers.length }}</strong>
+        <span class="stat-label">Enrollments</span>
+        <strong class="stat-value">{{ formatNumber(summary.totalEnrollments) }}</strong>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Paid enrollments</span>
-        <strong class="stat-value">{{ paidEnrollmentCount }}</strong>
+        <span class="stat-label">Successful payments</span>
+        <strong class="stat-value">{{ formatNumber(summary.totalSuccessfulPayments) }}</strong>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Pending enrollments</span>
-        <strong class="stat-value">{{ pendingEnrollmentCount }}</strong>
+        <span class="stat-label">Amount paid</span>
+        <strong class="stat-value">{{
+          formatMoney(summary.totalAmountPaid, summary.currency)
+        }}</strong>
       </article>
     </div>
 
-    <div v-if="isLoading" class="tab-loading-state">
+    <div v-if="isLoadingProfiles" class="tab-loading-state">
       <div class="tab-loading-spinner"></div>
       <p>Loading enrolled learners...</p>
     </div>
@@ -49,82 +52,116 @@
     <div v-else-if="loadError" class="feedback-card error">
       <p class="feedback-title">Unable to load enrolled learners</p>
       <p class="feedback-text">{{ loadError }}</p>
-      <button type="button" class="feedback-button" @click="fetchEnrolledUsers">Try again</button>
+      <button type="button" class="feedback-button" @click="fetchProfiles()">Try again</button>
     </div>
 
-    <div v-else-if="filteredUsers.length" class="users-table-card">
-      <div class="users-table-wrap">
-        <table class="users-table">
-          <thead>
-            <tr>
-              <th>Learner</th>
-              <th>Courses</th>
-              <th>Paid</th>
-              <th>Outstanding</th>
-              <th>Payment status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="user in filteredUsers"
-              :key="user.id"
-              class="users-row"
-              @click="openUserDetails(user)"
-            >
-              <td>
-                <div class="learner-cell">
-                  <div class="learner-avatar">
-                    <img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.fullName" />
-                    <span v-else>{{ initials(user.fullName) }}</span>
-                  </div>
-                  <div class="learner-copy">
-                    <p class="learner-name">{{ user.fullName }}</p>
-                    <p class="learner-meta">
-                      {{ user.email || user.username || 'No contact provided' }}
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <td>{{ user.totalCourses }}</td>
-              <td>{{ user.paidCourses }}</td>
-              <td>{{ user.outstandingCourses }}</td>
-              <td>
-                <span class="payment-pill" :class="user.paymentSummary.tone">
-                  {{ user.paymentSummary.label }}
-                </span>
-              </td>
-              <td class="users-row-action">
-                <button type="button" class="view-button" @click.stop="openUserDetails(user)">
-                  View details
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div v-else-if="profiles.length" class="profiles-list">
+      <article v-for="profile in profiles" :key="profile.profileId" class="profile-row">
+        <div class="profile-main">
+          <div class="profile-avatar">{{ initials(profile.firstName, profile.lastName) }}</div>
+
+          <div class="profile-copy">
+            <div class="profile-heading">
+              <h3 class="profile-name">{{ fullName(profile.firstName, profile.lastName) }}</h3>
+            </div>
+
+            <div class="profile-meta">
+              <span>{{ profile.email || 'No email provided' }}</span>
+              <span>{{ profile.phone || 'No phone provided' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-metrics">
+          <div class="metric-item">
+            <span class="metric-label">Enrollments</span>
+            <strong class="metric-value">{{
+              formatNumber(profile.summary.totalEnrollments)
+            }}</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Payment attempts</span>
+            <strong class="metric-value">{{
+              formatNumber(profile.summary.totalPaymentAttempts)
+            }}</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Successful payments</span>
+            <strong class="metric-value">{{
+              formatNumber(profile.summary.totalSuccessfulPayments)
+            }}</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Amount paid</span>
+            <strong class="metric-value">
+              {{ formatMoney(profile.summary.totalAmountPaid, profile.summary.currency) }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="profile-actions">
+          <button
+            type="button"
+            class="view-button"
+            :disabled="isLoadingProfileEnrollments"
+            @click="handleViewDetails(profile)"
+          >
+            {{ isLoadingProfileEnrollments ? 'Loading details...' : 'View details' }}
+          </button>
+        </div>
+      </article>
     </div>
 
     <div v-else class="feedback-card">
-      <p class="feedback-title">No learners match the current view</p>
-      <p class="feedback-text">
-        {{
-          props.searchQuery || selectedCourseFilter || selectedPaymentFilter
-            ? 'Try clearing your search or filters.'
-            : 'No enrolled learners have been returned for this program yet.'
-        }}
-      </p>
+      <p class="feedback-title">No learners found</p>
+      <p class="feedback-text">No profiles were returned for the selected filter combination.</p>
+    </div>
+
+    <div v-if="meta" class="pagination-bar">
+      <div class="pagination-summary">
+        <span>Page {{ meta.currentPage }} of {{ meta.lastPage }}</span>
+        <span>{{ formatNumber(meta.total) }} total profiles</span>
+      </div>
+
+      <div class="pagination-actions">
+        <label class="limit-select-wrap">
+          <span>Rows</span>
+          <select v-model.number="filters.limit" class="limit-select" @change="handleLimitChange">
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          class="page-button"
+          :disabled="!meta.hasPrev || isLoadingProfiles"
+          @click="changePage(meta.currentPage - 1)"
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          class="page-button primary"
+          :disabled="!meta.hasNext || isLoadingProfiles"
+          @click="changePage(meta.currentPage + 1)"
+        >
+          Next
+        </button>
+      </div>
     </div>
 
     <Transition name="modal">
-      <div v-if="showFilterModal" class="modal-overlay" @click.self="showFilterModal = false">
+      <div v-if="showFilterModal" class="modal-overlay" @click.self="closeFilterModal">
         <div class="filter-modal">
           <div class="modal-header">
             <div>
               <h3 class="modal-title">Filter Enrolled Learners</h3>
-              <p class="modal-subtitle">Narrow the list by course and payment status.</p>
+              <p class="modal-subtitle">Each filter applies a fresh request to the server.</p>
             </div>
-            <button type="button" class="modal-close" @click="showFilterModal = false">
+            <button type="button" class="modal-close" @click="closeFilterModal">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -139,120 +176,76 @@
           <div class="modal-body">
             <div class="filter-section">
               <label class="filter-label" for="course-filter">Course</label>
-              <select id="course-filter" v-model="selectedCourseFilter" class="filter-select">
-                <option value="">All courses</option>
-                <option
-                  v-for="course in availableCourses"
-                  :key="course.value"
-                  :value="course.value"
-                >
-                  {{ course.label }}
+              <select
+                id="course-filter"
+                v-model.number="draftFilters.courseId"
+                class="filter-select"
+              >
+                <option :value="null">All courses</option>
+                <option v-for="course in filterOptions.courses" :key="course.id" :value="course.id">
+                  {{ course.name }}
                 </option>
               </select>
             </div>
 
-            <div class="filter-section">
-              <p class="filter-label">Payment status</p>
-              <div class="filter-options">
-                <label
-                  v-for="status in paymentStatusOptions"
-                  :key="status.value"
-                  class="filter-option"
+            <div class="filter-grid">
+              <div class="filter-section">
+                <label class="filter-label" for="payment-status-filter">Payment status</label>
+                <select
+                  id="payment-status-filter"
+                  v-model="draftFilters.paymentStatus"
+                  class="filter-select"
                 >
-                  <input
-                    v-model="selectedPaymentFilter"
-                    type="radio"
-                    name="payment-status"
-                    :value="status.value"
-                  />
-                  <span>{{ status.label }}</span>
-                </label>
+                  <option value="">All payment statuses</option>
+                  <option
+                    v-for="status in filterOptions.paymentStatuses"
+                    :key="status"
+                    :value="status"
+                  >
+                    {{ humanize(status) }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="filter-section">
+                <label class="filter-label" for="enrollment-status-filter">Enrollment status</label>
+                <select
+                  id="enrollment-status-filter"
+                  v-model="draftFilters.enrollmentStatus"
+                  class="filter-select"
+                >
+                  <option value="">All enrollment statuses</option>
+                  <option
+                    v-for="status in filterOptions.enrollmentStatuses"
+                    :key="status"
+                    :value="status"
+                  >
+                    {{ humanize(status) }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="filter-section">
+                <label class="filter-label" for="enrollment-type-filter">Enrollment type</label>
+                <select
+                  id="enrollment-type-filter"
+                  v-model="draftFilters.enrollmentType"
+                  class="filter-select"
+                >
+                  <option value="">All enrollment types</option>
+                  <option v-for="type in filterOptions.enrollmentTypes" :key="type" :value="type">
+                    {{ humanize(type) }}
+                  </option>
+                </select>
               </div>
             </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" class="ghost-button" @click="resetFilters">Reset</button>
-            <button type="button" class="primary-button" @click="showFilterModal = false">
-              Apply
+            <button type="button" class="primary-button" @click="applyFilters">
+              Apply filters
             </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <Transition name="modal">
-      <div v-if="selectedUser" class="modal-overlay" @click.self="selectedUser = null">
-        <div class="details-modal">
-          <div class="modal-header">
-            <div class="details-heading">
-              <div class="learner-avatar large">
-                <img
-                  v-if="selectedUser.avatarUrl"
-                  :src="selectedUser.avatarUrl"
-                  :alt="selectedUser.fullName"
-                />
-                <span v-else>{{ initials(selectedUser.fullName) }}</span>
-              </div>
-              <div>
-                <h3 class="modal-title">{{ selectedUser.fullName }}</h3>
-                <p class="modal-subtitle">
-                  {{ selectedUser.email || selectedUser.username || 'No contact provided' }}
-                </p>
-              </div>
-            </div>
-            <button type="button" class="modal-close" @click="selectedUser = null">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          <div class="details-summary">
-            <article class="summary-card">
-              <span class="summary-label">Courses enrolled</span>
-              <strong class="summary-value">{{ selectedUser.totalCourses }}</strong>
-            </article>
-            <article class="summary-card">
-              <span class="summary-label">Courses paid for</span>
-              <strong class="summary-value">{{ selectedUser.paidCourses }}</strong>
-            </article>
-            <article class="summary-card">
-              <span class="summary-label">Outstanding</span>
-              <strong class="summary-value">{{ selectedUser.outstandingCourses }}</strong>
-            </article>
-          </div>
-
-          <div class="details-list">
-            <div class="details-list-header">
-              <p>Enrollment details</p>
-              <span>{{ selectedUser.courses.length }} entries</span>
-            </div>
-
-            <article
-              v-for="course in selectedUser.courses"
-              :key="course.entryKey"
-              class="details-item"
-            >
-              <div>
-                <p class="details-course">{{ course.courseTitle }}</p>
-                <p class="details-meta">
-                  {{ course.cohortTitle || 'No cohort specified' }}
-                  <span v-if="course.enrolledAt">• {{ formatDate(course.enrolledAt) }}</span>
-                </p>
-              </div>
-              <div class="details-payment">
-                <span class="payment-pill" :class="paymentTone(course.paymentStatus)">
-                  {{ formatPaymentStatus(course.paymentStatus) }}
-                </span>
-                <p v-if="course.paymentLabel" class="details-amount">{{ course.paymentLabel }}</p>
-              </div>
-            </article>
           </div>
         </div>
       </div>
@@ -261,595 +254,191 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useToast } from 'vue-toast-notification'
-import { programService } from '@/api/services/serviceFactory'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import type {
+  ProgramEnrollmentAnalysisFilterOptions,
+  ProgramEnrollmentAnalysisParams,
+  ProgramEnrollmentAnalysisProfile,
+  ProgramEnrollmentAnalysisSummary,
+} from '@/composables/useProgramEnrollmentAnalysis'
+import { useProgramEnrollmentAnalysis } from '@/composables/useProgramEnrollmentAnalysis'
 
 interface Props {
   programId: number
-  searchQuery?: string
 }
 
-interface EnrollmentCourseDetail {
-  entryKey: string
-  courseId: number | null
-  courseTitle: string
-  cohortTitle: string
-  paymentStatus: string
-  paymentLabel: string
-  enrolledAt: string
-}
-
-interface EnrolledUserSummary {
-  id: number | string
-  fullName: string
-  email: string
-  username: string
-  avatarUrl: string
-  courses: EnrollmentCourseDetail[]
-  totalCourses: number
-  paidCourses: number
-  outstandingCourses: number
-  paymentSummary: {
-    label: string
-    tone: string
-  }
-}
-
-type RawRecord = Record<string, unknown>
-
-const props = withDefaults(defineProps<Props>(), {
-  searchQuery: '',
-})
+const props = defineProps<Props>()
+const router = useRouter()
 
 const emit = defineEmits<{
   (e: 'update:count', value: number): void
 }>()
 
-const toast = useToast()
+const {
+  payload,
+  isLoadingProfiles,
+  isLoadingProfileEnrollments,
+  fetchEnrollmentProfiles,
+  fetchProfileEnrollments,
+} = useProgramEnrollmentAnalysis()
 
-const users = ref<EnrolledUserSummary[]>([])
-const selectedUser = ref<EnrolledUserSummary | null>(null)
-const isLoading = ref(false)
-const loadError = ref('')
 const showFilterModal = ref(false)
-const selectedCourseFilter = ref('')
-const selectedPaymentFilter = ref('')
+const loadError = ref('')
 
-const paymentStatusOptions = [
-  { value: '', label: 'All payment statuses' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'partial', label: 'Partially paid' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'failed', label: 'Failed' },
-  { value: 'refunded', label: 'Refunded' },
-]
-
-const enrolledUsersEndpoints = ['enrollments/users', 'enrollments', 'users', 'students']
-
-const normalizedSearchQuery = computed(() => props.searchQuery.trim().toLowerCase())
-
-const availableCourses = computed(() => {
-  const map = new Map<string, string>()
-
-  users.value.forEach((user) => {
-    user.courses.forEach((course) => {
-      if (course.courseTitle) {
-        map.set(String(course.courseId ?? course.courseTitle), course.courseTitle)
-      }
-    })
-  })
-
-  return [...map.entries()]
-    .map(([value, label]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label))
+const filters = reactive<
+  Required<Omit<ProgramEnrollmentAnalysisParams, 'cohortId'>> & { cohortId: number | null }
+>({
+  page: 1,
+  limit: 25,
+  courseId: null,
+  cohortId: null,
+  paymentStatus: '',
+  enrollmentStatus: '',
+  enrollmentType: '',
 })
 
-const filteredUsers = computed(() => {
-  return users.value.filter((user) => {
-    const matchesSearch =
-      !normalizedSearchQuery.value ||
-      [
-        user.fullName,
-        user.email,
-        user.username,
-        ...user.courses.map((course) => course.courseTitle),
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedSearchQuery.value)
-
-    const matchesCourse =
-      !selectedCourseFilter.value ||
-      user.courses.some((course) => {
-        const courseKey = String(course.courseId ?? course.courseTitle)
-        return courseKey === selectedCourseFilter.value
-      })
-
-    const matchesPayment =
-      !selectedPaymentFilter.value ||
-      user.courses.some(
-        (course) => normalizePaymentStatus(course.paymentStatus) === selectedPaymentFilter.value,
-      )
-
-    return matchesSearch && matchesCourse && matchesPayment
-  })
+const draftFilters = reactive({
+  courseId: null as number | null,
+  paymentStatus: '',
+  enrollmentStatus: '',
+  enrollmentType: '',
 })
 
-const paidEnrollmentCount = computed(() =>
-  users.value.reduce(
-    (total, user) =>
-      total + user.courses.filter((course) => isPaidStatus(course.paymentStatus)).length,
-    0,
-  ),
+const profiles = computed(() => payload.value.profiles)
+const summary = computed<ProgramEnrollmentAnalysisSummary | null>(() => payload.value.summary)
+const filterOptions = computed<ProgramEnrollmentAnalysisFilterOptions>(
+  () => payload.value.filterOptions,
 )
-
-const pendingEnrollmentCount = computed(() =>
-  users.value.reduce(
-    (total, user) =>
-      total +
-      user.courses.filter((course) =>
-        ['pending', 'partial', 'unpaid'].includes(normalizePaymentStatus(course.paymentStatus)),
-      ).length,
-    0,
-  ),
-)
+const meta = computed(() => payload.value.meta)
 
 const activeFilterCount = computed(() => {
-  let total = 0
-  if (selectedCourseFilter.value) total += 1
-  if (selectedPaymentFilter.value) total += 1
-  return total
+  let count = 0
+  if (filters.courseId) count += 1
+  if (filters.paymentStatus) count += 1
+  if (filters.enrollmentStatus) count += 1
+  if (filters.enrollmentType) count += 1
+  return count
 })
 
-const resetFilters = () => {
-  selectedCourseFilter.value = ''
-  selectedPaymentFilter.value = ''
+const syncDraftFilters = () => {
+  draftFilters.courseId = filters.courseId
+  draftFilters.paymentStatus = filters.paymentStatus
+  draftFilters.enrollmentStatus = filters.enrollmentStatus
+  draftFilters.enrollmentType = filters.enrollmentType
 }
 
-const fetchEnrolledUsers = async () => {
-  if (!props.programId) {
-    users.value = []
-    emit('update:count', 0)
-    return
-  }
+const fetchProfiles = async () => {
+  if (!props.programId) return
 
-  isLoading.value = true
   loadError.value = ''
 
-  let lastError: unknown = null
-
   try {
-    for (const endpoint of enrolledUsersEndpoints) {
-      try {
-        const response = await programService.get(`${props.programId}/${endpoint}`)
-        const normalizedUsers = normalizeUsersPayload(response?.data)
-        users.value = normalizedUsers
-        emit('update:count', normalizedUsers.length)
-        return
-      } catch (error) {
-        lastError = error
-      }
-    }
+    const data = await fetchEnrollmentProfiles(props.programId, {
+      page: filters.page,
+      limit: filters.limit,
+      courseId: filters.courseId,
+      cohortId: filters.cohortId,
+      paymentStatus: filters.paymentStatus,
+      enrollmentStatus: filters.enrollmentStatus,
+      enrollmentType: filters.enrollmentType,
+    })
 
-    throw lastError || new Error('Failed to load enrolled learners')
+    emit('update:count', data.meta?.total ?? data.profiles.length)
   } catch (error) {
-    console.error('Failed to fetch enrolled users:', error)
-    users.value = []
+    const maybeError = error as { response?: { data?: { message?: string } }; message?: string }
+    loadError.value =
+      maybeError?.response?.data?.message ||
+      maybeError?.message ||
+      'Failed to load enrollment analysis profiles'
     emit('update:count', 0)
-    loadError.value = extractErrorMessage(error)
-    toast.error(loadError.value || 'Failed to load enrolled learners')
-  } finally {
-    isLoading.value = false
   }
 }
 
-const openUserDetails = (user: EnrolledUserSummary) => {
-  selectedUser.value = user
+const applyFilters = async () => {
+  filters.page = 1
+  filters.courseId = draftFilters.courseId
+  filters.paymentStatus = draftFilters.paymentStatus
+  filters.enrollmentStatus = draftFilters.enrollmentStatus
+  filters.enrollmentType = draftFilters.enrollmentType
+  showFilterModal.value = false
+  await fetchProfiles()
 }
 
-const normalizeUsersPayload = (payload: unknown): EnrolledUserSummary[] => {
-  const list = extractList(payload)
-  const groupedUsers = new Map<string, EnrolledUserSummary>()
+const resetFilters = async () => {
+  filters.page = 1
+  filters.courseId = null
+  filters.cohortId = null
+  filters.paymentStatus = ''
+  filters.enrollmentStatus = ''
+  filters.enrollmentType = ''
+  syncDraftFilters()
+  showFilterModal.value = false
+  await fetchProfiles()
+}
 
-  list.forEach((item, index) => {
-    if (!isRecord(item)) return
+const closeFilterModal = () => {
+  syncDraftFilters()
+  showFilterModal.value = false
+}
 
-    const nestedEntries = extractNestedEnrollmentEntries(item)
+const changePage = async (page: number) => {
+  if (!meta.value) return
+  if (page < 1 || page > meta.value.lastPage || page === filters.page) return
+  filters.page = page
+  await fetchProfiles()
+}
 
-    if (nestedEntries.length > 0) {
-      nestedEntries.forEach((entry, entryIndex) => {
-        appendUserEnrollment(groupedUsers, item, entry, `${index}-${entryIndex}`)
-      })
-      return
-    }
+const handleLimitChange = async () => {
+  filters.page = 1
+  await fetchProfiles()
+}
 
-    appendUserEnrollment(groupedUsers, item, item, `${index}`)
+const handleViewDetails = async (profile: ProgramEnrollmentAnalysisProfile) => {
+  await fetchProfileEnrollments(props.programId, profile.profileId)
+  await router.push({
+    name: 'Program Enrollment Profile',
+    params: {
+      programId: String(props.programId),
+      profileId: String(profile.profileId),
+    },
+    query: {
+      programSlug: payload.value.program?.slug || '',
+      programName: payload.value.program?.name || '',
+    },
   })
-
-  return [...groupedUsers.values()]
-    .map((user) => finalizeUserSummary(user))
-    .sort((a, b) => a.fullName.localeCompare(b.fullName))
 }
 
-const appendUserEnrollment = (
-  groupedUsers: Map<string, EnrolledUserSummary>,
-  userSource: RawRecord,
-  courseSource: RawRecord,
-  suffix: string,
-) => {
-  const userId = getUserId(userSource, courseSource, suffix)
-  const existing = groupedUsers.get(userId) || createUserSummary(userSource, courseSource, userId)
-  existing.courses.push(normalizeCourseDetail(courseSource, suffix))
-  groupedUsers.set(userId, existing)
-}
+const initials = (firstName: string, lastName: string) =>
+  `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase()
 
-const createUserSummary = (
-  userSource: RawRecord,
-  courseSource: RawRecord,
-  userId: string,
-): EnrolledUserSummary => ({
-  id: userId,
-  fullName: getUserName(userSource, courseSource),
-  email: getString(courseSource, ['email']) || getString(userSource, ['email']),
-  username: getString(courseSource, ['username']) || getString(userSource, ['username']),
-  avatarUrl: resolveAvatarUrl(courseSource) || resolveAvatarUrl(userSource),
-  courses: [],
-  totalCourses: 0,
-  paidCourses: 0,
-  outstandingCourses: 0,
-  paymentSummary: {
-    label: 'Unknown',
-    tone: 'unknown',
-  },
-})
+const fullName = (firstName: string, lastName: string) =>
+  [firstName, lastName].filter(Boolean).join(' ').trim() || 'Unnamed profile'
 
-const finalizeUserSummary = (user: EnrolledUserSummary): EnrolledUserSummary => {
-  const dedupedCourses = dedupeCourses(user.courses)
-  const paidCourses = dedupedCourses.filter((course) => isPaidStatus(course.paymentStatus)).length
-  const outstandingCourses = dedupedCourses.length - paidCourses
+const humanize = (value: string) =>
+  value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 
-  return {
-    ...user,
-    courses: dedupedCourses.sort((a, b) => a.courseTitle.localeCompare(b.courseTitle)),
-    totalCourses: dedupedCourses.length,
-    paidCourses,
-    outstandingCourses,
-    paymentSummary: buildPaymentSummary(dedupedCourses),
-  }
-}
+const formatNumber = (value: number) => new Intl.NumberFormat('en-NG').format(value || 0)
 
-const dedupeCourses = (courses: EnrollmentCourseDetail[]) => {
-  const map = new Map<string, EnrollmentCourseDetail>()
-
-  courses.forEach((course) => {
-    const key = String(course.courseId ?? course.courseTitle)
-      .trim()
-      .toLowerCase()
-    const current = map.get(key)
-
-    if (!current) {
-      map.set(key, course)
-      return
-    }
-
-    const currentScore = paymentPriority(current.paymentStatus)
-    const nextScore = paymentPriority(course.paymentStatus)
-    if (nextScore >= currentScore) {
-      map.set(key, course)
-    }
-  })
-
-  return [...map.values()]
-}
-
-const normalizeCourseDetail = (source: RawRecord, suffix: string): EnrollmentCourseDetail => {
-  const paymentStatus = resolvePaymentStatus(source)
-  const amountPaid = resolveAmount(source, ['amountPaid', 'paidAmount', 'paymentAmount', 'paid'])
-  const amountDue = resolveAmount(source, ['amountDue', 'price', 'amount', 'cost'])
-
-  return {
-    entryKey: `${getString(source, ['id']) || suffix}-${getString(source, ['courseId']) || getString(source, ['courseName']) || suffix}`,
-    courseId: getNumber(source, ['courseId']),
-    courseTitle: getCourseTitle(source),
-    cohortTitle: getString(source, ['cohortTitle', 'cohortName', 'batchName']) || '',
-    paymentStatus,
-    paymentLabel: formatCurrencyLabel(amountPaid, amountDue, paymentStatus),
-    enrolledAt: getString(source, ['enrolledAt', 'createdAt', 'joinedAt', 'paymentDate']) || '',
-  }
-}
-
-const buildPaymentSummary = (courses: EnrollmentCourseDetail[]) => {
-  if (!courses.length) {
-    return { label: 'Unknown', tone: 'unknown' }
-  }
-
-  const statuses = courses.map((course) => normalizePaymentStatus(course.paymentStatus))
-
-  if (statuses.every((status) => status === 'paid')) {
-    return { label: 'Fully paid', tone: 'paid' }
-  }
-
-  if (statuses.some((status) => status === 'partial')) {
-    return { label: 'Partially paid', tone: 'partial' }
-  }
-
-  if (statuses.some((status) => status === 'failed')) {
-    return { label: 'Payment issue', tone: 'failed' }
-  }
-
-  if (statuses.some((status) => status === 'pending')) {
-    return { label: 'Pending payment', tone: 'pending' }
-  }
-
-  if (statuses.some((status) => status === 'unpaid')) {
-    return { label: 'Unpaid', tone: 'unpaid' }
-  }
-
-  if (statuses.some((status) => status === 'refunded')) {
-    return { label: 'Refunded', tone: 'refunded' }
-  }
-
-  return { label: formatPaymentStatus(statuses[0] || 'unknown'), tone: statuses[0] || 'unknown' }
-}
-
-const extractNestedEnrollmentEntries = (record: RawRecord): RawRecord[] => {
-  const keys = ['courses', 'enrollments', 'items', 'payments', 'programCourses']
-
-  for (const key of keys) {
-    const value = record[key]
-    if (Array.isArray(value)) {
-      return value.filter(isRecord)
-    }
-  }
-
-  return []
-}
-
-const extractList = (payload: unknown): RawRecord[] => {
-  if (Array.isArray(payload)) {
-    return payload.filter(isRecord)
-  }
-
-  if (!isRecord(payload)) {
-    return []
-  }
-
-  const candidates = ['users', 'enrollments', 'items', 'data', 'results', 'students']
-
-  for (const key of candidates) {
-    const value = payload[key]
-    if (Array.isArray(value)) {
-      return value.filter(isRecord)
-    }
-  }
-
-  return []
-}
-
-const getUserId = (userSource: RawRecord, courseSource: RawRecord, fallback: string) => {
-  const nestedUser = getRecord(userSource.user) || getRecord(courseSource.user)
-  const idCandidate =
-    getNumber(nestedUser, ['id']) ||
-    getNumber(userSource, ['userId', 'studentId', 'learnerId', 'id']) ||
-    getNumber(courseSource, ['userId', 'studentId', 'learnerId'])
-
-  return String(idCandidate || fallback)
-}
-
-const getUserName = (userSource: RawRecord, courseSource: RawRecord) => {
-  const nestedUser = getRecord(userSource.user) || getRecord(courseSource.user)
-  const fullName =
-    getString(nestedUser, ['fullName', 'name']) ||
-    getString(userSource, ['fullName', 'name']) ||
-    getString(courseSource, ['fullName', 'name'])
-
-  if (fullName) return fullName
-
-  const firstName =
-    getString(nestedUser, ['firstName']) ||
-    getString(userSource, ['firstName']) ||
-    getString(courseSource, ['firstName'])
-  const lastName =
-    getString(nestedUser, ['lastName']) ||
-    getString(userSource, ['lastName']) ||
-    getString(courseSource, ['lastName'])
-  const joinedName = [firstName, lastName].filter(Boolean).join(' ').trim()
-
-  return (
-    joinedName ||
-    getString(userSource, ['email', 'username']) ||
-    getString(courseSource, ['email', 'username']) ||
-    'Unnamed learner'
-  )
-}
-
-const getCourseTitle = (source: RawRecord) => {
-  const course = getRecord(source.course)
-  return (
-    getString(course, ['title', 'name']) ||
-    getString(source, ['courseTitle', 'courseName', 'title', 'name']) ||
-    'Untitled course'
-  )
-}
-
-const resolvePaymentStatus = (source: RawRecord) => {
-  const payment = getRecord(source.payment)
-  const rawStatus =
-    getString(payment, ['status']) ||
-    getString(source, ['paymentStatus', 'paymentState', 'billingStatus']) ||
-    ''
-
-  if (rawStatus) {
-    return normalizePaymentStatus(rawStatus)
-  }
-
-  const isPaid = source.isPaid
-  if (typeof isPaid === 'boolean') {
-    return isPaid ? 'paid' : 'unpaid'
-  }
-
-  return 'unknown'
-}
-
-const normalizePaymentStatus = (value: string) => {
-  const status = value.toLowerCase().trim()
-
-  if (['paid', 'successful', 'success', 'completed'].includes(status)) return 'paid'
-  if (['partial', 'partially_paid', 'partially paid'].includes(status)) return 'partial'
-  if (['pending', 'processing', 'initiated'].includes(status)) return 'pending'
-  if (['unpaid', 'not_paid', 'due'].includes(status)) return 'unpaid'
-  if (['failed', 'declined'].includes(status)) return 'failed'
-  if (['refunded'].includes(status)) return 'refunded'
-
-  return status || 'unknown'
-}
-
-const formatPaymentStatus = (value: string) => {
-  const normalized = normalizePaymentStatus(value)
-  if (normalized === 'paid') return 'Paid'
-  if (normalized === 'partial') return 'Partially paid'
-  if (normalized === 'pending') return 'Pending'
-  if (normalized === 'unpaid') return 'Unpaid'
-  if (normalized === 'failed') return 'Failed'
-  if (normalized === 'refunded') return 'Refunded'
-  if (normalized === 'unknown') return 'Unknown'
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
-}
-
-const paymentTone = (value: string) => normalizePaymentStatus(value)
-
-const paymentPriority = (value: string) => {
-  const status = normalizePaymentStatus(value)
-  if (status === 'paid') return 5
-  if (status === 'partial') return 4
-  if (status === 'pending') return 3
-  if (status === 'unpaid') return 2
-  if (status === 'failed') return 1
-  return 0
-}
-
-const isPaidStatus = (value: string) => normalizePaymentStatus(value) === 'paid'
-
-const resolveAmount = (source: RawRecord, keys: string[]) => {
-  const nestedPayment = getRecord(source.payment)
-  return getNumber(source, keys) || getNumber(nestedPayment, keys)
-}
-
-const formatCurrencyLabel = (
-  amountPaid: number | null,
-  amountDue: number | null,
-  paymentStatus: string,
-) => {
-  if (amountPaid && amountDue) {
-    return `${formatCurrency(amountPaid)} of ${formatCurrency(amountDue)}`
-  }
-
-  if (amountPaid) {
-    return `${formatCurrency(amountPaid)} paid`
-  }
-
-  if (amountDue && normalizePaymentStatus(paymentStatus) !== 'paid') {
-    return `${formatCurrency(amountDue)} due`
-  }
-
-  return ''
-}
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-NG', {
+const formatMoney = (value: number, currency = 'NGN') =>
+  new Intl.NumberFormat('en-NG', {
     style: 'currency',
-    currency: 'NGN',
+    currency: currency || 'NGN',
     maximumFractionDigits: 0,
-  }).format(value)
-}
-
-const resolveAvatarUrl = (source?: RawRecord | null) => {
-  if (!source) return ''
-  const value = getString(source, ['avatarUrl', 'pictureRef', 'picture', 'imageUrl'])
-  if (!value) return ''
-  if (value.startsWith('http') || value.startsWith('data:')) return value
-  return `${import.meta.env.VITE_ASSETS_BASE_URL}/${value}`
-}
-
-const getRecord = (value: unknown): RawRecord | null => (isRecord(value) ? value : null)
-
-const getString = (source: RawRecord | null | undefined, keys: string[]) => {
-  if (!source) return ''
-  for (const key of keys) {
-    const value = source[key]
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim()
-    }
-  }
-  return ''
-}
-
-const getNumber = (source: RawRecord | null | undefined, keys: string[]) => {
-  if (!source) return null
-  for (const key of keys) {
-    const value = source[key]
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value
-    }
-    if (typeof value === 'string' && value.trim() !== '') {
-      const parsed = Number(value)
-      if (Number.isFinite(parsed)) {
-        return parsed
-      }
-    }
-  }
-  return null
-}
-
-const isRecord = (value: unknown): value is RawRecord =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const initials = (value: string) =>
-  value
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('')
-
-const formatDate = (value: string) => {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Date unavailable'
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
-
-const extractErrorMessage = (error: unknown) => {
-  if (error && typeof error === 'object') {
-    const maybeError = error as {
-      response?: { data?: { message?: string } }
-      message?: string
-    }
-
-    return (
-      maybeError.response?.data?.message || maybeError.message || 'Failed to load enrolled learners'
-    )
-  }
-
-  return 'Failed to load enrolled learners'
-}
+  }).format(value || 0)
 
 watch(
   () => props.programId,
-  () => {
-    resetFilters()
-    selectedUser.value = null
-    fetchEnrolledUsers()
+  async () => {
+    filters.page = 1
+    syncDraftFilters()
+    await fetchProfiles()
   },
 )
 
-onMounted(() => {
-  fetchEnrolledUsers()
+onMounted(async () => {
+  syncDraftFilters()
+  await fetchProfiles()
 })
 </script>
 
@@ -930,7 +519,8 @@ onMounted(() => {
 }
 
 .stat-label,
-.summary-label {
+.summary-label,
+.metric-label {
   display: block;
   color: #64748b;
   font-size: 0.8rem;
@@ -939,65 +529,44 @@ onMounted(() => {
 }
 
 .stat-value,
-.summary-value {
+.summary-value,
+.metric-value {
   color: #0f172a;
-  font-size: 1.55rem;
+  font-size: 1.25rem;
   font-weight: 800;
 }
 
-.users-table-card,
+.profiles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.profile-row,
 .feedback-card {
   border: 1px solid #dbe3ee;
   border-radius: 1rem;
   background: #fff;
 }
 
-.users-table-wrap {
-  overflow-x: auto;
+.profile-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.5fr) auto;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  align-items: center;
 }
 
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.users-table th,
-.users-table td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #eef2f7;
-}
-
-.users-table th {
-  color: #64748b;
-  font-size: 0.76rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.users-row {
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.users-row:hover {
-  background: #f8fafc;
-}
-
-.users-row:last-child td {
-  border-bottom: none;
-}
-
-.learner-cell {
+.profile-main {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.9rem;
+  min-width: 0;
 }
 
-.learner-avatar {
-  width: 2.75rem;
-  height: 2.75rem;
+.profile-avatar {
+  width: 3rem;
+  height: 3rem;
   border-radius: 999px;
   background: linear-gradient(135deg, #4f46e5, #2563eb);
   color: #fff;
@@ -1005,44 +574,65 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  overflow: hidden;
   flex-shrink: 0;
 }
 
-.learner-avatar.large {
-  width: 3.5rem;
-  height: 3.5rem;
+.profile-avatar.large {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1rem;
 }
 
-.learner-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.profile-copy {
+  min-width: 0;
 }
 
-.learner-name,
-.details-course {
+.profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.profile-name {
   margin: 0;
   color: #0f172a;
+  font-size: 1rem;
   font-weight: 800;
 }
 
-.learner-meta,
-.details-meta,
-.details-amount {
-  margin: 0.2rem 0 0;
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
   color: #64748b;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
 }
 
-.users-row-action {
-  text-align: right;
+.profile-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.metric-item {
+  border: 1px solid #eef2f7;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+  padding: 0.8rem;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .view-button,
 .feedback-button,
 .primary-button,
-.ghost-button {
+.ghost-button,
+.page-button {
   border-radius: 0.75rem;
   padding: 0.7rem 0.95rem;
   font-size: 0.84rem;
@@ -1052,23 +642,31 @@ onMounted(() => {
 }
 
 .view-button,
-.ghost-button {
+.ghost-button,
+.page-button {
   border: 1px solid #cbd5e1;
   background: #fff;
   color: #0f172a;
 }
 
 .view-button:hover,
-.ghost-button:hover {
+.ghost-button:hover,
+.page-button:hover:not(:disabled) {
   border-color: #4f46e5;
   color: #4338ca;
 }
 
 .primary-button,
-.feedback-button {
+.feedback-button,
+.page-button.primary {
   border: 1px solid #4338ca;
   background: linear-gradient(135deg, #4f46e5, #4338ca);
   color: #fff;
+}
+
+.page-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .feedback-card {
@@ -1112,46 +710,56 @@ onMounted(() => {
   animation: spin 0.8s linear infinite;
 }
 
-.payment-pill {
+.pagination-bar {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 1rem;
+  background: #fff;
+  padding: 1rem 1.1rem;
+}
+
+.pagination-summary {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.limit-select-wrap {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 0.3rem 0.62rem;
-  font-size: 0.74rem;
-  font-weight: 800;
-  text-transform: capitalize;
-}
-
-.payment-pill.paid {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.payment-pill.partial {
-  color: #92400e;
-  background: #fef3c7;
-}
-
-.payment-pill.pending {
-  color: #1d4ed8;
-  background: #dbeafe;
-}
-
-.payment-pill.unpaid,
-.payment-pill.failed {
-  color: #b91c1c;
-  background: #fee2e2;
-}
-
-.payment-pill.refunded {
-  color: #6d28d9;
-  background: #ede9fe;
-}
-
-.payment-pill.unknown {
+  gap: 0.55rem;
   color: #475569;
-  background: #e2e8f0;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.limit-select,
+.filter-select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem;
+  padding: 0.8rem 0.9rem;
+  color: #0f172a;
+  background: #fff;
+}
+
+.limit-select {
+  width: auto;
+  padding-right: 2rem;
 }
 
 .modal-overlay {
@@ -1165,16 +773,11 @@ onMounted(() => {
   z-index: 70;
 }
 
-.filter-modal,
-.details-modal {
-  width: min(100%, 42rem);
+.filter-modal {
+  width: min(100%, 48rem);
   border-radius: 1.15rem;
   background: #fff;
   box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
-}
-
-.details-modal {
-  width: min(100%, 56rem);
 }
 
 .modal-header,
@@ -1218,6 +821,12 @@ onMounted(() => {
   padding: 1.2rem;
 }
 
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
 .filter-section + .filter-section {
   margin-top: 1rem;
 }
@@ -1227,74 +836,6 @@ onMounted(() => {
   margin: 0 0 0.55rem;
   color: #334155;
   font-weight: 700;
-}
-
-.filter-select {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.8rem;
-  padding: 0.8rem 0.9rem;
-  color: #0f172a;
-}
-
-.filter-options {
-  display: grid;
-  gap: 0.7rem;
-}
-
-.filter-option {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.8rem;
-  padding: 0.8rem 0.9rem;
-  color: #334155;
-}
-
-.details-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.details-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem;
-  padding: 1.2rem;
-}
-
-.details-list {
-  padding: 0 1.2rem 1.2rem;
-}
-
-.details-list-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.8rem;
-  color: #475569;
-  font-size: 0.84rem;
-  font-weight: 700;
-}
-
-.details-list-header p {
-  margin: 0;
-  color: #0f172a;
-}
-
-.details-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.95rem 0;
-  border-top: 1px solid #eef2f7;
-}
-
-.details-payment {
-  text-align: right;
 }
 
 .modal-enter-active,
@@ -1325,9 +866,17 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 900px) {
-  .users-stats,
-  .details-summary {
+@media (max-width: 1100px) {
+  .profile-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-actions {
+    justify-content: flex-start;
+  }
+
+  .profile-metrics,
+  .users-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1336,29 +885,26 @@ onMounted(() => {
   .users-toolbar,
   .modal-header,
   .modal-footer,
-  .details-item {
+  .pagination-bar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .filter-trigger {
+  .filter-trigger,
+  .view-button,
+  .page-button {
     width: 100%;
     justify-content: center;
   }
 
-  .users-stats,
-  .details-summary {
+  .filter-grid,
+  .profile-metrics,
+  .users-stats {
     grid-template-columns: 1fr;
   }
 
-  .users-table th,
-  .users-table td {
-    padding: 0.85rem 0.75rem;
-  }
-
-  .users-row-action,
-  .details-payment {
-    text-align: left;
+  .pagination-actions {
+    width: 100%;
   }
 }
 </style>
