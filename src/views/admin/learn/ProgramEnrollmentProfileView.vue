@@ -4,12 +4,7 @@
       <div class="profile-header-top">
         <button type="button" class="back-button" @click="goBack">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 19l-7-7 7-7"
-            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
@@ -50,6 +45,10 @@
           <span class="summary-label">Abandoned payments</span>
           <strong class="summary-value">{{ formatNumber(summary.totalAbandonedPayments) }}</strong>
         </article>
+        <article class="summary-card">
+          <span class="summary-label">Payment conversion</span>
+          <strong class="summary-value">{{ formatPercent(profileConversionRate) }}</strong>
+        </article>
       </div>
     </div>
 
@@ -75,101 +74,127 @@
           </div>
         </div>
 
-        <div v-if="details.enrollments.length" class="enrollment-list">
-          <article
-            v-for="enrollment in details.enrollments"
-            :key="enrollment.enrollmentId"
-            class="enrollment-card"
-          >
-            <div class="enrollment-main">
+        <div v-if="groupedEnrollments.length" class="enrollment-list grouped">
+          <details v-for="(group, groupIndex) in groupedEnrollments" :key="group.courseName" class="course-group"
+            :open="groupIndex === 0">
+            <summary class="course-group-summary">
               <div>
-                <h3 class="enrollment-title">{{ enrollment.courseName }}</h3>
-                <p class="enrollment-subtitle">
-                  {{ enrollment.cohortName || 'No cohort assigned' }}
-                  <span v-if="enrollment.cohortStatus">
-                    • {{ humanize(enrollment.cohortStatus) }}
-                  </span>
+                <h3 class="course-group-title">{{ group.courseName }}</h3>
+                <p class="course-group-subtitle">
+                  {{ formatNumber(group.records.length) }} enrollments •
+                  {{ formatMoney(group.totalAmountPaid, summary?.currency || 'NGN') }} paid
                 </p>
               </div>
-
               <div class="pill-row">
-                <span class="info-pill">{{ humanize(enrollment.enrollmentType) }}</span>
-                <span class="info-pill">{{ humanize(enrollment.enrollmentStatus) }}</span>
-                <span class="info-pill" :class="paymentTone(enrollment.paymentStatus)">
-                  {{ humanize(enrollment.paymentStatus) }}
+                <span class="info-pill">Attempts: {{ formatNumber(group.totalAttempts) }}</span>
+                <span class="info-pill paid">Success: {{ formatNumber(group.totalSuccessfulPayments) }}</span>
+                <span class="info-pill">
+                  Conversion:
+                  {{
+                    formatPercent(
+                      group.totalAttempts ? group.totalSuccessfulPayments / group.totalAttempts : 0,
+                    )
+                  }}
                 </span>
               </div>
-            </div>
+            </summary>
 
-            <div class="enrollment-grid">
-              <div class="detail-item">
-                <span class="detail-label">Payment attempts</span>
-                <strong class="detail-value">
-                  {{ formatNumber(enrollment.paymentAttemptCount) }}
-                </strong>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Pending payments</span>
-                <strong class="detail-value">
-                  {{ formatNumber(enrollment.pendingPaymentCount) }}
-                </strong>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Successful payments</span>
-                <strong class="detail-value">
-                  {{ formatNumber(enrollment.successfulPaymentCount) }}
-                </strong>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Amount paid</span>
-                <strong class="detail-value">
-                  {{ formatMoney(enrollment.totalAmountPaid, summary?.currency || 'NGN') }}
-                </strong>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Lessons taken</span>
-                <strong class="detail-value">{{ enrollment.lessonsTaken ?? 'N/A' }}</strong>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Enrolled at</span>
-                <strong class="detail-value">{{ formatDate(enrollment.enrolledAt) }}</strong>
-              </div>
-            </div>
+            <details v-for="enrollment in group.records" :key="enrollment.enrollmentId" class="enrollment-details">
+              <summary class="enrollment-summary-row">
+                <div>
+                  <h3 class="enrollment-title">{{ enrollment.cohortName || 'No cohort assigned' }}</h3>
+                  <p class="enrollment-subtitle">
+                    {{ humanize(enrollment.enrollmentType) }}
+                    <span v-if="enrollment.cohortStatus"> • {{ humanize(enrollment.cohortStatus) }}</span>
+                    <span> • {{ formatDate(enrollment.enrolledAt) }}</span>
+                  </p>
+                </div>
 
-            <div v-if="enrollment.resolvedPayment" class="resolved-payment">
-              <div class="resolved-payment-header">
-                <h4>Resolved payment</h4>
-                <span class="info-pill" :class="paymentTone(enrollment.resolvedPayment.status)">
-                  {{ humanize(enrollment.resolvedPayment.status) }}
-                </span>
-              </div>
+                <div class="pill-row">
+                  <span class="info-pill">{{ humanize(enrollment.enrollmentStatus) }}</span>
+                  <span class="info-pill" :class="paymentTone(enrollment.paymentStatus)">
+                    {{ humanize(enrollment.paymentStatus) }}
+                  </span>
+                  <span class="info-pill paid">
+                    {{ formatMoney(enrollment.totalAmountPaid, summary?.currency || 'NGN') }}
+                  </span>
+                </div>
+              </summary>
 
-              <div class="resolved-payment-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Reference</span>
-                  <strong class="detail-value">
-                    {{ enrollment.resolvedPayment.reference || 'N/A' }}
-                  </strong>
+              <article class="enrollment-card">
+                <div class="enrollment-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Payment attempts</span>
+                    <strong class="detail-value">
+                      {{ formatNumber(enrollment.paymentAttemptCount) }}
+                    </strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Pending payments</span>
+                    <strong class="detail-value">
+                      {{ formatNumber(enrollment.pendingPaymentCount) }}
+                    </strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Successful payments</span>
+                    <strong class="detail-value">
+                      {{ formatNumber(enrollment.successfulPaymentCount) }}
+                    </strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Lessons taken</span>
+                    <strong class="detail-value">{{ enrollment.lessonsTaken ?? 'N/A' }}</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Conversion</span>
+                    <strong class="detail-value">
+                      {{
+                        formatPercent(
+                          enrollment.paymentAttemptCount
+                            ? enrollment.successfulPaymentCount / enrollment.paymentAttemptCount
+                            : 0,
+                        )
+                      }}
+                    </strong>
+                  </div>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Amount</span>
-                  <strong class="detail-value">
-                    {{
-                      enrollment.resolvedPayment.amount === null
-                        ? 'N/A'
-                        : formatMoney(enrollment.resolvedPayment.amount, summary?.currency || 'NGN')
-                    }}
-                  </strong>
+
+                <div v-if="enrollment.resolvedPayment" class="resolved-payment">
+                  <div class="resolved-payment-header">
+                    <h4>Resolved payment</h4>
+                    <span class="info-pill" :class="paymentTone(enrollment.resolvedPayment.status)">
+                      {{ humanize(enrollment.resolvedPayment.status) }}
+                    </span>
+                  </div>
+
+                  <div class="resolved-payment-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">Reference</span>
+                      <strong class="detail-value">
+                        {{ enrollment.resolvedPayment.reference || 'N/A' }}
+                      </strong>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Amount</span>
+                      <strong class="detail-value">
+                        {{
+                          enrollment.resolvedPayment.amount === null
+                            ? 'N/A'
+                            : formatMoney(enrollment.resolvedPayment.amount, summary?.currency || 'NGN')
+                        }}
+                      </strong>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Created at</span>
+                      <strong class="detail-value">
+                        {{ formatDate(enrollment.resolvedPayment.createdAt) }}
+                      </strong>
+                    </div>
+                  </div>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Created at</span>
-                  <strong class="detail-value">
-                    {{ formatDate(enrollment.resolvedPayment.createdAt) }}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          </article>
+              </article>
+            </details>
+          </details>
         </div>
 
         <div v-else class="feedback-card">
@@ -198,6 +223,47 @@ const programId = computed(() => Number(route.params.programId || 0))
 const profileId = computed(() => Number(route.params.profileId || 0))
 const details = computed(() => profileEnrollments.value)
 const summary = computed(() => details.value?.summary ?? null)
+const profileConversionRate = computed(() => {
+  if (!summary.value?.totalPaymentAttempts) return 0
+  return summary.value.totalSuccessfulPayments / summary.value.totalPaymentAttempts
+})
+
+const groupedEnrollments = computed(() => {
+  const items = details.value?.enrollments || []
+  const map = new Map<
+    string,
+    {
+      courseName: string
+      totalAmountPaid: number
+      totalAttempts: number
+      totalSuccessfulPayments: number
+      records: typeof items
+    }
+  >()
+
+  for (const enrollment of items) {
+    const key = enrollment.courseName || 'Unassigned course'
+    const existing = map.get(key)
+
+    if (existing) {
+      existing.totalAmountPaid += enrollment.totalAmountPaid || 0
+      existing.totalAttempts += enrollment.paymentAttemptCount || 0
+      existing.totalSuccessfulPayments += enrollment.successfulPaymentCount || 0
+      existing.records.push(enrollment)
+      continue
+    }
+
+    map.set(key, {
+      courseName: key,
+      totalAmountPaid: enrollment.totalAmountPaid || 0,
+      totalAttempts: enrollment.paymentAttemptCount || 0,
+      totalSuccessfulPayments: enrollment.successfulPaymentCount || 0,
+      records: [enrollment],
+    })
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.totalAmountPaid - a.totalAmountPaid)
+})
 const profileName = computed(() => {
   const profile = details.value?.profile
   if (!profile) return 'Enrollment profile'
@@ -233,6 +299,14 @@ const goBack = () => {
       query: {
         id: String(programId.value),
         name,
+        tab: String(route.query.tab || 'users'),
+        q: String(route.query.q || ''),
+        usersPage: String(route.query.usersPage || ''),
+        usersLimit: String(route.query.usersLimit || ''),
+        usersCourseId: String(route.query.usersCourseId || ''),
+        usersPaymentStatus: String(route.query.usersPaymentStatus || ''),
+        usersEnrollmentStatus: String(route.query.usersEnrollmentStatus || ''),
+        usersEnrollmentType: String(route.query.usersEnrollmentType || ''),
       },
     })
     return
@@ -252,6 +326,8 @@ const formatMoney = (value: number, currency = 'NGN') =>
     currency: currency || 'NGN',
     maximumFractionDigits: 0,
   }).format(value || 0)
+
+const formatPercent = (value: number) => `${Math.round((value || 0) * 100)}%`
 
 const formatDate = (value: string | null) => {
   if (!value) return 'N/A'
@@ -333,7 +409,7 @@ onMounted(async () => {
 .enrollment-grid,
 .resolved-payment-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.9rem;
 }
 
@@ -443,11 +519,67 @@ onMounted(async () => {
 .enrollment-list {
   display: flex;
   flex-direction: column;
+  gap: 0.8rem;
+}
+
+.course-group {
+  border: 1px solid #dbe3ee;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.course-group+.course-group {
+  margin-top: 0.8rem;
+}
+
+.course-group-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
 }
 
+.course-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.course-group-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+.course-group-subtitle {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.enrollment-details {
+  border-top: 1px solid #e2e8f0;
+}
+
+.enrollment-summary-row {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.enrollment-summary-row::-webkit-details-marker {
+  display: none;
+}
+
 .enrollment-card {
-  padding: 1rem;
+  padding: 0 0.9rem 0.9rem;
 }
 
 .enrollment-main {
@@ -537,6 +669,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
+
   .summary-grid,
   .enrollment-grid,
   .resolved-payment-grid {
@@ -545,7 +678,10 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
+
   .profile-header-top,
+  .course-group-summary,
+  .enrollment-summary-row,
   .enrollment-main,
   .resolved-payment-header {
     flex-direction: column;

@@ -1,17 +1,22 @@
 <template>
   <header
     class="h-16 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 z-50">
-    <div class="flex items-center justify-between h-full px-6">
+    <div class="flex items-center justify-between h-full px-3 sm:px-6">
       <!-- Logo -->
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center min-w-0 space-x-2 sm:space-x-3">
         <div class="w-8 h-8 rounded-lg flex items-center justify-center">
           <img src="@/assets/logo.png" alt="Logo" class="w-8 h-8" />
         </div>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white">LinkSkool Content Hub</h1>
+        <h1 class="hidden md:block text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
+          LinkSkool Content Hub
+        </h1>
+        <h1 class="md:hidden text-sm font-bold text-gray-900 dark:text-white truncate">
+          LinkSkool
+        </h1>
       </div>
 
       <!-- Theme Toggle & User Profile -->
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2 sm:space-x-4">
         <!-- Theme Toggle -->
         <button @click="toggleTheme"
           class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer">
