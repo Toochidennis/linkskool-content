@@ -1,5 +1,11 @@
 import { newsService } from '../api/services/serviceFactory';
-import type { News, Category, CreateNewsPayload, CreateCategoryPayload } from '../api/models';
+import type {
+  News,
+  Category,
+  CreateNewsPayload,
+  CreateCategoryPayload,
+  PaginationMeta,
+} from '../api/models';
 
 
 export const useAnnouncement = () => {
@@ -37,10 +43,29 @@ export const useAnnouncement = () => {
     }
   }
 
-  const fetchNews = async () => {
+  const fetchNews = async (page = 1, limit = 12) => {
     try {
-      const response = await newsService.get<News[]>('admin');
-      return response.data;
+      const response = await newsService.get<{
+        data?: News[];
+        meta?: PaginationMeta;
+      }>('admin', {
+        page,
+        limit,
+      });
+
+      const payload = response.data;
+      const items = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+
+      const meta = payload?.meta ?? (response as unknown as { meta?: PaginationMeta }).meta;
+
+      return {
+        data: items,
+        meta,
+      };
     } catch (error: any) {
       throw {
         success: false,

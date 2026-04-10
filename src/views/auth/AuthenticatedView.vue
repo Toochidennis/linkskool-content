@@ -4,7 +4,8 @@
     <div class="flex flex-1 overflow-hidden">
       <SidebarComponent v-if="isAdmin" @sidebarStateChange="handleSidebarChange" />
       <main :style="{
-        marginLeft: isAdmin ? (sidebarOpen ? '13.5rem' : '5.5rem') : '0',
+        marginLeft:
+          isAdmin && !sidebarIsMobile ? (sidebarOpen ? '13.5rem' : '5.5rem') : '0',
       }" class="flex-1 overflow-y-auto pt-16 transition-all duration-300">
         <div class="p-4 md:p-6">
           <router-view />
@@ -24,9 +25,11 @@ const auth = useAuthStore()
 const isAdmin = auth.isAdmin;
 
 const sidebarOpen = ref(true)
+const sidebarIsMobile = ref(false)
 
-const handleSidebarChange = (isOpen: boolean) => {
-  sidebarOpen.value = isOpen
+const handleSidebarChange = (payload: { isOpen: boolean; isMobile: boolean }) => {
+  sidebarOpen.value = payload.isOpen
+  sidebarIsMobile.value = payload.isMobile
 }
 </script>
 

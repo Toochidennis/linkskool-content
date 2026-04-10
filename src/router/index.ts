@@ -15,6 +15,8 @@ import SyllabusView from '@/views/admin/cbt/SyllabusView.vue'
 import AnnouncementView from '@/views/admin/updates/AnnouncementView.vue'
 import AdmissionsView from '@/views/admin/updates/AdmissionsView.vue'
 import ChallengeView from '@/views/admin/cbt/ChallengeView.vue'
+import ChallengeDetailView from '@/views/admin/cbt/ChallengeDetailView.vue'
+import ChallengeCreateView from '@/views/admin/cbt/ChallengeCreateView.vue'
 import AssessmentSpreadsheetView from '@/views/admin/cbt/AssessmentSpreadsheetView.vue'
 import AssessmentFormView from '@/views/admin/cbt/AssessmentFormView.vue'
 import AdvertisementView from '@/views/admin/updates/AdvertisementView.vue'
@@ -23,6 +25,7 @@ import VideoLibraryDetailsView from '@/views/admin/learn/VideoLibraryDetailsView
 import LevelView from '@/views/admin/learn/LevelView.vue'
 import ProgramLibraryView from '@/views/admin/learn/ProgramLibraryView.vue'
 import ProgramCourseView from '@/views/admin/learn/ProgramCourseView.vue'
+import ProgramEnrollmentProfileView from '@/views/admin/learn/ProgramEnrollmentProfileView.vue'
 import ProgramCourseCohortsView from '@/views/admin/learn/ProgramCourseCohortsView.vue'
 import ProgramCourseLessonsView from '@/views/admin/learn/ProgramCourseLessonsView.vue'
 import LessonFormView from '@/views/admin/learn/LessonFormView.vue'
@@ -134,6 +137,11 @@ const routes: RouteRecordRaw[] = [
         component: ProgramCourseView,
       },
       {
+        path: 'programs/:programId/profiles/:profileId',
+        name: 'Program Enrollment Profile',
+        component: ProgramEnrollmentProfileView,
+      },
+      {
         path: 'learn-course-cohorts/:courseSlug',
         name: 'Program Course Cohorts',
         component: ProgramCourseCohortsView,
@@ -182,6 +190,16 @@ const routes: RouteRecordRaw[] = [
         path: 'challenges',
         name: 'Challenges',
         component: ChallengeView,
+      },
+      {
+        path: 'challenges/:examTypeId',
+        name: 'Challenge Detail',
+        component: ChallengeDetailView,
+      },
+      {
+        path: 'challenges/:examTypeId/create',
+        name: 'Challenge Create',
+        component: ChallengeCreateView,
       },
       {
         path: 'team',

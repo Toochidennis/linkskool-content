@@ -5,88 +5,61 @@
         <div class="header-left">
           <div class="back-button" @click="goBack">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </div>
           <div>
             <h1 class="header-title">{{ programName }}</h1>
-            <p class="header-subtitle">{{ activeTab === 'courses' ? 'Courses attached to this program' : 'Curriculum flow for learner progression' }}</p>
+            <p class="header-subtitle">{{ headerSubtitle }}</p>
           </div>
         </div>
 
         <div class="header-right">
           <button type="button" class="header-action-button" @click="editProgram">
             <svg class="header-action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
             <span>Edit</span>
           </button>
           <div class="search-container">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input
-              v-model="searchQuery"
-              type="text"
-              :placeholder="activeTab === 'courses' ? 'Search courses...' : 'Search cohorts in flow...'"
-              class="search-input"
-            />
+            <input v-model="searchQuery" type="text" :placeholder="searchPlaceholder" class="search-input" />
           </div>
         </div>
       </div>
 
       <div class="tab-switcher" role="tablist" aria-label="Program views">
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'courses' }"
-          role="tab"
-          :aria-selected="activeTab === 'courses'"
-          @click="activeTab = 'courses'"
-        >
+        <button class="tab-btn" :class="{ active: activeTab === 'courses' }" role="tab"
+          :aria-selected="activeTab === 'courses'" @click="activeTab = 'courses'">
           <span>Courses</span>
           <small>{{ coursesList.length }}</small>
         </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'curriculum' }"
-          role="tab"
-          :aria-selected="activeTab === 'curriculum'"
-          @click="activeTab = 'curriculum'"
-        >
+        <button class="tab-btn" :class="{ active: activeTab === 'curriculum' }" role="tab"
+          :aria-selected="activeTab === 'curriculum'" @click="activeTab = 'curriculum'">
           <span>Curriculum Flow</span>
           <small>{{ learningPathList.length }}</small>
+        </button>
+        <button class="tab-btn" :class="{ active: activeTab === 'users' }" role="tab"
+          :aria-selected="activeTab === 'users'" @click="activeTab = 'users'">
+          <span>Enrolled Users</span>
+          <small>{{ enrolledUsersCount }}</small>
         </button>
       </div>
     </div>
 
-    <div v-if="isLoading" class="loading-state">
+    <div v-if="isLoading && activeTab !== 'users'" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>{{ activeTab === 'courses' ? 'Loading courses...' : 'Loading curriculum flow...' }}</p>
+      <p>{{ loadingText }}</p>
     </div>
 
     <template v-else>
       <div v-if="activeTab === 'courses' && filteredCoursesList.length > 0" class="courses-grid">
-        <div
-          v-for="course in filteredCoursesList"
-          :key="course.id"
-          class="course-card"
-          @click="navigateToCohorts(course)"
-        >
+        <div v-for="course in filteredCoursesList" :key="course.id" class="course-card"
+          @click="navigateToCohorts(course)">
           <div class="course-image-container">
             <img :src="loadImage(course.imageUrl || '')" :alt="course.title" class="course-image" />
           </div>
@@ -104,36 +77,28 @@
         <div class="flow-banner">
           <p class="flow-title">Build the program flow</p>
           <p class="flow-subtitle">
-            Drag cohorts from Available into Program Flow, then reorder to control learner progression.
+            Drag cohorts from Available into Program Flow, then reorder to control learner
+            progression.
           </p>
         </div>
 
         <div class="flow-board">
-          <section
-            class="pool-card"
-            :class="{ 'drop-zone': dropZoneTarget === 'available' }"
-            @dragover.prevent="handleCardDragOver('available')"
-            @drop.prevent="handleDropOnCard('available')"
-          >
+          <section class="pool-card" :class="{ 'drop-zone': dropZoneTarget === 'available' }"
+            @dragover.prevent="handleCardDragOver('available')" @drop.prevent="handleDropOnCard('available')">
             <div class="pool-header">
               <h3>Available Cohorts</h3>
               <span>{{ availableCohorts.length }}</span>
             </div>
 
             <div v-if="filteredAvailableCohorts.length" class="flow-list">
-              <article
-                v-for="cohort in filteredAvailableCohorts"
-                :key="cohort.id"
-                class="flow-item"
-                :class="{ dragging: draggingCohortId === cohort.id }"
-                draggable="true"
-                @dragstart="handleDragStart(cohort.id, 'available')"
-                @dragend="handleDragEnd"
-              >
+              <article v-for="cohort in filteredAvailableCohorts" :key="cohort.id" class="flow-item"
+                :class="{ dragging: draggingCohortId === cohort.id }" draggable="true"
+                @dragstart="handleDragStart(cohort.id, 'available')" @dragend="handleDragEnd">
                 <div class="flow-left">
                   <div class="drag-handle" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" stroke-width="2.5" stroke-linecap="round" />
+                      <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" stroke-width="2.5"
+                        stroke-linecap="round" />
                     </svg>
                   </div>
                   <div class="flow-content">
@@ -142,7 +107,9 @@
                       <span>{{ cohort.courseName || 'No course assigned' }}</span>
                       <span>{{ renderDateRange(cohort.startDate, cohort.endDate) }}</span>
                     </p>
-                    <p class="flow-description">{{ cohort.description || 'No cohort description provided.' }}</p>
+                    <p class="flow-description">
+                      {{ cohort.description || 'No cohort description provided.' }}
+                    </p>
                   </div>
                 </div>
 
@@ -154,40 +121,33 @@
             </div>
 
             <p v-else class="pool-empty">
-              {{ searchQuery ? 'No available cohorts match your search.' : 'No cohorts available to add.' }}
+              {{
+                searchQuery
+                  ? 'No available cohorts match your search.'
+                  : 'No cohorts available to add.'
+              }}
             </p>
           </section>
 
-          <section
-            class="pool-card primary"
-            :class="{ 'drop-zone': dropZoneTarget === 'flow' }"
-            @dragover.prevent="handleCardDragOver('flow')"
-            @drop.prevent="handleDropOnCard('flow')"
-          >
+          <section class="pool-card primary" :class="{ 'drop-zone': dropZoneTarget === 'flow' }"
+            @dragover.prevent="handleCardDragOver('flow')" @drop.prevent="handleDropOnCard('flow')">
             <div class="pool-header">
               <h3>Program Flow</h3>
               <span>{{ learningPathList.length }}</span>
             </div>
 
             <div v-if="filteredLearningPath.length" class="flow-list">
-              <article
-                v-for="cohort in filteredLearningPath"
-                :key="cohort.id"
-                class="flow-item"
-                :class="{
-                  dragging: draggingCohortId === cohort.id,
-                  'drop-target': dropTargetId === cohort.id && draggingCohortId !== cohort.id,
-                }"
-                draggable="true"
-                @dragstart="handleDragStart(cohort.id, 'flow')"
-                @dragover.prevent="handleDragOverFlowItem(cohort.id)"
-                @drop.prevent="handleDropOnFlowItem(cohort.id)"
-                @dragend="handleDragEnd"
-              >
+              <article v-for="cohort in filteredLearningPath" :key="cohort.id" class="flow-item" :class="{
+                dragging: draggingCohortId === cohort.id,
+                'drop-target': dropTargetId === cohort.id && draggingCohortId !== cohort.id,
+              }" draggable="true" @dragstart="handleDragStart(cohort.id, 'flow')"
+                @dragover.prevent="handleDragOverFlowItem(cohort.id)" @drop.prevent="handleDropOnFlowItem(cohort.id)"
+                @dragend="handleDragEnd">
                 <div class="flow-left">
                   <div class="drag-handle" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" stroke-width="2.5" stroke-linecap="round" />
+                      <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" stroke-width="2.5"
+                        stroke-linecap="round" />
                     </svg>
                   </div>
                   <div class="flow-order">{{ cohort.sequence }}</div>
@@ -197,7 +157,9 @@
                       <span>{{ cohort.courseName || 'No course assigned' }}</span>
                       <span>{{ renderDateRange(cohort.startDate, cohort.endDate) }}</span>
                     </p>
-                    <p class="flow-description">{{ cohort.description || 'No cohort description provided.' }}</p>
+                    <p class="flow-description">
+                      {{ cohort.description || 'No cohort description provided.' }}
+                    </p>
                   </div>
                 </div>
 
@@ -209,20 +171,23 @@
             </div>
 
             <p v-else class="pool-empty">
-              {{ searchQuery ? 'No flow cohorts match your search.' : 'Drop cohorts here to create the program flow.' }}
+              {{
+                searchQuery
+                  ? 'No flow cohorts match your search.'
+                  : 'Drop cohorts here to create the program flow.'
+              }}
             </p>
           </section>
         </div>
       </div>
 
+      <ProgramEnrolledUsersTab v-else-if="activeTab === 'users'" :program-id="programId" :search-query="searchQuery"
+        @update:count="enrolledUsersCount = $event" />
+
       <div v-else class="empty-state">
         <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
         <p class="empty-text">
           {{
@@ -246,8 +211,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'vue-toast-notification'
 import { learningCourseService, programService } from '@/api/services/serviceFactory'
 import type { ProgramCourse } from '@/api/models'
+import ProgramEnrolledUsersTab from './ProgramEnrolledUsersTab.vue'
 
-type TabKey = 'courses' | 'curriculum'
+type TabKey = 'courses' | 'curriculum' | 'users'
 type CohortStatus = 'upcoming' | 'ongoing' | 'completed'
 
 interface LearningPathCohort {
@@ -321,6 +287,7 @@ const availableCohorts = ref<LearningPathCohort[]>([])
 const searchQuery = ref('')
 const isLoading = ref(false)
 const hasLoadedCurriculum = ref(false)
+const enrolledUsersCount = ref(0)
 
 const draggingCohortId = ref<number | null>(null)
 const draggingSource = ref<DragSource | null>(null)
@@ -329,6 +296,36 @@ const dropZoneTarget = ref<DragSource | null>(null)
 
 const programName = computed(() => (route.query.name as string) || 'Program Courses')
 const programId = computed(() => parseInt(route.query.id as string, 10) || 0)
+const headerSubtitle = computed(() => {
+  if (activeTab.value === 'curriculum') return 'Curriculum flow for learner progression'
+  if (activeTab.value === 'users') return 'Monitor enrolled learners and payment activity'
+  return 'Courses attached to this program'
+})
+const searchPlaceholder = computed(() => {
+  if (activeTab.value === 'curriculum') return 'Search cohorts in flow...'
+  if (activeTab.value === 'users') return 'Search learners or courses...'
+  return 'Search courses...'
+})
+const loadingText = computed(() => {
+  if (activeTab.value === 'curriculum') return 'Loading curriculum flow...'
+  if (activeTab.value === 'users') return 'Loading enrolled users...'
+  return 'Loading courses...'
+})
+
+const getSingleQueryValue = (value: unknown): string => {
+  if (Array.isArray(value)) return String(value[0] || '')
+  return String(value || '')
+}
+
+const syncStateToQuery = () => {
+  router.replace({
+    query: {
+      ...route.query,
+      tab: activeTab.value,
+      q: searchQuery.value || undefined,
+    },
+  })
+}
 
 const reindexLearningPath = () => {
   learningPathList.value = learningPathList.value.map((cohort, index) => ({
@@ -666,13 +663,18 @@ const handleDropOnCard = async (target: DragSource) => {
   }
 
   if (target === 'available' && draggingSource.value === 'flow') {
-    const sourceIndex = learningPathList.value.findIndex((cohort) => cohort.id === draggingCohortId.value)
+    const sourceIndex = learningPathList.value.findIndex(
+      (cohort) => cohort.id === draggingCohortId.value,
+    )
     if (sourceIndex >= 0) {
       const updatedFlow = [...learningPathList.value]
       const [moved] = updatedFlow.splice(sourceIndex, 1)
       if (moved) {
         learningPathList.value = updatedFlow
-        availableCohorts.value = [...availableCohorts.value, { ...moved, inFlow: false, sequence: 0 }]
+        availableCohorts.value = [
+          ...availableCohorts.value,
+          { ...moved, inFlow: false, sequence: 0 },
+        ]
         reindexLearningPath()
         await persistLearningPathOrder()
       }
@@ -690,13 +692,23 @@ const handleDragEnd = () => {
 }
 
 watch(activeTab, async (tab) => {
-  searchQuery.value = ''
+  syncStateToQuery()
   if (tab === 'curriculum' && !hasLoadedCurriculum.value) {
     await fetchProgramCohorts()
   }
 })
 
+watch(searchQuery, () => {
+  syncStateToQuery()
+})
+
 onMounted(() => {
+  const tab = getSingleQueryValue(route.query.tab)
+  if (tab === 'courses' || tab === 'curriculum' || tab === 'users') {
+    activeTab.value = tab
+  }
+
+  searchQuery.value = getSingleQueryValue(route.query.q)
   fetchCourses()
 })
 </script>
@@ -786,7 +798,9 @@ onMounted(() => {
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   box-shadow: 0 12px 24px rgba(79, 70, 229, 0.18);
 }
 
@@ -992,7 +1006,9 @@ onMounted(() => {
   background: #ffffff;
   min-height: 22rem;
   padding: 0.9rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .pool-card.primary {
@@ -1075,7 +1091,10 @@ onMounted(() => {
   border: 1px solid #dbe3ee;
   border-radius: 0.9rem;
   background: #fff;
-  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s,
+    border-color 0.18s;
 }
 
 .flow-item:hover {

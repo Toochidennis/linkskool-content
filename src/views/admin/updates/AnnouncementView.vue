@@ -3,192 +3,215 @@
     <template v-if="!showModal">
       <!-- Modern Header Section -->
       <div class="header-section">
-      <div class="header-left">
-        <h1 class="header-title">News & Announcements</h1>
-        <p class="header-subtitle">Share and manage important news and announcements with your community</p>
-      </div>
-      <div class="header-right">
-        <div class="search-container">
-          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search news..." class="search-input" />
+        <div class="header-left">
+          <h1 class="header-title">News & Announcements</h1>
+          <p class="header-subtitle">Share and manage important news and announcements with your community</p>
         </div>
-        <button @click="showFilterModal = true" class="filter-button"
-          :class="{ 'filter-active': activeFiltersCount > 0 }">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          <span v-if="activeFiltersCount > 0" class="filter-badge">{{ activeFiltersCount }}</span>
-        </button>
-        <Transition name="fade-slide">
-          <button v-if="activeFiltersCount > 0" @click="clearAllFilters" class="clear-filters-btn">
-            Clear
+        <div class="header-right">
+          <div class="search-container">
+            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input v-model="searchQuery" type="text" placeholder="Search news..." class="search-input" />
+          </div>
+          <button @click="showFilterModal = true" class="filter-button"
+            :class="{ 'filter-active': activeFiltersCount > 0 }">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span v-if="activeFiltersCount > 0" class="filter-badge">{{ activeFiltersCount }}</span>
           </button>
-        </Transition>
+          <Transition name="fade-slide">
+            <button v-if="activeFiltersCount > 0" @click="clearAllFilters" class="clear-filters-btn">
+              Clear
+            </button>
+          </Transition>
+          <button @click="openModal" class="create-news-button" title="Create News">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Create News</span>
+          </button>
+        </div>
       </div>
-    </div>
 
       <!-- Filter Modal -->
       <Transition name="modal">
         <div v-if="showFilterModal" class="modal-overlay" @click.self="showFilterModal = false">
           <div class="filter-modal">
-          <div class="filter-modal-header">
-            <h3 class="filter-modal-title">Filter News</h3>
-            <button @click="showFilterModal = false" class="filter-close-button">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="filter-modal-body">
-            <!-- Status Filter -->
-            <div class="filter-section">
-              <h4 class="filter-section-title">Status</h4>
-              <div class="filter-options">
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.status" value="all" />
-                  <span>All Status</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.status" value="published" />
-                  <span><span class="status-dot" style="background: #10b981;"></span>Published</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.status" value="draft" />
-                  <span><span class="status-dot" style="background: #f59e0b;"></span>Draft</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.status" value="archived" />
-                  <span><span class="status-dot" style="background: #6b7280;"></span>Archived</span>
-                </label>
-              </div>
+            <div class="filter-modal-header">
+              <h3 class="filter-modal-title">Filter News</h3>
+              <button @click="showFilterModal = false" class="filter-close-button">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
+            <div class="filter-modal-body">
+              <!-- Status Filter -->
+              <div class="filter-section">
+                <h4 class="filter-section-title">Status</h4>
+                <div class="filter-options">
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.status" value="all" />
+                    <span>All Status</span>
+                  </label>
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.status" value="published" />
+                    <span><span class="status-dot" style="background: #10b981;"></span>Published</span>
+                  </label>
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.status" value="draft" />
+                    <span><span class="status-dot" style="background: #f59e0b;"></span>Draft</span>
+                  </label>
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.status" value="archived" />
+                    <span><span class="status-dot" style="background: #6b7280;"></span>Archived</span>
+                  </label>
+                </div>
+              </div>
 
-            <!-- Date Filter -->
-            <div class="filter-section">
-              <h4 class="filter-section-title">Date</h4>
-              <div class="filter-options">
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.dateRange" value="all" />
-                  <span>All Dates</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.dateRange" value="today" />
-                  <span>Today</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.dateRange" value="week" />
-                  <span>This Week</span>
-                </label>
-                <label class="filter-checkbox">
-                  <input type="radio" v-model="filters.dateRange" value="month" />
-                  <span>This Month</span>
-                </label>
+              <!-- Date Filter -->
+              <div class="filter-section">
+                <h4 class="filter-section-title">Date</h4>
+                <div class="filter-options">
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.dateRange" value="all" />
+                    <span>All Dates</span>
+                  </label>
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.dateRange" value="today" />
+                    <span>Today</span>
+                  </label>
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.dateRange" value="week" />
+                    <span>This Week</span>
+                  </label>
+                  <label class="filter-checkbox">
+                    <input type="radio" v-model="filters.dateRange" value="month" />
+                    <span>This Month</span>
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="filter-modal-footer">
-            <button @click="showFilterModal = false" class="filter-btn-secondary">Apply Filters</button>
-          </div>
+            <div class="filter-modal-footer">
+              <button @click="showFilterModal = false" class="filter-btn-secondary">Apply Filters</button>
+            </div>
           </div>
         </div>
       </Transition>
 
-      <!-- Floating Action Button -->
-      <button @click="openModal" class="floating-action-button" title="Add News">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-      </svg>
-      </button>
-
       <!-- Masonry Grid -->
-      <div v-if="newsList.length > 0" class="masonry-grid">
-      <div v-for="news in newsList" :key="news.id" class="masonry-item">
-        <div class="news-card">
-          <div class="news-image-container">
-            <img :src="loadImage(news.images[0] || '')" :alt="news.title" class="news-image" />
-            <div v-if="news.images.length > 1" class="image-count-badge">
-              +{{ news.images.length - 1 }}
-            </div>
-            <div class="news-status-badge" :class="news.status === 'published' ? 'status-published' : 'status-draft'">
-              {{ news.status === 'published' ? 'Published' : 'Draft' }}
-            </div>
-          </div>
-          <div class="news-content">
-            <div class="news-header-row">
-              <div class="news-categories">
-                <span v-for="category in news.categories" :key="category" class="category-badge">
-                  {{ category }}
-                </span>
+      <div v-if="newsList.length > 0">
+        <div class="masonry-grid">
+          <div v-for="news in newsList" :key="news.id" class="masonry-item">
+            <div class="news-card">
+              <div class="news-image-container">
+                <img :src="loadImage(news.images[0] || '')" :alt="news.title" class="news-image" />
+                <div v-if="news.images.length > 1" class="image-count-badge">
+                  +{{ news.images.length - 1 }}
+                </div>
+                <div class="news-status-badge"
+                  :class="news.status === 'published' ? 'status-published' : 'status-draft'">
+                  {{ news.status === 'published' ? 'Published' : 'Draft' }}
+                </div>
               </div>
-              <!-- Three Dot Menu -->
-              <div class="menu-container">
-                <button @click="toggleMenu(news.id)" class="menu-button">
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                  </svg>
-                </button>
-                <Transition name="dropdown">
-                  <div v-if="activeMenu === news.id" class="menu-dropdown">
-                    <button @click="editNews(news)" class="menu-item">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </button>
-                    <button @click="togglePublishStatus(news.id)" class="menu-item">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                      </svg>
-                      {{ news.status === 'published' ? 'Archive' : 'Publish' }}
-                    </button>
-                    <button
-                      v-if="news.notifiedAt === null"
-                      @click="notifyNewsItem(news)"
-                      class="menu-item"
-                      :disabled="notifyLoadingId === news.id"
-                      :class="{ 'menu-item-disabled': notifyLoadingId === news.id }">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                      </svg>
-                      {{ notifyLoadingId === news.id ? 'Notifying...' : 'Notify' }}
-                    </button>
-                    <button @click="deleteNews(news.id)" class="menu-item menu-item-danger">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete
-                    </button>
+              <div class="news-content">
+                <div class="news-header-row">
+                  <div class="news-categories">
+                    <span v-for="category in news.categories" :key="category" class="category-badge">
+                      {{ category }}
+                    </span>
                   </div>
-                </Transition>
+                  <!-- Three Dot Menu -->
+                  <div class="menu-container">
+                    <button @click="toggleMenu(news.id)" class="menu-button">
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                    <Transition name="dropdown">
+                      <div v-if="activeMenu === news.id" class="menu-dropdown">
+                        <button @click="editNews(news)" class="menu-item">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+                        <button @click="togglePublishStatus(news.id)" class="menu-item">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                          </svg>
+                          {{ news.status === 'published' ? 'Archive' : 'Publish' }}
+                        </button>
+                        <button v-if="news.notifiedAt === null" @click="notifyNewsItem(news)" class="menu-item"
+                          :disabled="notifyLoadingId === news.id"
+                          :class="{ 'menu-item-disabled': notifyLoadingId === news.id }">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                          {{ notifyLoadingId === news.id ? 'Notifying...' : 'Notify' }}
+                        </button>
+                        <button @click="deleteNews(news.id)" class="menu-item menu-item-danger">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </button>
+                      </div>
+                    </Transition>
+                  </div>
+                </div>
+                <h3 class="news-title">{{ news.title }}</h3>
+                <div class="news-text" v-html="news.content"></div>
+                <div class="news-footer">
+                  <span v-if="news.notifiedAt" class="notified-badge">Notified</span>
+                  <span class="news-date">{{ formatDate(news.datePosted) }}</span>
+                </div>
               </div>
-            </div>
-            <h3 class="news-title">{{ news.title }}</h3>
-            <div class="news-text" v-html="news.content"></div>
-            <div class="news-footer">
-              <span v-if="news.notifiedAt" class="notified-badge">Notified</span>
-              <span class="news-date">{{ formatDate(news.datePosted) }}</span>
             </div>
           </div>
         </div>
-      </div>
+
+        <footer class="pagination-bar" v-if="paginationMeta.lastPage > 1">
+          <button type="button" class="pagination-button" :disabled="!paginationMeta.hasPrev"
+            @click="goToPage(currentPage - 1)">
+            Previous
+          </button>
+
+          <div class="pagination-pages">
+            <button v-for="page in pageNumbers" :key="page" type="button" class="pagination-page"
+              :class="{ 'pagination-page--active': currentPage === page }" @click="goToPage(page)">
+              {{ page }}
+            </button>
+          </div>
+
+          <button type="button" class="pagination-button" :disabled="!paginationMeta.hasNext"
+            @click="goToPage(currentPage + 1)">
+            Next
+          </button>
+        </footer>
+
+        <div class="results-meta" v-if="paginationMeta.total > 0">
+          <p>{{ paginationMeta.total }} total item{{ paginationMeta.total === 1 ? '' : 's' }}</p>
+          <p>Page {{ paginationMeta.currentPage }} of {{ paginationMeta.lastPage }}</p>
+        </div>
       </div>
 
       <!-- Empty State -->
       <div v-else class="empty-state">
-      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-      </svg>
-      <p class="empty-text">No news yet. Click "Add News" to create your first announcement.</p>
+        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+        </svg>
+        <p class="empty-text">No news yet. Click "Add News" to create your first announcement.</p>
       </div>
 
     </template>
@@ -329,7 +352,7 @@
 import { ref, computed, nextTick, onMounted } from 'vue';
 import { useToast } from 'vue-toast-notification';
 import { useAuthStore } from '@/stores/auth';
-import type { News, Category, CreateNewsPayload } from '@/api/models';
+import type { News, Category, CreateNewsPayload, PaginationMeta } from '@/api/models';
 import { useAnnouncement } from '@/composables/useAnnouncement';
 import RichTextEditor from '@/components/RichTextEditor.vue';
 
@@ -368,6 +391,16 @@ const isSubmitting = ref(false);
 const isLoadingCategories = ref(false);
 const searchQuery = ref('');
 const notifyLoadingId = ref<number | null>(null);
+const currentPage = ref(1);
+const pageLimit = 12;
+const paginationMeta = ref<PaginationMeta>({
+  total: 0,
+  perPage: pageLimit,
+  currentPage: 1,
+  lastPage: 1,
+  hasNext: false,
+  hasPrev: false,
+});
 
 const filters = ref({
   status: 'all',
@@ -405,9 +438,11 @@ const fetchCategories = async () => {
 };
 
 // Fetch all news from API
-const fetchNews = async () => {
+const fetchNews = async (page = currentPage.value) => {
   try {
-    const newsData = await announcement.fetchNews();
+    const response = await announcement.fetchNews(page, pageLimit);
+    const newsData = response?.data ?? [];
+    const meta = response?.meta;
 
     if (newsData) {
       // Map API response to local NewsItem format
@@ -425,6 +460,28 @@ const fetchNews = async () => {
         author: news.authorName,
       }));
     }
+
+    if (meta) {
+      paginationMeta.value = {
+        total: meta.total ?? 0,
+        perPage: meta.perPage ?? pageLimit,
+        currentPage: meta.currentPage ?? page,
+        lastPage: meta.lastPage ?? 1,
+        hasNext: Boolean(meta.hasNext),
+        hasPrev: Boolean(meta.hasPrev),
+      };
+    } else {
+      paginationMeta.value = {
+        total: newsList.value.length,
+        perPage: pageLimit,
+        currentPage: page,
+        lastPage: 1,
+        hasNext: false,
+        hasPrev: page > 1,
+      };
+    }
+
+    currentPage.value = paginationMeta.value.currentPage;
   } catch (error: unknown) {
     console.error('Failed to fetch news:', error);
     const message = error instanceof Error ? error.message : 'Failed to load news';
@@ -462,8 +519,21 @@ const createCategory = async (name: string): Promise<Category | null> => {
 // Load data on component mount
 onMounted(() => {
   fetchCategories();
-  fetchNews();
+  fetchNews(1);
 });
+
+const pageNumbers = computed(() => {
+  const totalPages = Math.max(1, paginationMeta.value.lastPage || 1);
+  return Array.from({ length: totalPages }, (_, index) => index + 1);
+});
+
+const goToPage = async (page: number) => {
+  if (page < 1 || page > paginationMeta.value.lastPage || page === currentPage.value) {
+    return;
+  }
+
+  await fetchNews(page);
+};
 
 const activeFiltersCount = computed(() => {
   let count = 0;
@@ -675,7 +745,7 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
 
       if (response && response.success) {
         toast.success('News updated successfully');
-        await fetchNews(); // Refresh the list
+        await fetchNews(currentPage.value); // Refresh the list
         closeModal();
       }
     } else {
@@ -684,7 +754,7 @@ const handleSubmit = async (status: 'published' | 'draft' | 'archived') => {
 
       if (response && response.success) {
         toast.success('News created successfully');
-        await fetchNews(); // Refresh the list
+        await fetchNews(1); // Refresh the list
         closeModal();
       }
     }
@@ -743,7 +813,7 @@ const notifyNewsItem = async (news: NewsItem) => {
     const response = await announcement.notifyNews(news.id, notifiedBy);
     if (response && response.success) {
       toast.success('News notification sent successfully');
-      await fetchNews();
+      await fetchNews(currentPage.value);
     } else {
       const message = response?.message || 'Failed to notify news';
       toast.error(message);
@@ -767,7 +837,7 @@ const togglePublishStatus = async (newsId: number) => {
 
       if (response && response.success) {
         toast.success(`News ${newStatus} successfully`);
-        await fetchNews(); // Refresh the list
+        await fetchNews(currentPage.value); // Refresh the list
       }
     }
   } catch (error: unknown) {
@@ -789,7 +859,7 @@ const deleteNews = async (newsId: number) => {
     const response = await announcement.deleteNews(newsId);
     if (response && response.success) {
       toast.success('News deleted successfully');
-      await fetchNews(); // Refresh the list
+      await fetchNews(currentPage.value); // Refresh the list
     }
   } catch (error: unknown) {
     console.error('Failed to delete news:', error);
@@ -873,6 +943,27 @@ const toServerDatetime = (datetimeLocal: string) => {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.create-news-button {
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.24);
+}
+
+.create-news-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.32);
 }
 
 /* Search Container */
@@ -1339,6 +1430,75 @@ const toServerDatetime = (datetimeLocal: string) => {
   margin-bottom: 1.5rem;
 }
 
+.pagination-bar {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pagination-button,
+.pagination-page {
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pagination-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pagination-page {
+  min-width: 2.6rem;
+}
+
+.pagination-page--active {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.results-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.results-meta p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination-pages {
+    justify-content: center;
+  }
+}
+
 /* News Card */
 .news-card {
   background: var(--theme-surface);
@@ -1576,36 +1736,6 @@ const toServerDatetime = (datetimeLocal: string) => {
   background: #fef2f2;
 }
 
-/* Floating Action Button */
-.floating-action-button {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 40;
-  animation: floatIn 0.5s ease-out;
-}
-
-.floating-action-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 15px 35px rgba(79, 70, 229, 0.4);
-}
-
-.floating-action-button:active {
-  transform: scale(0.95);
-}
-
 /* Filter Modal Styles */
 .filter-modal {
   background: var(--theme-surface);
@@ -1725,18 +1855,6 @@ const toServerDatetime = (datetimeLocal: string) => {
 }
 
 /* Animation Keyframes */
-@keyframes floatIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.5);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @keyframes cardFadeIn {
   from {
     opacity: 0;
