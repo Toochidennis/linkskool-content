@@ -1,16 +1,16 @@
 <template>
-  <div class="notifications-page" :class="{ embedded: embedded }">
-    <div v-if="!embedded" class="page-header">
+  <div class="notifications-page">
+    <div class="page-header">
       <div>
-        <h1>Notifications</h1>
-        <p>Create and send email and in-app notifications from one shared composer.</p>
+        <h1>CBT Updates</h1>
+        <p>Create and send CBT-specific email and in-app updates from one shared composer.</p>
       </div>
     </div>
 
     <div class="layout-grid">
       <section class="composer-card">
         <div class="card-header">
-          <h2>Notification Composer</h2>
+          <h2>CBT Update Composer</h2>
           <span class="draft-indicator">{{ isDraft ? 'Draft' : 'Ready to send' }}</span>
         </div>
 
@@ -18,11 +18,11 @@
           <h3>Channel Selection</h3>
           <div class="channel-grid">
             <label class="channel-item">
-              <input type="checkbox" v-model="channels.email" />
+              <input v-model="channels.email" type="checkbox" />
               <span>Email</span>
             </label>
             <label class="channel-item">
-              <input type="checkbox" v-model="channels.notification" />
+              <input v-model="channels.notification" type="checkbox" />
               <span>In-app Notification</span>
             </label>
           </div>
@@ -33,12 +33,12 @@
           <div class="field-grid">
             <div class="field span-2">
               <label>Title</label>
-              <input v-model="form.title" type="text" placeholder="Your weekly CBT update is here" />
+              <input v-model="form.title" type="text" placeholder="Mock exam schedule update" />
             </div>
             <div class="field span-2">
               <label>Body</label>
               <div class="editor-wrap">
-                <RichTextEditor v-model="form.body" placeholder="Compose the full update once for every channel..." />
+                <RichTextEditor v-model="form.body" placeholder="Compose the CBT update once for every channel..." />
               </div>
             </div>
           </div>
@@ -67,17 +67,13 @@
           <div class="field-grid">
             <div class="field span-2">
               <label>Notification Body <span class="char-count">{{ notificationCharCount }}/120</span></label>
-              <textarea
-                v-model="form.notificationBody"
-                rows="3"
-                maxlength="120"
-                placeholder="Short in-app message for this update..."
-              />
-              <p class="field-hint">This short message is what users will see inside the app notification.</p>
+              <textarea v-model="form.notificationBody" rows="3" maxlength="120"
+                placeholder="Short in-app message for this CBT update..." />
+              <p class="field-hint">This short message is what CBT users will see inside the app notification.</p>
             </div>
             <div class="field">
               <label>Deep Link / App Route <span class="optional-copy">Optional</span></label>
-              <input v-model="form.deepLink" type="text" placeholder="/dashboard/notifications" />
+              <input v-model="form.deepLink" type="text" placeholder="/dashboard/courses" />
             </div>
             <div class="field">
               <label>Optional Image</label>
@@ -89,16 +85,20 @@
         <div class="section">
           <h3>General</h3>
           <div class="field-grid">
+            <div class="field span-2">
+              <label>Tag</label>
+              <input v-model="form.tag" type="text" placeholder="e.g. JAMB, WAEC, Mock" />
+            </div>
             <div class="field">
               <label>Target Audience</label>
               <select v-model="form.targetAudience">
-                <option value="all">All Users</option>
-                <option value="segment">Custom Segment</option>
+                <option value="all">All CBT Users</option>
+                <option value="segment">Custom CBT Segment</option>
               </select>
             </div>
             <div v-if="form.targetAudience === 'segment'" class="field">
               <label>Segment Name</label>
-              <input v-model="form.segmentName" type="text" placeholder="e.g. Trial Users" />
+              <input v-model="form.segmentName" type="text" placeholder="e.g. WAEC Candidates" />
             </div>
             <div class="field">
               <label>Schedule Date & Time <span class="optional-copy">Optional</span></label>
@@ -138,50 +138,53 @@
         </div>
 
         <div class="actions">
-          <button class="btn btn-secondary" @click="onCancel">Cancel</button>
-          <button class="btn btn-muted" @click="saveDraft">Save Draft</button>
-          <button class="btn btn-primary" :disabled="!canSendNow" @click="sendNow">Send Now</button>
-          <button class="btn btn-primary-alt" :disabled="!canSchedule" @click="scheduleNotification">Schedule</button>
+          <button class="btn btn-secondary" :disabled="isSubmitting" @click="onCancel">Cancel</button>
+          <button class="btn btn-muted" :disabled="isSubmitting" @click="saveDraft">Save Draft</button>
+          <button class="btn btn-primary" :disabled="!canSendNow || isSubmitting" @click="sendNow">
+            {{ isSubmitting && lastAction === 'send' ? 'Sending…' : 'Send Now' }}
+          </button>
+          <button class="btn btn-primary-alt" :disabled="!canSchedule || isSubmitting" @click="scheduleUpdate">
+            {{ isSubmitting && lastAction === 'schedule' ? 'Scheduling…' : 'Schedule' }}
+          </button>
         </div>
-        <p v-if="actionHint" class="submit-hint">{{ actionHint }}</p>
+        <p v-if="submitError" class="submit-hint error-hint">{{ submitError }}</p>
+        <p v-else-if="actionHint" class="submit-hint">{{ actionHint }}</p>
       </section>
 
       <aside class="history-card">
-        <h3>Notification History</h3>
+        <h3>CBT Update History</h3>
         <div class="history-list">
-          <div v-for="item in historyItems" :key="item.id" class="history-item">
+          <div v-if="isHistoryLoading" class="history-empty">Loading history...</div>
+          <div v-else-if="!historyItems.length" class="history-empty">No CBT updates yet.</div>
+          <div v-for="item in historyItems" :key="item.id" class="history-item" role="button" tabindex="0"
+            @click="fillFormFromHistory(item.id)" @keydown.enter="fillFormFromHistory(item.id)">
             <div>
               <p class="history-title">{{ item.title }}</p>
               <p class="history-meta">{{ item.channel }} · {{ item.date }}</p>
             </div>
-            <span class="delivery-status" :class="item.statusClass">{{ item.status }}</span>
+            <div class="history-actions">
+              <button v-if="item.canNotify" type="button" class="history-action-btn"
+                :disabled="publishingId === item.id" @click.stop="publishDraft(item.id)">
+                {{ publishingId === item.id ? 'Publishing...' : 'Publish/Notify' }}
+              </button>
+              <span class="delivery-status" :class="item.statusClass">{{ item.status }}</span>
+            </div>
           </div>
         </div>
       </aside>
     </div>
 
-    <div v-if="showSuccessModal" class="modal-backdrop" @click.self="showSuccessModal = false">
-      <div class="success-modal">
-        <h4>{{ successTitle }}</h4>
-        <p>{{ successMessage }}</p>
-        <button class="btn btn-primary" @click="showSuccessModal = false">Close</button>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useToast } from 'vue-toast-notification'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import { useCbtUpdate, type CbtUpdateHistoryItem } from '@/composables/useCbtUpdate'
 
-withDefaults(
-  defineProps<{
-    embedded?: boolean
-  }>(),
-  {
-    embedded: false,
-  },
-)
+const { createUpdate, updateUpdate, fetchUpdateHistory, publishUpdate } = useCbtUpdate()
+const $toast = useToast()
 
 const channels = reactive({
   email: true,
@@ -191,6 +194,7 @@ const channels = reactive({
 const form = reactive({
   title: '',
   body: '',
+  tag: '',
   targetAudience: 'all',
   segmentName: '',
   scheduleAt: '',
@@ -203,16 +207,51 @@ const form = reactive({
 
 const previewTab = ref<'email' | 'notification'>('email')
 const isDraft = ref(false)
-const showSuccessModal = ref(false)
-const lastAction = ref<'send' | 'schedule'>('send')
+const lastAction = ref<'send' | 'schedule' | 'draft'>('send')
+const isSubmitting = ref(false)
+const submitError = ref('')
+const isHistoryLoading = ref(false)
+const publishingId = ref<number | null>(null)
+const editingUpdateId = ref<number | null>(null)
+const historyData = ref<CbtUpdateHistoryItem[]>([])
 
 const fallbackEmailBody = '<p>Add email content to preview it here.</p>'
 
-const historyItems = [
-  { id: 1, title: 'Monthly Product Update', channel: 'Email', date: 'Today, 10:45 AM', status: 'Delivered', statusClass: 'ok' },
-  { id: 2, title: 'Flash Sale Alert', channel: 'Notification', date: 'Yesterday, 6:10 PM', status: 'In Progress', statusClass: 'progress' },
-  { id: 3, title: 'Security Reminder', channel: 'Email + Notification', date: 'Mar 02, 9:00 AM', status: 'Failed', statusClass: 'error' },
-]
+const formatHistoryDate = (dateValue: string) => {
+  const parsed = new Date(dateValue)
+  if (Number.isNaN(parsed.getTime())) return dateValue
+  return parsed.toLocaleString(undefined, {
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const historyItems = computed(() =>
+  historyData.value.map((item) => {
+    const emailOn = Number(item.send_email) === 1
+    const pushOn = Number(item.send_push) === 1
+    const channel = emailOn && pushOn ? 'Email + Notification' : emailOn ? 'Email' : 'Notification'
+
+    const delivered = Boolean(item.notified_at)
+    const isDraftStatus = item.status === 'draft'
+    const isScheduled = item.status === 'published' && Boolean(item.schedule_time) && !delivered
+
+    const status = delivered ? 'Delivered' : isDraftStatus ? 'Draft' : isScheduled ? 'Scheduled' : 'Published'
+    const statusClass = delivered ? 'ok' : isDraftStatus ? 'draft' : isScheduled ? 'scheduled' : 'progress'
+
+    return {
+      id: item.id,
+      title: item.title,
+      channel,
+      date: formatHistoryDate(item.created_at),
+      status,
+      statusClass,
+      canNotify: isDraftStatus,
+    }
+  }),
+)
 
 const notificationCharCount = computed(() => form.notificationBody.length)
 
@@ -236,19 +275,41 @@ const actionHint = computed(() => {
   if (!channels.email && !channels.notification) return 'Select at least one channel to continue.'
   if (!form.title.trim() || !form.body.trim()) return 'Add a shared title and body.'
   if (channels.notification && !form.notificationBody.trim()) return 'Add a notification body.'
-  if (!form.scheduleAt) return 'Add a date and time only if you want to schedule this update.'
+  if (!form.scheduleAt) return 'Add a date and time only if you want to schedule this CBT update.'
   return ''
 })
 
-const successTitle = computed(() =>
-  lastAction.value === 'schedule' ? 'Notification scheduled successfully' : 'Notification sent successfully',
-)
+const loadHistory = async () => {
+  isHistoryLoading.value = true
+  try {
+    const response = await fetchUpdateHistory()
+    const payload = response?.data as {
+      data?: CbtUpdateHistoryItem[]
+    }
+    historyData.value = payload?.data || []
+    console.log('CBT update history:', response)
+  } catch (error: unknown) {
+    console.error('Failed to fetch CBT update history:', error)
+  } finally {
+    isHistoryLoading.value = false
+  }
+}
 
-const successMessage = computed(() =>
-  lastAction.value === 'schedule'
-    ? 'Your update has been scheduled for delivery.'
-    : 'Your update has been queued for delivery.',
-)
+const publishDraft = async (id: number) => {
+  if (publishingId.value !== null) return
+
+  publishingId.value = id
+  try {
+    const response = await publishUpdate(id, 'published')
+    $toast.success(response?.message || 'CBT update published successfully')
+    await loadHistory()
+  } catch (error: unknown) {
+    const err = error as { message?: string }
+    $toast.error(err.message || 'Failed to publish CBT update')
+  } finally {
+    publishingId.value = null
+  }
+}
 
 watch(
   () => [channels.email, channels.notification] as const,
@@ -285,49 +346,177 @@ const clearEmailAttachment = () => {
   form.emailAttachmentName = ''
 }
 
-const saveDraft = () => {
-  isDraft.value = true
-  showSuccessModal.value = false
+const toDateTimeLocal = (value: string | null | undefined) => {
+  if (!value) return ''
+  const normalized = value.replace(' ', 'T')
+  const parsed = new Date(normalized)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return normalized.slice(0, 16)
 }
 
-const sendNow = () => {
-  if (!canSendNow.value) return
-  isDraft.value = false
-  lastAction.value = 'send'
-  showSuccessModal.value = true
+const fillFormFromHistory = (id: number) => {
+  const selected = historyData.value.find((item) => item.id === id)
+  if (!selected) return
+
+  const emailEnabled = Number(selected.send_email) === 1
+  const pushEnabled = Number(selected.send_push) === 1
+
+  form.title = selected.title || ''
+  form.body = selected.email_body || ''
+  form.tag = selected.tag || ''
+  form.notificationBody = selected.notification_body || ''
+  form.scheduleAt = toDateTimeLocal(selected.schedule_time)
+  form.emailSubject = ''
+  form.emailAttachmentName = ''
+  form.deepLink = ''
+  form.notificationImagePreview = ''
+  form.targetAudience = 'all'
+  form.segmentName = ''
+
+  channels.email = emailEnabled
+  channels.notification = pushEnabled
+
+  if (channels.email) {
+    previewTab.value = 'email'
+  } else if (channels.notification) {
+    previewTab.value = 'notification'
+  }
+
+  isDraft.value = selected.status === 'draft'
+  editingUpdateId.value = selected.id
+  submitError.value = ''
 }
 
-const scheduleNotification = () => {
-  if (!canSchedule.value) return
-  isDraft.value = false
-  lastAction.value = 'schedule'
-  showSuccessModal.value = true
-}
-
-const onCancel = () => {
+const resetComposerForm = () => {
   form.title = ''
   form.body = ''
+  form.tag = ''
+  form.targetAudience = 'all'
+  form.segmentName = ''
+  form.scheduleAt = ''
   form.emailSubject = ''
   form.emailAttachmentName = ''
   form.notificationBody = ''
   form.deepLink = ''
   form.notificationImagePreview = ''
-  form.segmentName = ''
-  form.scheduleAt = ''
   channels.email = true
   channels.notification = true
   previewTab.value = 'email'
+  isDraft.value = false
+  editingUpdateId.value = null
   lastAction.value = 'send'
+  submitError.value = ''
 }
+
+const saveDraft = async () => {
+  if (isSubmitting.value) return
+  submitError.value = ''
+  isSubmitting.value = true
+  lastAction.value = 'draft'
+
+  try {
+    const payload = {
+      title: form.title,
+      email_body: form.body,
+      notification_body: form.notificationBody,
+      send_push: channels.notification ? 1 : 0,
+      send_email: channels.email ? 1 : 0,
+      tag: form.tag,
+      status: 'draft',
+    } as const
+
+    const response = editingUpdateId.value
+      ? await updateUpdate(editingUpdateId.value, payload)
+      : await createUpdate(payload)
+    isDraft.value = true
+    await loadHistory()
+    resetComposerForm()
+    $toast.success(response?.message || 'Draft saved')
+  } catch (err: unknown) {
+    const error = err as { message?: string }
+    submitError.value = error.message || 'Failed to save draft.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const sendNow = async () => {
+  if (!canSendNow.value || isSubmitting.value) return
+  submitError.value = ''
+  isSubmitting.value = true
+  lastAction.value = 'send'
+
+  try {
+    const payload = {
+      title: form.title,
+      email_body: form.body,
+      notification_body: form.notificationBody,
+      send_push: channels.notification ? 1 : 0,
+      send_email: channels.email ? 1 : 0,
+      tag: form.tag,
+      status: 'published',
+    } as const
+
+    const response = editingUpdateId.value
+      ? await updateUpdate(editingUpdateId.value, payload)
+      : await createUpdate(payload)
+    isDraft.value = false
+    await loadHistory()
+    resetComposerForm()
+    $toast.success(response?.message || 'CBT update sent successfully')
+  } catch (err: unknown) {
+    const error = err as { message?: string }
+    submitError.value = error.message || 'Failed to send CBT update.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const scheduleUpdate = async () => {
+  if (!canSchedule.value || isSubmitting.value) return
+  submitError.value = ''
+  isSubmitting.value = true
+  lastAction.value = 'schedule'
+
+  try {
+    const payload = {
+      title: form.title,
+      email_body: form.body,
+      notification_body: form.notificationBody,
+      send_push: channels.notification ? 1 : 0,
+      send_email: channels.email ? 1 : 0,
+      tag: form.tag,
+      status: 'published',
+      schedule_time: form.scheduleAt,
+    } as const
+
+    const response = editingUpdateId.value
+      ? await updateUpdate(editingUpdateId.value, payload)
+      : await createUpdate(payload)
+    isDraft.value = false
+    await loadHistory()
+    resetComposerForm()
+    $toast.success(response?.message || 'CBT update scheduled successfully')
+  } catch (err: unknown) {
+    const error = err as { message?: string }
+    submitError.value = error.message || 'Failed to schedule CBT update.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const onCancel = () => {
+  resetComposerForm()
+}
+
+onMounted(() => {
+  void loadHistory()
+})
 </script>
 
 <style scoped>
 .notifications-page {
   padding: 1.5rem;
-}
-
-.notifications-page.embedded {
-  padding: 0;
 }
 
 .page-header {
@@ -348,15 +537,6 @@ const onCancel = () => {
 .page-header p {
   margin: 0.3rem 0 0;
   color: #64748b;
-}
-
-.status-chip {
-  padding: 0.35rem 0.7rem;
-  border-radius: 9999px;
-  background: #e0e7ff;
-  color: #4338ca;
-  font-size: 0.75rem;
-  font-weight: 700;
 }
 
 .layout-grid {
@@ -537,14 +717,6 @@ const onCancel = () => {
   max-width: 360px;
 }
 
-.phone-notch {
-  width: 80px;
-  height: 12px;
-  border-radius: 9999px;
-  background: #94a3b8;
-  margin: 0 auto 0.8rem;
-}
-
 .notification-bubble {
   background: var(--theme-surface);
   border-radius: 12px;
@@ -662,6 +834,10 @@ const onCancel = () => {
   font-weight: 600;
 }
 
+.error-hint {
+  color: var(--theme-error, #e53e3e);
+}
+
 .history-card {
   padding: 1rem;
 }
@@ -684,6 +860,41 @@ const onCancel = () => {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  cursor: pointer;
+}
+
+.history-item:hover {
+  border-color: var(--theme-border-strong);
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.history-action-btn {
+  border: 1px solid var(--theme-border-strong);
+  background: var(--theme-surface-soft);
+  color: var(--theme-text);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.history-empty {
+  border: 1px dashed var(--theme-border);
+  border-radius: 10px;
+  padding: 0.8rem;
+  color: var(--theme-text-muted);
+  font-size: 0.85rem;
 }
 
 .history-title {
@@ -716,35 +927,19 @@ const onCancel = () => {
   color: #92400e;
 }
 
+.delivery-status.draft {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.delivery-status.scheduled {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .delivery-status.error {
   background: #fee2e2;
   color: #991b1b;
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  display: grid;
-  place-items: center;
-  z-index: 90;
-}
-
-.success-modal {
-  width: min(360px, 92vw);
-  border-radius: 14px;
-  background: #fff;
-  padding: 1rem;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
-}
-
-.success-modal h4 {
-  margin: 0;
-}
-
-.success-modal p {
-  margin: 0.4rem 0 1rem;
-  color: #475569;
 }
 
 @media (max-width: 1080px) {

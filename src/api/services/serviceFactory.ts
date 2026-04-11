@@ -22,3 +22,5 @@ export const learningCourseService = serviceFactory<any>("learn/courses");
 export const lessonSubmissionService = serviceFactory<any>("learn/lessons");
 export const faqsService = serviceFactory<type.Faq>("faqs");
 export const notificationService = serviceFactory<any>("notifications");
+export const cbtUpdateService = serviceFactory<any>("cbt-updates");
+export const cbtUpdate = cbtUpdateService;

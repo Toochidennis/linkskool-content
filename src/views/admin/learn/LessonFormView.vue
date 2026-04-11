@@ -147,8 +147,8 @@
 
           <div class="form-row">
             <div class="form-group full">
-              <label class="form-label">Material File (PDF, Max 10MB)</label>
-              <FileUploadZone accept=".pdf" :max-size="10485760" @files-selected="handleMaterialUpload" />
+              <label class="form-label">Material File (PDF, Max 15MB)</label>
+              <FileUploadZone accept=".pdf" :max-size="15728640" @files-selected="handleMaterialUpload" />
               <div v-if="localLesson.materialFile || localLesson.materialUrl" class="file-list">
                 <div class="file-item">
                   <span class="file-name">{{
@@ -764,8 +764,8 @@ const handleMaterialUpload = (files: File[]) => {
     })
     return
   }
-  if (file.size > 10485760) {
-    toast.error('File size must not exceed 10MB', {
+  if (file.size > 15728640) {
+    toast.error('File size must not exceed 15MB', {
       position: 'top-right',
       duration: 3000,
     })

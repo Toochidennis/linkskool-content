@@ -15,6 +15,7 @@ import SyllabusView from '@/views/admin/cbt/SyllabusView.vue'
 import AnnouncementView from '@/views/admin/updates/AnnouncementView.vue'
 import AdmissionsView from '@/views/admin/updates/AdmissionsView.vue'
 import ChallengeView from '@/views/admin/cbt/ChallengeView.vue'
+import CbtUpdatesView from '@/views/admin/cbt/CbtUpdatesView.vue'
 import ChallengeDetailView from '@/views/admin/cbt/ChallengeDetailView.vue'
 import ChallengeCreateView from '@/views/admin/cbt/ChallengeCreateView.vue'
 import AssessmentSpreadsheetView from '@/views/admin/cbt/AssessmentSpreadsheetView.vue'
@@ -190,6 +191,11 @@ const routes: RouteRecordRaw[] = [
         path: 'challenges',
         name: 'Challenges',
         component: ChallengeView,
+      },
+      {
+        path: 'cbt-updates',
+        name: 'CBT Updates',
+        component: CbtUpdatesView,
       },
       {
         path: 'challenges/:examTypeId',
