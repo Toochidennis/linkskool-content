@@ -1,327 +1,215 @@
 <template>
-  <div class="space-y-8">
-    <div>
-      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Exam Type Setup</h2>
-      <p class="text-gray-600 dark:text-gray-400">Manage your educational exam type structure</p>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Exam Type Structure</h3>
-          <button @click="showModal = true"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap">
-            <i class="fas fa-plus mr-2"></i>Add Exam Type
-          </button>
+  <div class="space-y-6">
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600 dark:text-blue-400">CBT</p>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Exam Types</h1>
+          <p class="text-gray-600 dark:text-gray-400">Manage exam types in a single table.</p>
         </div>
       </div>
-      <div class="p-6">
-        <div v-for="program in examTypeStructure" :key="program.id" class="mb-4">
-          <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div class="flex items-center">
-              <button @click="program.expanded = !program.expanded" class="mr-3 cursor-pointer">
-                <i :class="program.expanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"
-                  class="text-gray-400 text-sm"></i>
-              </button>
-              <i class="fas fa-folder text-blue-600 mr-2"></i>
-              <span class="font-medium text-gray-900 dark:text-white">{{ capitalize(program.name) }}</span>
-            </div>
-            <div class="flex items-center space-x-4">
-              <div class="flex items-center space-x-2">
-                <button @click="openEditModal(program)" class="text-gray-400 hover:text-blue-600 cursor-pointer">
-                  <i class="fas fa-edit text-sm"></i>
-                </button>
-                <button @click="openDeleteModal(program)" class="text-gray-400 hover:text-red-600 cursor-pointer">
-                  <i class="fas fa-trash text-sm"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div v-if="program.expanded" class="ml-6 mt-2">
-            <div v-for="course in program.courses" :key="course.id" class="mb-2">
-              <div class="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-600 rounded-lg">
-                <div class="flex items-center">
-                  <i class="fas fa-book text-green-600 mr-2 text-sm"></i>
-                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ capitalize(course.courseName)
-                    }}</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <button class="text-gray-400 hover:text-blue-600 cursor-pointer">
-                    <i class="fas fa-edit text-xs"></i>
-                  </button>
-                  <button class="text-gray-400 hover:text-red-600 cursor-pointer">
-                    <i class="fas fa-trash text-xs"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <span class="font-semibold text-gray-900 dark:text-white">{{ sortedExamTypes.length }}</span>
+        exam type<span v-if="sortedExamTypes.length !== 1">s</span>
       </div>
-    </div>
+    </header>
 
-    <!-- Add Program Modal -->
-    <div v-if="showModal" @click="closeModal"
-      class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div @click.stop
-        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-
-        <!-- Modal Header -->
-        <div
-          class="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 flex items-center justify-between border-b border-blue-600">
+    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+        <div class="flex items-center justify-between gap-3">
           <div>
-            <h3 class="text-2xl font-bold text-white mb-1">Add New Program</h3>
-            <p class="text-blue-100 text-sm">Create a new educational program and assign courses</p>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Exam Types Table</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Edit an exam type or open its details page.</p>
           </div>
-          <button @click="closeModal"
-            class="text-blue-100 hover:text-white transition-colors p-2 hover:bg-blue-500 rounded-lg">
-            <i class="fas fa-times text-2xl"></i>
-          </button>
-        </div>
-
-        <!-- Modal Content -->
-        <div class="p-8">
-          <div class="space-y-6">
-            <!-- Program Information Section -->
-            <div>
-              <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <i class="fas fa-book-open text-blue-600 mr-2"></i>
-                Program Information
-              </h4>
-              <div
-                class="space-y-4 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                <!-- Program Name -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Program Name</label>
-                  <input v-model="newProgram.name" type="text" placeholder="e.g., Bachelor of Science"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Full name of the program</p>
-                </div>
-
-                <!-- Program Short Name -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Short Name</label>
-                  <input v-model="newProgram.shortname" type="text" placeholder="e.g., BSC"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Abbreviated name for quick reference</p>
-                </div>
-
-                <!-- Program Order -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Order</label>
-                  <input v-model.number="newProgram.displayOrder" type="number" min="0" placeholder="e.g., 1"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Numeric order for program listing (lower
-                    first)</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Courses Section -->
-            <div>
-              <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <i class="fas fa-graduation-cap text-blue-600 mr-2"></i>
-                Assign Courses
-              </h4>
-              <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div class="flex flex-wrap gap-3">
-                  <button v-for="course in availableCourses" :key="course.id" @click="toggleCourse(course.id)" :class="[
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer whitespace-nowrap',
-                    newProgram.courseIds.includes(course.id)
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:shadow-sm'
-                  ]">
-                    <i :class="newProgram.courseIds.includes(course.id) ? 'fas fa-check mr-2' : 'fas fa-plus mr-2'"></i>
-                    {{ course.courseName }}
-                  </button>
-                </div>
-                <div
-                  class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p class="text-sm text-blue-800 dark:text-blue-300">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    <span v-if="newProgram.courseIds.length === 0">No courses selected yet</span>
-                    <span v-else>{{ newProgram.courseIds.length }} course(s) selected</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div
-          class="bg-gray-50 dark:bg-gray-700/50 px-8 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end sticky bottom-0">
-          <button @click="closeModal"
-            class="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 font-semibold transition-colors cursor-pointer">
-            Cancel
-          </button>
-          <button @click="addProgram"
-            class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors cursor-pointer shadow-md hover:shadow-lg">
-            <i class="fas fa-plus mr-2"></i>Add Program
-          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Edit Program Modal -->
-    <div v-if="showEditModal" @click="closeEditModal"
-      class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div @click.stop
-        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-700/60">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Short Name</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Is Active</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Display Order</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
+            <tr v-if="isLoading">
+              <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <i class="fas fa-spinner fa-spin mr-2 text-blue-600 dark:text-blue-400"></i>
+                Loading exam types...
+              </td>
+            </tr>
 
-        <!-- Modal Header -->
-        <div
-          class="sticky top-0 bg-gradient-to-r from-amber-600 to-amber-700 px-8 py-6 flex items-center justify-between border-b border-amber-600">
+            <tr v-else-if="!sortedExamTypes.length">
+              <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                No exam types found.
+              </td>
+            </tr>
+
+            <tr v-else v-for="examType in sortedExamTypes" :key="examType.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ examType.name }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ examType.shortname }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  :class="isExamTypeActive(examType) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'"
+                  class="inline-flex rounded-full px-3 py-1 text-xs font-semibold">
+                  {{ isExamTypeActive(examType) ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ examType.displayOrder ?? '—' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div class="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    @click="openEditModal(examType)"
+                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                    <i class="fas fa-pen"></i>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    @click="goToDetails(examType.id)"
+                    class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-white transition hover:bg-blue-700 cursor-pointer">
+                    <i class="fas fa-eye"></i>
+                    View Details
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div
+      v-if="showEditModal"
+      @click="closeEditModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div
+        @click.stop
+        class="max-h-[95vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
+        <div class="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 dark:border-gray-700">
           <div>
-            <h3 class="text-2xl font-bold text-white mb-1">Edit Program</h3>
-            <p class="text-amber-100 text-sm">Update program details and course assignments</p>
+            <h3 class="text-2xl font-bold text-white">Edit Exam Type</h3>
+            <p class="text-sm text-blue-100">Update the exam type metadata and subject mapping.</p>
           </div>
-          <button @click="closeEditModal"
-            class="text-amber-100 hover:text-white transition-colors p-2 hover:bg-amber-500 rounded-lg">
-            <i class="fas fa-times text-2xl"></i>
+          <button
+            type="button"
+            @click="closeEditModal"
+            class="rounded-lg p-2 text-blue-100 transition hover:bg-blue-500/70 hover:text-white cursor-pointer">
+            <i class="fas fa-times text-xl"></i>
           </button>
         </div>
 
-        <!-- Modal Content -->
-        <div class="p-8">
-          <div class="space-y-6">
-            <!-- Program Information Section -->
-            <div>
-              <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <i class="fas fa-book-open text-amber-600 mr-2"></i>
-                Program Information
-              </h4>
+        <div class="space-y-6 px-6 py-6">
+          <section class="space-y-4">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-info-circle text-blue-600 dark:text-blue-400"></i>
+              <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Exam Type Information</h4>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="space-y-2">
+                <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Name</span>
+                <input
+                  v-model="editingExamType.name"
+                  type="text"
+                  class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  placeholder="e.g. JAMB" />
+              </label>
+
+              <label class="space-y-2">
+                <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Short Name</span>
+                <input
+                  v-model="editingExamType.shortname"
+                  type="text"
+                  class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  placeholder="e.g. JAMB" />
+              </label>
+
+              <label class="space-y-2">
+                <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Display Order</span>
+                <input
+                  v-model.number="editingExamType.displayOrder"
+                  type="number"
+                  min="0"
+                  class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  placeholder="0" />
+              </label>
+
+              <div class="space-y-2">
+                <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Status</span>
+                <button
+                  type="button"
+                  @click="editingExamType.isActive = editingExamType.isActive ? 0 : 1"
+                  :class="editingExamType.isActive ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'"
+                  class="relative inline-flex h-11 w-20 items-center rounded-full transition cursor-pointer">
+                  <span
+                    :class="editingExamType.isActive ? 'translate-x-10' : 'translate-x-1'"
+                    class="inline-block h-9 w-9 transform rounded-full bg-white shadow transition"></span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-graduation-cap text-blue-600 dark:text-blue-400"></i>
+              <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Subjects</h4>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
+              <div v-if="availableCourses.length" class="grid gap-3 sm:grid-cols-2">
+                <button
+                  v-for="course in availableCourses"
+                  :key="course.id"
+                  type="button"
+                  @click="toggleEditCourse(course.id)"
+                  :class="editingExamType.courseIds.includes(course.id)
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'"
+                  class="flex items-center justify-between rounded-xl border px-4 py-3 text-left transition cursor-pointer">
+                  <span class="min-w-0">
+                    <span class="block truncate font-medium">{{ course.courseName }}</span>
+                    <span v-if="course.description" class="block truncate text-xs opacity-80">{{ course.description }}</span>
+                  </span>
+                  <i :class="editingExamType.courseIds.includes(course.id) ? 'fas fa-check' : 'fas fa-plus'"></i>
+                </button>
+              </div>
+
               <div
-                class="space-y-4 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                <!-- Program Name -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Program Name</label>
-                  <input v-model="editingProgram.name" type="text" placeholder="e.g., Bachelor of Science"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Full name of the program</p>
-                </div>
-
-                <!-- Program Short Name -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Short Name</label>
-                  <input v-model="editingProgram.shortname" type="text" placeholder="e.g., BSC"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Abbreviated name for quick reference</p>
-                </div>
-
-                <!-- Program Order -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Order</label>
-                  <input v-model.number="editingProgram.displayOrder" type="number" min="0" placeholder="e.g., 1"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Numeric order for program listing (lower
-                    first)</p>
-                </div>
+                class="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200">
+                <i class="fas fa-info-circle mr-2"></i>
+                <span v-if="editingExamType.courseIds.length"> {{ editingExamType.courseIds.length }} subject(s) selected.</span>
+                <span v-else>No subjects selected yet.</span>
               </div>
             </div>
-
-            <!-- Status Section -->
-            <div>
-              <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <i class="fas fa-toggle-on text-amber-600 mr-2"></i>
-                Status
-              </h4>
-              <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Program Status</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Enable or disable this program</p>
-                  </div>
-                  <button @click="editingProgram.isActive = editingProgram.isActive ? 0 : 1" :class="[
-                    'relative inline-flex h-8 w-14 items-center rounded-full transition-all cursor-pointer shadow-sm',
-                    editingProgram.isActive ? 'bg-green-500' : 'bg-gray-300'
-                  ]">
-                    <span :class="[
-                      'inline-block h-6 w-6 transform rounded-full bg-white transition-transform shadow-md',
-                      editingProgram.isActive ? 'translate-x-7' : 'translate-x-1'
-                    ]"></span>
-                  </button>
-                </div>
-                <div
-                  class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p class="text-sm text-blue-800 dark:text-blue-300">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    <span>
-                      {{
-                        editingProgram.isActive ?
-                          'This program is currently active'
-                          : 'This program is currently inactive' }}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Courses Section -->
-            <div>
-              <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <i class="fas fa-graduation-cap text-amber-600 mr-2"></i>
-                Assign Courses
-              </h4>
-              <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div class="flex flex-wrap gap-3">
-                  <button v-for="course in availableCourses" :key="course.id" @click="toggleEditCourse(course.id)"
-                    :class="[
-                      'px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer whitespace-nowrap',
-                      editingProgram.courseIds.includes(course.id)
-                        ? 'bg-amber-600 text-white shadow-md'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-amber-500 hover:shadow-sm'
-                    ]">
-                    <i
-                      :class="editingProgram.courseIds.includes(course.id) ? 'fas fa-check mr-2' : 'fas fa-plus mr-2'"></i>
-                    {{ course.courseName }}
-                  </button>
-                </div>
-                <div
-                  class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p class="text-sm text-blue-800 dark:text-blue-300">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    <span v-if="editingProgram.courseIds.length === 0">No courses selected yet</span>
-                    <span v-else>{{ editingProgram.courseIds.length }} course(s) selected</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
 
-        <!-- Modal Footer -->
-        <div
-          class="bg-gray-50 dark:bg-gray-700/50 px-8 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end sticky bottom-0">
-          <button @click="closeEditModal"
-            class="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 font-semibold transition-colors cursor-pointer">
+        <div class="flex flex-wrap justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
+          <button
+            type="button"
+            @click="closeEditModal"
+            class="rounded-lg border border-gray-300 px-4 py-2.5 text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 cursor-pointer">
             Cancel
           </button>
-          <button @click="updateProgram"
-            class="px-8 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors cursor-pointer shadow-md hover:shadow-lg">
-            <i class="fas fa-save mr-2"></i>Update Program
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete Program Modal -->
-    <div v-if="showDeleteModal" @click="closeDeleteModal"
-      class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div @click.stop class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-sm">
-        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 mb-4 mx-auto">
-          <i class="fas fa-trash text-red-600 dark:text-red-400 text-lg"></i>
-        </div>
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 text-center">Delete Program</h3>
-        <p class="text-gray-600 dark:text-gray-300 mb-6 text-center">Are you sure you want to delete this program? This
-          action cannot be undone.</p>
-        <div class="flex gap-3">
-          <button @click="closeDeleteModal"
-            class="flex-1 px-4 py-2 border border-gray-300 dark:bord  er-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors">
-            Cancel
-          </button>
-          <button @click="confirmDelete"
-            class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors cursor-pointer">
-            Delete
+          <button
+            type="button"
+            @click="saveExamType"
+            :disabled="isSaving"
+            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer">
+            <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-save'"></i>
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
           </button>
         </div>
       </div>
@@ -330,217 +218,168 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useToast } from 'vue-toast-notification';
-import type { ExamType, Course } from '@/api/models';
-import { examTypeService, courseService } from '@/api/services/serviceFactory';
+import { useRouter } from 'vue-router';
+import type { Course, ExamType } from '@/api/models';
+import { courseService, examTypeService } from '@/api/services/serviceFactory';
 
 const $toast = useToast();
+const router = useRouter();
 
-// Available courses from the system
 const availableCourses = ref<Course[]>([]);
-
-// Program structure
 const examTypeStructure = ref<ExamType[]>([]);
-
-const fetchCourses = async () => {
-  try {
-    const response = await courseService.get()
-
-    if (response && response.data && Array.isArray(response.data)) {
-      availableCourses.value = response.data;
-    }
-  } catch (error) {
-    console.error('Error fetching courses:', error);
-  }
-};
-
-const fetchPrograms = async () => {
-  try {
-    const response = await examTypeService.get()
-
-    if (response && response.data && Array.isArray(response.data)) {
-      examTypeStructure.value = response.data.map((program: ExamType) => ({
-        id: program.id,
-        name: program.name,
-        shortname: program.shortname,
-        expanded: false,
-        courses: program.courses || [],
-        isActive: program.isActive,
-        displayOrder: program.displayOrder || 0
-      }));
-    }
-  } catch (error) {
-    console.error('Error fetching programs:', error);
-    $toast.error('Failed to load programs');
-  }
-};
-
-onMounted(() => {
-  fetchCourses();
-  fetchPrograms();
-});
-
-const showModal = ref(false);
+const isLoading = ref(false);
+const isSaving = ref(false);
 const showEditModal = ref(false);
-const showDeleteModal = ref(false);
-const deletingProgramId = ref<number | null>(null);
 
-const newProgram = ref({
-  name: '',
-  shortname: '',
-  courseIds: [] as number[],
-  isActive: 1,
-  displayOrder: 0
-});
-
-const editingProgram = ref({
+const editingExamType = ref({
   id: 0,
   name: '',
   shortname: '',
   courseIds: [] as number[],
   isActive: 1,
-  displayOrder: 0
+  displayOrder: 0,
 });
 
-const toggleCourse = (courseId: number) => {
-  const index = newProgram.value.courseIds.indexOf(courseId);
-  if (index > -1) {
-    newProgram.value.courseIds.splice(index, 1);
-  } else {
-    newProgram.value.courseIds.push(courseId);
-  }
-};
+const normalizeExamType = (examType: ExamType): ExamType => ({
+  id: Number(examType.id),
+  name: String(examType.name || '').trim(),
+  shortname: String(examType.shortname || '').trim(),
+  courses: Array.isArray(examType.courses) ? examType.courses : [],
+  isActive: Number(examType.isActive ?? 0),
+  displayOrder: Number(examType.displayOrder ?? 0),
+});
 
-const toggleEditCourse = (courseId: number) => {
-  const index = editingProgram.value.courseIds.indexOf(courseId);
-  if (index > -1) {
-    editingProgram.value.courseIds.splice(index, 1);
-  } else {
-    editingProgram.value.courseIds.push(courseId);
-  }
-};
+const sortedExamTypes = computed(() =>
+  [...examTypeStructure.value].sort((a, b) => {
+    const orderDiff = (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+    if (orderDiff !== 0) return orderDiff;
+    return a.name.localeCompare(b.name);
+  }),
+);
 
-const capitalize = (str: string): string => {
-  if (!str) return '';
-  return str
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
+const isExamTypeActive = (examType: ExamType) => Number(examType.isActive) === 1;
 
-const addProgram = async () => {
-  if (!newProgram.value.name.trim()) {
-    $toast.warning('Please enter a program name');
-    return;
-  }
-
-  if (newProgram.value.courseIds.length === 0) {
-    $toast.warning('Please select at least one course');
-    return;
-  }
-
+const loadCourses = async () => {
   try {
-    const response = await examTypeService.post(undefined, {
-      name: capitalize(newProgram.value.name),
-      shortname: newProgram.value.shortname,
-      courseIds: newProgram.value.courseIds,
-      isActive: newProgram.value.isActive,
-      displayOrder: newProgram.value.displayOrder
-    });
-
-    if (response.success) {
-      $toast.success(response.message || 'Program added successfully');
-      closeModal();
-      await fetchPrograms();
+    const response = await courseService.get<Course[]>();
+    if (response?.data && Array.isArray(response.data)) {
+      availableCourses.value = response.data.map(course => ({
+        id: Number(course.id),
+        courseName: String(course.courseName || '').trim(),
+        description: course.description || '',
+        videoCount: course.videoCount,
+      }));
     }
   } catch (error) {
-    console.error('Error adding program:', error);
-    $toast.error('Failed to add program');
+    console.error('Error fetching courses:', error);
+    $toast.error('Failed to load courses');
   }
 };
 
-const openEditModal = (program: ExamType & { expanded?: boolean }) => {
-  editingProgram.value = {
-    id: program.id,
-    name: program.name,
-    shortname: program.shortname || '',
-    courseIds: program.courses ? program.courses.map(c => c.id) : [],
-    isActive: program.isActive || 1,
-    displayOrder: program.displayOrder || 0
+const loadExamTypes = async () => {
+  isLoading.value = true;
+
+  try {
+    const response = await examTypeService.get<ExamType[]>();
+    if (response?.data && Array.isArray(response.data)) {
+      examTypeStructure.value = response.data.map(normalizeExamType);
+      return;
+    }
+
+    examTypeStructure.value = [];
+  } catch (error) {
+    console.error('Error fetching exam types:', error);
+    examTypeStructure.value = [];
+    $toast.error('Failed to load exam types');
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const openEditModal = (examType: ExamType) => {
+  editingExamType.value = {
+    id: examType.id,
+    name: examType.name,
+    shortname: examType.shortname,
+    courseIds: Array.isArray(examType.courses) ? examType.courses.map(course => course.id) : [],
+    isActive: Number(examType.isActive ?? 0),
+    displayOrder: Number(examType.displayOrder ?? 0),
   };
   showEditModal.value = true;
 };
 
-const updateProgram = async () => {
-  if (!editingProgram.value.name.trim()) {
-    $toast.warning('Please enter a program name');
+const closeEditModal = () => {
+  showEditModal.value = false;
+  editingExamType.value = {
+    id: 0,
+    name: '',
+    shortname: '',
+    courseIds: [],
+    isActive: 1,
+    displayOrder: 0,
+  };
+};
+
+const toggleEditCourse = (courseId: number) => {
+  const selectedIds = editingExamType.value.courseIds;
+  const nextIndex = selectedIds.indexOf(courseId);
+
+  if (nextIndex >= 0) {
+    selectedIds.splice(nextIndex, 1);
     return;
   }
 
-  if (editingProgram.value.courseIds.length === 0) {
-    $toast.warning('Please select at least one course');
+  selectedIds.push(courseId);
+};
+
+const saveExamType = async () => {
+  if (!editingExamType.value.name.trim()) {
+    $toast.warning('Please enter an exam type name');
     return;
   }
+
+  if (!editingExamType.value.shortname.trim()) {
+    $toast.warning('Please enter a short name');
+    return;
+  }
+
+  isSaving.value = true;
 
   try {
-    const response = await examTypeService.put(`${editingProgram.value.id}`, {
-      name: capitalize(editingProgram.value.name),
-      shortname: editingProgram.value.shortname,
-      courseIds: editingProgram.value.courseIds,
-      isActive: editingProgram.value.isActive,
-      displayOrder: Number(editingProgram.value.displayOrder)
+    const response = await examTypeService.put(`${editingExamType.value.id}`, {
+      name: editingExamType.value.name.trim(),
+      shortname: editingExamType.value.shortname.trim(),
+      courseIds: editingExamType.value.courseIds,
+      isActive: editingExamType.value.isActive,
+      displayOrder: Number(editingExamType.value.displayOrder || 0),
     });
 
     if (response.success) {
-      $toast.success(response.message || 'Program updated successfully');
+      $toast.success(response.message || 'Exam type updated successfully');
       closeEditModal();
-      await fetchPrograms();
+      await loadExamTypes();
+    } else {
+      $toast.error(response.message || 'Failed to update exam type');
     }
   } catch (error) {
-    console.error('Error updating program:', error);
-    $toast.error('Failed to update program');
+    console.error('Error updating exam type:', error);
+    $toast.error('Failed to update exam type');
+  } finally {
+    isSaving.value = false;
   }
 };
 
-const closeModal = () => {
-  showModal.value = false;
-  newProgram.value = { name: '', shortname: '', courseIds: [], isActive: 1, displayOrder: 0 };
+const goToDetails = (examTypeId: number) => {
+  router.push({
+    name: 'Exam Type Details',
+    params: { examTypeId: String(examTypeId) },
+  });
 };
 
-const openDeleteModal = (program: ExamType) => {
-  deletingProgramId.value = program.id;
-  showDeleteModal.value = true;
-};
-
-const confirmDelete = async () => {
-  if (deletingProgramId.value === null) {
-    return;
-  }
-
-  try {
-    const response = await examTypeService.delete(`${deletingProgramId.value}`);
-
-    if (response.success) {
-      $toast.success(response.message || 'Program deleted successfully');
-      closeDeleteModal();
-      await fetchPrograms();
-    }
-  } catch (error) {
-    console.error('Error deleting program:', error);
-    $toast.error('Failed to delete program');
-  }
-};
-
-const closeDeleteModal = () => {
-  showDeleteModal.value = false;
-  deletingProgramId.value = null;
-};
-
-const closeEditModal = () => {
-  showEditModal.value = false;
-  editingProgram.value = { id: 0, name: '', shortname: '', courseIds: [], isActive: 1, displayOrder: 0 };
-};
-
+onMounted(() => {
+  void loadCourses();
+  void loadExamTypes();
+});
 </script>

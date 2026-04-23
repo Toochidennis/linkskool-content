@@ -24,3 +24,4 @@ export const faqsService = serviceFactory<type.Faq>("faqs");
 export const notificationService = serviceFactory<any>("notifications");
 export const cbtUpdateService = serviceFactory<any>("cbt-updates");
 export const cbtUpdate = cbtUpdateService;
+export const studyService = serviceFactory<any>('cbt/study');

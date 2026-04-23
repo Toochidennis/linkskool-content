@@ -5,6 +5,7 @@ import DashboardView from '@/views/admin/DashboardView.vue'
 import UserView from '@/views/admin/TeamView.vue'
 import AssessmentView from '@/views/admin/cbt/AssessmentView.vue'
 import ExamTypeView from '@/views/admin/cbt/ExamTypeView.vue'
+import ExamTypeDetailView from '@/views/admin/cbt/ExamTypeDetailView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
 import CoursesView from '@/views/admin/cbt/CoursesView.vue'
@@ -186,6 +187,11 @@ const routes: RouteRecordRaw[] = [
         path: 'exam-types',
         name: 'Exam Types',
         component: ExamTypeView,
+      },
+      {
+        path: 'exam-types/:examTypeId',
+        name: 'Exam Type Details',
+        component: ExamTypeDetailView,
       },
       {
         path: 'challenges',
