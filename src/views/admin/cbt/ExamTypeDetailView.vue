@@ -78,22 +78,18 @@
 
     <section v-if="examType" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Exam Type Tabs</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Use the courses tab to review current courses.</p>
-          </div>
-        <div class="flex items-center rounded-xl bg-gray-100 p-1 dark:bg-gray-900/60">
+        <div class="flex items-center justify-start gap-8">
           <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              type="button"
-              @click="activeTab = tab.key"
-              :class="activeTab === tab.key ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'"
-              class="rounded-lg px-4 py-2 text-sm font-semibold transition cursor-pointer">
-              {{ tab.label }}
-            </button>
-          </div>
+            v-for="tab in tabs"
+            :key="tab.key"
+            type="button"
+            @click="activeTab = tab.key"
+            :class="activeTab === tab.key
+              ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'"
+            class="border-b-2 px-1 py-2 text-sm font-semibold transition cursor-pointer">
+            {{ tab.label }}
+          </button>
         </div>
       </div>
 
@@ -151,14 +147,17 @@
             </button>
           </div>
 
-          <div v-if="assignedTopicCourses.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <article
-              v-for="course in assignedTopicCourses"
-              :key="course.id"
-              class="rounded-2xl border border-gray-200 bg-gray-50 p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
-              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ course.courseName }}</p>
-              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Ready for topic-level assignment.</p>
-            </article>
+          <div v-if="isLoadingExamTypeTopics" class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-900/30 dark:text-gray-300">
+            Loading topics...
+          </div>
+
+          <div v-else-if="examTypeTopics.length" class="flex flex-wrap gap-2">
+            <span
+              v-for="topic in examTypeTopics"
+              :key="topic.id"
+              class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
+              {{ topic.topicName }}
+            </span>
           </div>
 
           <div v-else class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center dark:border-gray-600 dark:bg-gray-900/30">
@@ -193,28 +192,59 @@
         </div>
 
         <div class="space-y-4 px-6 py-6">
-          <div v-if="examType?.courses.length" class="grid gap-3 sm:grid-cols-2">
-            <button
-              v-for="course in examType?.courses || []"
-              :key="course.id"
-              type="button"
-              @click="toggleDraftTopicCourse(course.id)"
-              :class="draftTopicCourseIds.includes(course.id)
-                ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                : 'border-gray-300 bg-white text-gray-700 hover:border-blue-500 dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-200'"
-              class="flex items-center justify-between rounded-xl border px-4 py-3 text-left transition cursor-pointer">
-              <span class="min-w-0">
-                <span class="block truncate font-medium">{{ course.courseName }}</span>
-                <span v-if="course.description" class="block truncate text-xs opacity-80">{{ course.description }}</span>
-              </span>
-              <i :class="draftTopicCourseIds.includes(course.id) ? 'fas fa-check' : 'fas fa-plus'"></i>
-            </button>
+          <label class="block space-y-2">
+            <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Subject</span>
+            <select
+              v-model="selectedTopicCourseId"
+              class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              @change="handleTopicCourseChange">
+              <option :value="null" disabled>Select a subject</option>
+              <option v-for="course in examCourses" :key="course.id" :value="course.id">
+                {{ course.courseName }}
+              </option>
+            </select>
+          </label>
+
+          <div v-if="isLoadingTopicOptions" class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-900/30 dark:text-gray-300">
+            Loading topics...
           </div>
 
-          <div
-            class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200">
-            <i class="fas fa-info-circle mr-2"></i>
-            {{ draftTopicCourseIds.length }} course(s) selected for the Topics tab.
+          <div v-else class="space-y-3">
+            <label class="block space-y-2">
+              <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Topics</span>
+              <select
+                v-model="topicPickerValue"
+                :disabled="!availableTopicOptions.length"
+                @change="addSelectedTopic"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800">
+                <option :value="null" disabled>Select a topic</option>
+                <option v-for="topic in availableTopicOptions" :key="topic.topicId" :value="topic.topicId">
+                  {{ topic.topicName }}
+                </option>
+              </select>
+            </label>
+
+            <div class="space-y-2">
+              <div class="flex flex-wrap gap-2">
+                <span v-if="!selectedTopics.length" class="text-sm text-gray-500 dark:text-gray-400">No topics selected yet.</span>
+                <button
+                  v-for="topic in selectedTopics"
+                  :key="topic.topicId"
+                  type="button"
+                  @click="removeSelectedTopic(topic.topicId)"
+                  class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200 dark:hover:bg-blue-900/35">
+                  <span>{{ topic.topicName }}</span>
+                  <span class="text-xs">×</span>
+                </button>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                Select a topic from the dropdown to add it here. Click a chip to remove it.
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200">
+              {{ selectedTopics.length }} topic(s) selected.
+            </div>
           </div>
         </div>
 
@@ -228,7 +258,8 @@
           <button
             type="button"
             @click="saveTopicAssignments"
-            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-white transition hover:bg-blue-700 cursor-pointer">
+            :disabled="selectedTopicCourseId === null || !selectedTopicIds.length"
+            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer">
             <i class="fas fa-save"></i>
             Save Assignment
           </button>
@@ -244,6 +275,7 @@ import { useToast } from 'vue-toast-notification';
 import { useRoute, useRouter } from 'vue-router';
 import type { ExamType } from '@/api/models';
 import { examTypeService } from '@/api/services/serviceFactory';
+import { useExamTypeTopics } from '@/composables/useExamTypeTopics';
 
 const toast = useToast();
 const route = useRoute();
@@ -253,8 +285,23 @@ const examType = ref<ExamType | null>(null);
 const isLoading = ref(false);
 const activeTab = ref<'courses' | 'topics'>('courses');
 const showTopicAssignmentModal = ref(false);
-const assignedTopicCourseIds = ref<number[]>([]);
-const draftTopicCourseIds = ref<number[]>([]);
+
+const {
+  examTypeTopics,
+  availableTopicOptions,
+  selectedTopics,
+  selectedTopicCourseId,
+  selectedTopicIds,
+  topicPickerValue,
+  isLoadingTopicOptions,
+  isLoadingExamTypeTopics,
+  loadCourseTopics,
+  loadExamTypeTopics,
+  setSelectedTopicCourse,
+  addSelectedTopic,
+  removeSelectedTopic,
+  saveExamTypeTopics,
+} = useExamTypeTopics();
 
 const tabs = [
   { key: 'courses', label: 'Courses' },
@@ -266,16 +313,13 @@ const normalizeExamType = (payload: ExamType): ExamType => ({
   name: String(payload.name || '').trim(),
   shortname: String(payload.shortname || '').trim(),
   courses: Array.isArray(payload.courses) ? payload.courses : [],
-  isActive: Number(payload.isActive ?? 0),
-  displayOrder: Number(payload.displayOrder ?? 0),
+  isActive: Number(payload.isActive),
+  displayOrder: Number(payload.displayOrder),
 });
 
-const isExamTypeActive = computed(() => Number(examType.value?.isActive ?? 0) === 1);
+const isExamTypeActive = computed(() => Number(examType.value?.isActive) === 1);
 
-const assignedTopicCourses = computed(() => {
-  const courses = examType.value?.courses ?? [];
-  return courses.filter(course => assignedTopicCourseIds.value.includes(course.id));
-});
+const examCourses = computed(() => examType.value?.courses ?? []);
 
 const goBack = () => {
   router.push({ name: 'Exam Types' });
@@ -295,9 +339,12 @@ const loadExamType = async () => {
     const response = await examTypeService.get<ExamType>(examTypeId);
     if (response?.data) {
       examType.value = normalizeExamType(response.data);
-      assignedTopicCourseIds.value = [];
-      draftTopicCourseIds.value = [];
       activeTab.value = 'courses';
+      await loadExamTypeTopics(examTypeId);
+      const firstCourseId = examType.value.courses[0]?.id ?? null;
+      if (firstCourseId != null) {
+        void setSelectedTopicCourse(firstCourseId);
+      }
       return;
     }
 
@@ -312,7 +359,14 @@ const loadExamType = async () => {
 };
 
 const openTopicAssignmentModal = () => {
-  draftTopicCourseIds.value = [...assignedTopicCourseIds.value];
+  if (selectedTopicCourseId.value === null && examCourses.value.length) {
+    const firstCourseId = examCourses.value[0]?.id ?? null;
+    if (firstCourseId != null) {
+      void setSelectedTopicCourse(firstCourseId);
+    }
+  } else if (selectedTopicCourseId.value != null) {
+    void loadCourseTopics(selectedTopicCourseId.value);
+  }
   showTopicAssignmentModal.value = true;
 };
 
@@ -320,21 +374,19 @@ const closeTopicAssignmentModal = () => {
   showTopicAssignmentModal.value = false;
 };
 
-const toggleDraftTopicCourse = (courseId: number) => {
-  const currentIndex = draftTopicCourseIds.value.indexOf(courseId);
+const handleTopicCourseChange = () => {
+  void loadCourseTopics(selectedTopicCourseId.value);
+};
 
-  if (currentIndex >= 0) {
-    draftTopicCourseIds.value.splice(currentIndex, 1);
+const saveTopicAssignments = async () => {
+  const examTypeId = String(route.params.examTypeId || '').trim();
+
+  if (!examTypeId) {
     return;
   }
 
-  draftTopicCourseIds.value.push(courseId);
-};
-
-const saveTopicAssignments = () => {
-  assignedTopicCourseIds.value = [...draftTopicCourseIds.value];
+  await saveExamTypeTopics(examTypeId);
   showTopicAssignmentModal.value = false;
-  toast.success('Topic course assignment updated');
 };
 
 watch(

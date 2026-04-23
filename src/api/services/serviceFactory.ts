@@ -4,6 +4,25 @@ import * as type from "@/api/models";
 const serviceFactory = <T, D = Record<string, unknown>>(endpoint: string) =>
   new BaseService<T, D>(endpoint);
 
+interface StudyCourseTopic {
+  topicId: number;
+  topicName: string;
+  courseId: number;
+  courseName: string;
+  categoryId?: number;
+}
+
+interface StudyExamTypeTopic {
+  id: number;
+  topicId: number;
+  topicName: string;
+}
+
+interface StudyTopicAssignmentPayload {
+  courseId: number;
+  topicIds: number[];
+}
+
 export const userService = serviceFactory<type.User[]>("users");
 export const courseService = serviceFactory<type.Course>("courses");
 export const examTypeService = serviceFactory<type.ExamType>("exam-types");
@@ -24,4 +43,14 @@ export const faqsService = serviceFactory<type.Faq>("faqs");
 export const notificationService = serviceFactory<any>("notifications");
 export const cbtUpdateService = serviceFactory<any>("cbt-updates");
 export const cbtUpdate = cbtUpdateService;
-export const studyService = serviceFactory<any>('cbt/study');
+
+const studyBaseService = serviceFactory<any>('cbt/study');
+
+export const studyService = Object.assign(studyBaseService, {
+  getCourseTopics: (courseId: number | string) =>
+    studyBaseService.get<StudyCourseTopic[]>(`courses/${courseId}/topics`),
+  getExamTypeTopics: (examTypeId: number | string) =>
+    studyBaseService.get<StudyExamTypeTopic[]>(`exam-types/${examTypeId}/topics`),
+  saveExamTypeTopics: (examTypeId: number | string, data: StudyTopicAssignmentPayload) =>
+    studyBaseService.post(`exam-types/${examTypeId}/topics`, data as unknown as Record<string, unknown>),
+});
