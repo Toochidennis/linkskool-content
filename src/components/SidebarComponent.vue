@@ -159,6 +159,7 @@ const menuItems: MenuItem[] = [
             { name: 'Syllabus', route: '/dashboard/syllabus', icon: 'fas fa-graduation-cap' },
             { name: 'Assessments', route: '/dashboard/assessments', icon: 'fas fa-question-circle' },
             { name: 'Challenges', route: '/dashboard/challenges', icon: 'fas fa-trophy' },
+            { name: 'CBT Updates', route: '/dashboard/cbt-updates', icon: 'fas fa-bullhorn' },
         ],
     },
     {

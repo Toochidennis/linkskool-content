@@ -5,6 +5,7 @@ import DashboardView from '@/views/admin/DashboardView.vue'
 import UserView from '@/views/admin/TeamView.vue'
 import AssessmentView from '@/views/admin/cbt/AssessmentView.vue'
 import ExamTypeView from '@/views/admin/cbt/ExamTypeView.vue'
+import ExamTypeDetailView from '@/views/admin/cbt/ExamTypeDetailView.vue'
 import RecentActivitiesView from '@/views/admin/RecentActivitiesView.vue'
 import SettingsView from '@/views/admin/SettingsView.vue'
 import CoursesView from '@/views/admin/cbt/CoursesView.vue'
@@ -15,6 +16,7 @@ import SyllabusView from '@/views/admin/cbt/SyllabusView.vue'
 import AnnouncementView from '@/views/admin/updates/AnnouncementView.vue'
 import AdmissionsView from '@/views/admin/updates/AdmissionsView.vue'
 import ChallengeView from '@/views/admin/cbt/ChallengeView.vue'
+import CbtUpdatesView from '@/views/admin/cbt/CbtUpdatesView.vue'
 import ChallengeDetailView from '@/views/admin/cbt/ChallengeDetailView.vue'
 import ChallengeCreateView from '@/views/admin/cbt/ChallengeCreateView.vue'
 import AssessmentSpreadsheetView from '@/views/admin/cbt/AssessmentSpreadsheetView.vue'
@@ -187,9 +189,19 @@ const routes: RouteRecordRaw[] = [
         component: ExamTypeView,
       },
       {
+        path: 'exam-types/:examTypeId',
+        name: 'Exam Type Details',
+        component: ExamTypeDetailView,
+      },
+      {
         path: 'challenges',
         name: 'Challenges',
         component: ChallengeView,
+      },
+      {
+        path: 'cbt-updates',
+        name: 'CBT Updates',
+        component: CbtUpdatesView,
       },
       {
         path: 'challenges/:examTypeId',

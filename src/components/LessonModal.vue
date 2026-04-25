@@ -126,8 +126,8 @@
 
                 <div class="form-row">
                   <div class="form-group full">
-                    <label class="form-label">Material File (PDF, Max 5MB)</label>
-                    <FileUploadZone accept=".pdf" :max-size="5242880" @files-selected="handleMaterialUpload" />
+                    <label class="form-label">Material File (PDF, Max 15MB)</label>
+                    <FileUploadZone accept=".pdf" :max-size="15728640" @files-selected="handleMaterialUpload" />
                     <div v-if="localLesson.materialFile || localLesson.materialUrl" class="file-list">
                       <div class="file-item">
                         <span class="file-name">{{
@@ -512,8 +512,8 @@ const handleMaterialUpload = (files: File[]) => {
     alert('Only PDF files are allowed for materials')
     return
   }
-  if (file.size > 5242880) {
-    alert('File size must not exceed 5MB')
+  if (file.size > 15728640) {
+    alert('File size must not exceed 15MB')
     return
   }
 
