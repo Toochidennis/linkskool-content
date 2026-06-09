@@ -171,101 +171,22 @@
       </div>
     </section>
 
-    <div
+    <TopicAssignmentModal
       v-if="showTopicAssignmentModal"
-      @click="closeTopicAssignmentModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div
-        @click.stop
-        class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
-        <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-5 dark:border-gray-700">
-          <div>
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Assign Courses to Topics</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Pick the courses that should be available on the Topics tab.</p>
-          </div>
-          <button
-            type="button"
-            @click="closeTopicAssignmentModal"
-            class="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-
-        <div class="space-y-4 px-6 py-6">
-          <label class="block space-y-2">
-            <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Subject</span>
-            <select
-              v-model="selectedTopicCourseId"
-              class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              @change="handleTopicCourseChange">
-              <option :value="null" disabled>Select a subject</option>
-              <option v-for="course in examCourses" :key="course.id" :value="course.id">
-                {{ course.courseName }}
-              </option>
-            </select>
-          </label>
-
-          <div v-if="isLoadingTopicOptions" class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-900/30 dark:text-gray-300">
-            Loading topics...
-          </div>
-
-          <div v-else class="space-y-3">
-            <label class="block space-y-2">
-              <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Topics</span>
-              <select
-                v-model="topicPickerValue"
-                :disabled="!availableTopicOptions.length"
-                @change="addSelectedTopic"
-                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800">
-                <option :value="null" disabled>Select a topic</option>
-                <option v-for="topic in availableTopicOptions" :key="topic.topicId" :value="topic.topicId">
-                  {{ topic.topicName }}
-                </option>
-              </select>
-            </label>
-
-            <div class="space-y-2">
-              <div class="flex flex-wrap gap-2">
-                <span v-if="!selectedTopics.length" class="text-sm text-gray-500 dark:text-gray-400">No topics selected yet.</span>
-                <button
-                  v-for="topic in selectedTopics"
-                  :key="topic.topicId"
-                  type="button"
-                  @click="removeSelectedTopic(topic.topicId)"
-                  class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200 dark:hover:bg-blue-900/35">
-                  <span>{{ topic.topicName }}</span>
-                  <span class="text-xs">×</span>
-                </button>
-              </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                Select a topic from the dropdown to add it here. Click a chip to remove it.
-              </p>
-            </div>
-
-            <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200">
-              {{ selectedTopics.length }} topic(s) selected.
-            </div>
-          </div>
-        </div>
-
-        <div class="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
-          <button
-            type="button"
-            @click="closeTopicAssignmentModal"
-            class="rounded-lg border border-gray-300 px-4 py-2.5 text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 cursor-pointer">
-            Cancel
-          </button>
-          <button
-            type="button"
-            @click="saveTopicAssignments"
-            :disabled="selectedTopicCourseId === null || !selectedTopicIds.length"
-            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer">
-            <i class="fas fa-save"></i>
-            Save Assignment
-          </button>
-        </div>
-      </div>
-    </div>
+      :courses="examCourses"
+      :available-topics="availableTopicOptions"
+      :selected-topics="selectedTopics"
+      :selected-topic-course-id="selectedTopicCourseId"
+      :is-loading-topic-options="isLoadingTopicOptions"
+      @close="closeTopicAssignmentModal"
+      @save="saveTopicAssignments"
+      @select-course="setSelectedTopicCourse"
+      @add-topic="addSelectedTopicById"
+      @add-topics="addSelectedTopicsById"
+      @remove-topic="removeSelectedTopic"
+      @move-topic="moveSelectedTopic"
+      @move-selected="moveSelectedTopics"
+      @reorder-topic="reorderSelectedTopic" />
   </div>
 </template>
 
@@ -275,6 +196,7 @@ import { useToast } from 'vue-toast-notification';
 import { useRoute, useRouter } from 'vue-router';
 import type { ExamType } from '@/api/models';
 import { examTypeService } from '@/api/services/serviceFactory';
+import TopicAssignmentModal from '@/components/admin/cbt/TopicAssignmentModal.vue';
 import { useExamTypeTopics } from '@/composables/useExamTypeTopics';
 
 const toast = useToast();
@@ -291,15 +213,16 @@ const {
   availableTopicOptions,
   selectedTopics,
   selectedTopicCourseId,
-  selectedTopicIds,
-  topicPickerValue,
   isLoadingTopicOptions,
   isLoadingExamTypeTopics,
-  loadCourseTopics,
   loadExamTypeTopics,
   setSelectedTopicCourse,
-  addSelectedTopic,
+  addSelectedTopicById,
+  addSelectedTopicsById,
   removeSelectedTopic,
+  moveSelectedTopic,
+  moveSelectedTopics,
+  reorderSelectedTopic,
   saveExamTypeTopics,
 } = useExamTypeTopics();
 
@@ -359,23 +282,11 @@ const loadExamType = async () => {
 };
 
 const openTopicAssignmentModal = () => {
-  if (selectedTopicCourseId.value === null && examCourses.value.length) {
-    const firstCourseId = examCourses.value[0]?.id ?? null;
-    if (firstCourseId != null) {
-      void setSelectedTopicCourse(firstCourseId);
-    }
-  } else if (selectedTopicCourseId.value != null) {
-    void loadCourseTopics(selectedTopicCourseId.value);
-  }
   showTopicAssignmentModal.value = true;
 };
 
 const closeTopicAssignmentModal = () => {
   showTopicAssignmentModal.value = false;
-};
-
-const handleTopicCourseChange = () => {
-  void loadCourseTopics(selectedTopicCourseId.value);
 };
 
 const saveTopicAssignments = async () => {

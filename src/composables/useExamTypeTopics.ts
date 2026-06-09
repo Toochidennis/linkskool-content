@@ -67,9 +67,13 @@ export function useExamTypeTopics() {
   const isLoadingTopicOptions = ref(false)
   const isLoadingExamTypeTopics = ref(false)
 
-  const selectedTopics = computed(() =>
-    topicOptions.value.filter(topic => selectedTopicIds.value.includes(topic.topicId)),
-  )
+  const selectedTopics = computed(() => {
+    const topicMap = new Map(topicOptions.value.map(topic => [topic.topicId, topic]))
+
+    return selectedTopicIds.value
+      .map(topicId => topicMap.get(topicId))
+      .filter((topic): topic is ExamTypeTopicOption => Boolean(topic))
+  })
 
   const availableTopicOptions = computed(() =>
     topicOptions.value.filter(topic => !selectedTopicIds.value.includes(topic.topicId)),
@@ -131,9 +135,7 @@ export function useExamTypeTopics() {
     await loadCourseTopics(courseId)
   }
 
-  const addSelectedTopic = () => {
-    const topicId = topicPickerValue.value
-
+  const addSelectedTopicById = (topicId: number | null) => {
     if (topicId == null || !Number.isFinite(topicId) || selectedTopicIds.value.includes(topicId)) {
       topicPickerValue.value = null
       return
@@ -143,14 +145,120 @@ export function useExamTypeTopics() {
     topicPickerValue.value = null
   }
 
+  const addSelectedTopic = () => {
+    addSelectedTopicById(topicPickerValue.value)
+  }
+
+  const addSelectedTopicsById = (topicIds: number[]) => {
+    const existingTopicIds = new Set(topicOptions.value.map(topic => topic.topicId))
+    const nextTopicIds = topicIds.filter(
+      topicId =>
+        Number.isFinite(topicId) &&
+        existingTopicIds.has(topicId) &&
+        !selectedTopicIds.value.includes(topicId),
+    )
+
+    if (!nextTopicIds.length) {
+      return
+    }
+
+    selectedTopicIds.value = [...selectedTopicIds.value, ...nextTopicIds]
+  }
+
   const removeSelectedTopic = (topicId: number) => {
     selectedTopicIds.value = selectedTopicIds.value.filter(id => id !== topicId)
+  }
+
+  const removeSelectedTopics = (topicIds: number[]) => {
+    const topicIdSet = new Set(topicIds)
+    selectedTopicIds.value = selectedTopicIds.value.filter(id => !topicIdSet.has(id))
+  }
+
+  const moveSelectedTopic = (topicId: number, direction: 'up' | 'down') => {
+    const currentIndex = selectedTopicIds.value.indexOf(topicId)
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= selectedTopicIds.value.length) {
+      return
+    }
+
+    const nextTopicIds = [...selectedTopicIds.value]
+    const [topic] = nextTopicIds.splice(currentIndex, 1)
+    if (topic === undefined) {
+      return
+    }
+
+    nextTopicIds.splice(targetIndex, 0, topic)
+    selectedTopicIds.value = nextTopicIds
+  }
+
+  const moveSelectedTopics = (topicIds: number[], direction: 'up' | 'down') => {
+    const movingTopicIds = new Set(topicIds)
+
+    if (!movingTopicIds.size) {
+      return
+    }
+
+    const nextTopicIds = [...selectedTopicIds.value]
+    const indexes =
+      direction === 'up'
+        ? nextTopicIds.map((topicId, index) => ({ topicId, index }))
+        : nextTopicIds.map((topicId, index) => ({ topicId, index })).reverse()
+
+    indexes.forEach(({ topicId, index }) => {
+      if (!movingTopicIds.has(topicId)) {
+        return
+      }
+
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      const targetTopicId = nextTopicIds[targetIndex]
+      const canMove =
+        targetIndex >= 0 &&
+        targetIndex < nextTopicIds.length &&
+        targetTopicId !== undefined &&
+        !movingTopicIds.has(targetTopicId)
+
+      if (!canMove) {
+        return
+      }
+
+      const [topic] = nextTopicIds.splice(index, 1)
+      if (topic === undefined) {
+        return
+      }
+
+      nextTopicIds.splice(targetIndex, 0, topic)
+    })
+
+    selectedTopicIds.value = nextTopicIds
+  }
+
+  const reorderSelectedTopic = (topicId: number, targetTopicId: number) => {
+    if (topicId === targetTopicId) {
+      return
+    }
+
+    const currentIndex = selectedTopicIds.value.indexOf(topicId)
+    const targetIndex = selectedTopicIds.value.indexOf(targetTopicId)
+
+    if (currentIndex < 0 || targetIndex < 0) {
+      return
+    }
+
+    const nextTopicIds = [...selectedTopicIds.value]
+    const [topic] = nextTopicIds.splice(currentIndex, 1)
+    if (topic === undefined) {
+      return
+    }
+
+    nextTopicIds.splice(targetIndex, 0, topic)
+    selectedTopicIds.value = nextTopicIds
   }
 
   const saveExamTypeTopics = async (examTypeId: number | string | null | undefined) => {
     const normalizedExamTypeId = examTypeId == null ? '' : String(examTypeId).trim()
 
-    if (!normalizedExamTypeId || selectedTopicCourseId.value === null || selectedTopicIds.value.length === 0) {
+    if (!normalizedExamTypeId || selectedTopicCourseId.value === null) {
       return
     }
 
@@ -182,8 +290,14 @@ export function useExamTypeTopics() {
     loadCourseTopics,
     loadExamTypeTopics,
     setSelectedTopicCourse,
+    addSelectedTopicById,
+    addSelectedTopicsById,
     addSelectedTopic,
     removeSelectedTopic,
+    removeSelectedTopics,
+    moveSelectedTopic,
+    moveSelectedTopics,
+    reorderSelectedTopic,
     saveExamTypeTopics,
     resetTopicPicker,
   }
