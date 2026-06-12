@@ -4,14 +4,6 @@ import * as type from "@/api/models";
 const serviceFactory = <T, D = Record<string, unknown>>(endpoint: string) =>
   new BaseService<T, D>(endpoint);
 
-interface StudyCourseTopic {
-  topicId: number;
-  topicName: string;
-  courseId: number;
-  courseName: string;
-  categoryId?: number;
-}
-
 interface StudyExamTypeTopic {
   id: number;
   topicId: number;
@@ -23,6 +15,11 @@ interface StudyExamTypeTopic {
 interface StudyTopicAssignmentPayload {
   courseId: number;
   topicIds: number[];
+}
+
+interface StudySubtopicSavePayload {
+  subtopicName: string;
+  subSubtopics: string[];
 }
 
 export const userService = serviceFactory<type.User[]>("users");
@@ -49,8 +46,16 @@ export const cbtUpdate = cbtUpdateService;
 const studyBaseService = serviceFactory<any>('cbt/study');
 
 export const studyService = Object.assign(studyBaseService, {
+  getTopicsOverview: () =>
+    studyBaseService.get<unknown>('topics'),
   getCourseTopics: (courseId: number | string) =>
-    studyBaseService.get<StudyCourseTopic[]>(`courses/${courseId}/topics`),
+    studyBaseService.get<unknown>(`courses/${courseId}/topics`),
+  getTopicSubtopics: (topicId: number | string) =>
+    studyBaseService.get<unknown>(`topics/${topicId}/subtopics`),
+  getSubtopicDetail: (subtopicId: number | string) =>
+    studyBaseService.get<unknown>(`subtopics/${subtopicId}`),
+  saveSubtopicDetail: (subtopicId: number | string, data: StudySubtopicSavePayload) =>
+    studyBaseService.put(`subtopics/${subtopicId}`, data as unknown as Record<string, unknown>),
   getExamTypeTopics: (examTypeId: number | string) =>
     studyBaseService.get<StudyExamTypeTopic[]>(`exam-types/${examTypeId}/topics`),
   saveExamTypeTopics: (examTypeId: number | string, data: StudyTopicAssignmentPayload) =>

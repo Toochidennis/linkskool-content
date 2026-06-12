@@ -12,6 +12,7 @@ import CoursesView from '@/views/admin/cbt/CoursesView.vue'
 import UploadView from '@/views/user/UploadView.vue'
 import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
 import TopicsView from '@/views/admin/cbt/TopicsView.vue'
+import TopicSubtopicsView from '@/views/admin/cbt/TopicSubtopicsView.vue'
 import SyllabusView from '@/views/admin/cbt/SyllabusView.vue'
 import AnnouncementView from '@/views/admin/updates/AnnouncementView.vue'
 import AdmissionsView from '@/views/admin/updates/AdmissionsView.vue'
@@ -87,6 +88,11 @@ const routes: RouteRecordRaw[] = [
         path: 'topics',
         name: 'Topics',
         component: TopicsView,
+      },
+      {
+        path: 'topics/:topicId/subtopics',
+        name: 'Topic Subtopics',
+        component: TopicSubtopicsView,
       },
       {
         path: 'syllabus',
