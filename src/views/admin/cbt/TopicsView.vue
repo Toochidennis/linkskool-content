@@ -115,13 +115,26 @@
                     {{ formatNumber(topic.questionsCount) }} linked questions
                   </p>
                 </div>
-                <button
-                  type="button"
-                  @click="openSubtopics(topic)"
-                  class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-200 dark:hover:bg-blue-900/20">
-                  <i class="fas fa-list-ul"></i>
-                  View subtopics
-                </button>
+                <div class="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    @click="openSubtopics(topic)"
+                    title="View subtopics"
+                    aria-label="View subtopics"
+                    class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-200 dark:hover:bg-blue-900/20">
+                    <i class="fas fa-list-ul"></i>
+                    Subtopics
+                  </button>
+                  <button
+                    type="button"
+                    @click="openTopicContent(topic)"
+                    title="Edit content"
+                    aria-label="Edit content"
+                    class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-200 dark:hover:bg-emerald-900/20">
+                    <i class="fas fa-edit"></i>
+                    Edit content
+                  </button>
+                </div>
               </article>
             </div>
           </section>
@@ -173,6 +186,16 @@ const openSubtopics = (topic: CourseTopic) => {
     name: 'Topic Subtopics',
     params: { topicId: topic.id },
     query: { topicName: topic.name },
+  })
+}
+
+const openTopicContent = (topic: CourseTopic) => {
+  router.push({
+    name: 'Topic Content Editor',
+    params: { topicId: topic.id },
+    query: {
+      topicName: topic.name,
+    },
   })
 }
 

@@ -63,7 +63,6 @@ export function useTopicSubtopics() {
 
     try {
       const response = await studyService.getSubtopicDetail(subtopicId)
-      console.log(`GET /subtopics/${subtopicId} response:`, response)
 
       const detail = response?.data as SubtopicDetail | undefined
       selectedSubtopicDetail.value = detail ?? null
@@ -83,7 +82,6 @@ export function useTopicSubtopics() {
 
     try {
       const response = await studyService.getTopicSubtopics(topicId)
-      console.log(`GET /topics/${topicId}/subtopics response:`, response)
       subtopics.value = response?.data as TopicSubtopicListItem[]
     } catch (error) {
       console.error('Error loading topic subtopics:', error)
@@ -198,8 +196,7 @@ export function useTopicSubtopics() {
     }
 
     try {
-      const response = await studyService.saveSubtopicDetail(selectedSubtopicDetail.value.subtopicId, payload)
-      console.log(`PUT /subtopics/${selectedSubtopicDetail.value.subtopicId} response:`, response)
+      await studyService.saveSubtopicDetail(selectedSubtopicDetail.value.subtopicId, payload)
       originalSubtopicDetail.value = cloneDetail(selectedSubtopicDetail.value)
       toast.success('Subtopic saved')
     } catch (error) {

@@ -22,6 +22,16 @@ interface StudySubtopicSavePayload {
   subSubtopics: string[];
 }
 
+interface StudyTopicContentSavePayload {
+  content: Record<string, unknown>;
+}
+
+interface StudyTopicContentAiEditPayload {
+  instruction: string;
+  scope: Record<string, unknown>;
+  content: Record<string, unknown>;
+}
+
 export const userService = serviceFactory<type.User[]>("users");
 export const courseService = serviceFactory<type.Course>("courses");
 export const examTypeService = serviceFactory<type.ExamType>("exam-types");
@@ -56,6 +66,12 @@ export const studyService = Object.assign(studyBaseService, {
     studyBaseService.get<unknown>(`subtopics/${subtopicId}`),
   saveSubtopicDetail: (subtopicId: number | string, data: StudySubtopicSavePayload) =>
     studyBaseService.put(`subtopics/${subtopicId}`, data as unknown as Record<string, unknown>),
+  getTopicContent: (topicId: number | string) =>
+    studyBaseService.get<unknown>(`topics/${topicId}/content`),
+  saveTopicContent: (topicId: number | string, data: StudyTopicContentSavePayload) =>
+    studyBaseService.put(`topics/${topicId}/content`, data as unknown as Record<string, unknown>),
+  requestTopicContentAiEdit: (topicId: number | string, data: StudyTopicContentAiEditPayload) =>
+    studyBaseService.post(`topics/${topicId}/content/ai-edit`, data as unknown as Record<string, unknown>),
   getExamTypeTopics: (examTypeId: number | string) =>
     studyBaseService.get<StudyExamTypeTopic[]>(`exam-types/${examTypeId}/topics`),
   saveExamTypeTopics: (examTypeId: number | string, data: StudyTopicAssignmentPayload) =>

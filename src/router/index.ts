@@ -13,6 +13,7 @@ import UploadView from '@/views/user/UploadView.vue'
 import AuthenticatedView from '@/views/auth/AuthenticatedView.vue'
 import TopicsView from '@/views/admin/cbt/TopicsView.vue'
 import TopicSubtopicsView from '@/views/admin/cbt/TopicSubtopicsView.vue'
+import TopicContentEditorView from '@/views/admin/cbt/TopicContentEditorView.vue'
 import SyllabusView from '@/views/admin/cbt/SyllabusView.vue'
 import AnnouncementView from '@/views/admin/updates/AnnouncementView.vue'
 import AdmissionsView from '@/views/admin/updates/AdmissionsView.vue'
@@ -93,6 +94,12 @@ const routes: RouteRecordRaw[] = [
         path: 'topics/:topicId/subtopics',
         name: 'Topic Subtopics',
         component: TopicSubtopicsView,
+      },
+      {
+        path: 'topics/:topicId/content',
+        name: 'Topic Content Editor',
+        component: TopicContentEditorView,
+        meta: { focusedEditor: true },
       },
       {
         path: 'syllabus',
