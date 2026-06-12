@@ -7,9 +7,9 @@
       class="flex h-[92vh] max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
       <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-5 dark:border-gray-700">
         <div>
-          <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Assign Courses to Topics</h3>
+          <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Assign Topics</h3>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            Select a subject, choose its topics, then drag or move topics into the saved order.
+            {{ course?.courseName || 'Selected course' }} topics can be added, removed, and reordered before saving.
           </p>
         </div>
         <button
@@ -20,72 +20,11 @@
         </button>
       </div>
 
-      <div
-        :class="step === 'subjects' ? 'overflow-y-auto' : 'overflow-hidden'"
-        class="min-h-0 flex-1 px-6 py-6">
-        <div v-if="step === 'subjects'" class="flex h-full min-h-[520px] flex-col gap-4">
+      <div class="min-h-0 flex-1 overflow-hidden px-6 py-6">
+        <div class="flex h-full min-h-0 flex-col gap-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="text-sm font-semibold text-gray-900 dark:text-white">Subjects</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Choose the subject whose topics you want to manage.</p>
-            </div>
-            <div class="relative w-full sm:w-80">
-              <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
-              <input
-                v-model="subjectSearchQuery"
-                type="search"
-                placeholder="Search subjects..."
-                class="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-4 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white" />
-            </div>
-          </div>
-
-          <div
-            v-if="filteredCourses.length"
-            class="grid flex-1 content-start gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
-            <button
-              v-for="course in filteredCourses"
-              :key="course.id"
-              type="button"
-              @click="selectSubject(course.id)"
-              class="group flex min-h-28 cursor-pointer flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-900/40 dark:hover:border-blue-700 dark:hover:bg-blue-900/20">
-              <span>
-                <span class="block text-sm font-semibold text-gray-900 dark:text-white">{{ course.courseName }}</span>
-                <span class="mt-1 line-clamp-2 block text-xs text-gray-500 dark:text-gray-400">
-                  {{ course.description || 'No description available.' }}
-                </span>
-              </span>
-              <span class="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-300">
-                Manage topics
-                <i class="fas fa-arrow-right transition group-hover:translate-x-1"></i>
-              </span>
-            </button>
-          </div>
-
-          <div
-            v-else
-            class="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center dark:border-gray-600 dark:bg-gray-900/30">
-            <div>
-              <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
-                <i class="fas fa-book"></i>
-              </div>
-              <h4 class="mt-4 text-base font-semibold text-gray-900 dark:text-white">No subjects found</h4>
-              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Try another search term.</p>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="flex h-full min-h-0 flex-col gap-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              @click="showSubjects"
-              class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
-              <i class="fas fa-arrow-left"></i>
-              Subjects
-            </button>
-
-            <div class="text-left sm:text-right">
-              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedCourse?.courseName || 'Subject topics' }}</p>
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ course?.courseName || 'Course topics' }}</p>
               <p class="text-xs text-gray-500 dark:text-gray-400">{{ selectedTopics.length }} selected topic(s)</p>
             </div>
           </div>
@@ -256,13 +195,12 @@
           Cancel
         </button>
         <button
-          v-if="step === 'topics'"
           type="button"
           @click="$emit('save')"
           :disabled="selectedTopicCourseId === null"
           class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
           <i class="fas fa-save"></i>
-          Save Assignment
+          Save
         </button>
       </div>
     </div>
@@ -274,18 +212,9 @@ import { computed, ref, watch } from 'vue'
 import type { Course } from '@/api/models/course'
 import type { ExamTypeTopicOption } from '@/composables/useExamTypeTopics'
 
-const props = defineProps<{
-  courses: Course[]
-  availableTopics: ExamTypeTopicOption[]
-  selectedTopics: ExamTypeTopicOption[]
-  selectedTopicCourseId: number | null
-  isLoadingTopicOptions: boolean
-}>()
-
 const emit = defineEmits<{
   close: []
   save: []
-  'select-course': [courseId: number]
   'add-topic': [topicId: number]
   'add-topics': [topicIds: number[]]
   'remove-topic': [topicId: number]
@@ -294,31 +223,18 @@ const emit = defineEmits<{
   'reorder-topic': [topicId: number, targetTopicId: number]
 }>()
 
-const step = ref<'subjects' | 'topics'>('subjects')
-const subjectSearchQuery = ref('')
+const props = defineProps<{
+  course: Course | null
+  availableTopics: ExamTypeTopicOption[]
+  selectedTopics: ExamTypeTopicOption[]
+  selectedTopicCourseId: number | null
+  isLoadingTopicOptions: boolean
+}>()
+
 const topicSearchQuery = ref('')
 const checkedSelectedTopicIds = ref<number[]>([])
 const draggedTopicId = ref<number | null>(null)
 const dragTargetTopicId = ref<number | null>(null)
-
-const selectedCourse = computed(() =>
-  props.courses.find(course => course.id === props.selectedTopicCourseId) ?? null,
-)
-
-const filteredCourses = computed(() => {
-  const searchTerm = subjectSearchQuery.value.trim().toLowerCase()
-
-  if (!searchTerm) {
-    return props.courses
-  }
-
-  return props.courses.filter(course => {
-    const courseName = String(course.courseName || '').toLowerCase()
-    const description = String(course.description || '').toLowerCase()
-
-    return courseName.includes(searchTerm) || description.includes(searchTerm)
-  })
-})
 
 const filteredAvailableTopics = computed(() => {
   const searchTerm = topicSearchQuery.value.trim().toLowerCase()
@@ -329,18 +245,6 @@ const filteredAvailableTopics = computed(() => {
 
   return props.availableTopics.filter(topic => topic.topicName.toLowerCase().includes(searchTerm))
 })
-
-const selectSubject = (courseId: number) => {
-  checkedSelectedTopicIds.value = []
-  topicSearchQuery.value = ''
-  step.value = 'topics'
-  emit('select-course', courseId)
-}
-
-const showSubjects = () => {
-  checkedSelectedTopicIds.value = []
-  step.value = 'subjects'
-}
 
 const addVisibleTopics = () => {
   emit('add-topics', filteredAvailableTopics.value.map(topic => topic.topicId))

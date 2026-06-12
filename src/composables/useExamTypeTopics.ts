@@ -6,6 +6,8 @@ export interface ExamTypeTopic {
   id: number
   topicId: number
   topicName: string
+  courseId?: number
+  courseName?: string
 }
 
 export interface ExamTypeTopicOption {
@@ -44,11 +46,14 @@ const normalizeExamTypeTopics = (payload: unknown): ExamTypeTopic[] => {
   return payload
     .map(item => {
       const candidate = item as Partial<ExamTypeTopic> & Record<string, unknown>
+      const courseId = candidate.courseId !== undefined ? Number(candidate.courseId) : undefined
 
       const topic: ExamTypeTopic = {
         id: Number(candidate.id),
         topicId: Number(candidate.topicId),
         topicName: String(candidate.topicName).trim(),
+        courseId: Number.isFinite(courseId) ? courseId : undefined,
+        courseName: candidate.courseName !== undefined ? String(candidate.courseName).trim() : undefined,
       }
 
       return topic
@@ -92,10 +97,10 @@ export function useExamTypeTopics() {
     try {
       const response = await studyService.getCourseTopics(courseId)
       topicOptions.value = normalizeTopicOptions(response?.data)
-      const assignedTopicIds = new Set(examTypeTopics.value.map(topic => topic.topicId))
-      selectedTopicIds.value = topicOptions.value
-        .filter(topic => assignedTopicIds.has(topic.topicId))
+      const courseTopicIds = new Set(topicOptions.value.map(topic => topic.topicId))
+      selectedTopicIds.value = examTypeTopics.value
         .map(topic => topic.topicId)
+        .filter(topicId => courseTopicIds.has(topicId))
       topicPickerValue.value = null
     } catch (error) {
       console.error('Error loading topics:', error)

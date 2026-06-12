@@ -16,6 +16,8 @@ interface StudyExamTypeTopic {
   id: number;
   topicId: number;
   topicName: string;
+  courseId?: number;
+  courseName?: string;
 }
 
 interface StudyTopicAssignmentPayload {
