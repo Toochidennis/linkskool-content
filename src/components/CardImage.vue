@@ -31,6 +31,13 @@
 
     <!-- Empty + editable: drop zone + link field -->
     <div v-else-if="editable" class="p-3">
+      <div class="mb-2 flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Image</span>
+        <button type="button" @click="$emit('remove')" title="Remove image block" aria-label="Remove image block"
+          class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-rose-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20">
+          <i class="fas fa-trash text-xs"></i>
+        </button>
+      </div>
       <div @dragover.prevent.stop="dragging = true" @dragenter.prevent.stop="dragging = true"
         @dragleave.prevent.stop="dragging = false" @drop.prevent.stop="onDrop" @click="triggerPick"
         :class="dragging
