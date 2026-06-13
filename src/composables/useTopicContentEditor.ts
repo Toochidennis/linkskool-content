@@ -17,6 +17,8 @@ export interface StudyBlock {
   title: string
   body?: string
   items?: string[] | Array<{ term: string; description: string }>
+  /** For list blocks: render as a numbered (ordered) list instead of bullets. */
+  ordered?: boolean
   wrong?: string
   correct?: string
 }
@@ -94,6 +96,8 @@ export interface BlockPreset {
   description: string
   /** Generic escape hatch — creates a card with an empty title. */
   noHeading?: boolean
+  /** For list presets: scaffold a numbered list instead of bullets. */
+  ordered?: boolean
 }
 
 export interface BlockPresetGroup {
@@ -120,7 +124,7 @@ export const blockPresetGroups: BlockPresetGroup[] = [
     presets: [
       { label: 'Key Points', type: 'list', icon: 'fas fa-list', description: 'Bulleted key points' },
       { label: 'Applications / Uses', type: 'list', icon: 'fas fa-list', description: 'Where it is used' },
-      { label: 'Steps / Procedure', type: 'list', icon: 'fas fa-list-ol', description: 'Ordered procedure' },
+      { label: 'Steps / Procedure', type: 'list', icon: 'fas fa-list-ol', description: 'Ordered procedure', ordered: true },
       { label: 'Parts / Components', type: 'list', icon: 'fas fa-list', description: 'Constituent parts' },
     ],
   },
@@ -427,6 +431,9 @@ export function useTopicContentEditor() {
       title: preset.noHeading ? '' : preset.label,
       ...scaffoldFor(preset.type),
     }
+    if (preset.type === 'list') {
+      card.ordered = !!preset.ordered
+    }
 
     const cards = activeSubsection.value.cards
     const index = pendingInsertIndex.value
@@ -460,6 +467,9 @@ export function useTopicContentEditor() {
 
     block.type = preset.type
     block.title = preset.label
+    if (preset.type === 'list') {
+      block.ordered = !!preset.ordered
+    }
   }
 
   const duplicateBlock = (blockId: number) => {

@@ -164,15 +164,16 @@
                   placeholder="Start typing… use $latex$ for math"
                   content-class="text-base leading-relaxed text-gray-700 dark:text-gray-200" />
 
-                <CardRichText v-if="block.type === 'list'" :editable="mode === 'edit'" list
-                  :model-value="listHtml(block)" @update:model-value="setListItems(block, $event)"
-                  placeholder="List item — press Enter for a new bullet"
+                <CardRichText v-if="block.type === 'list'" :key="`list-${block.id}-${block.ordered ? 'o' : 'u'}`"
+                  :editable="mode === 'edit'" list :ordered="block.ordered" :model-value="listHtml(block)"
+                  @update:model-value="setListItems(block, $event)"
+                  placeholder="List item — press Enter for a new line"
                   content-class="text-base text-gray-800 dark:text-gray-100" />
 
                 <div v-if="block.type === 'pairs'">
                   <div v-if="mode === 'edit'" class="space-y-1">
                     <div v-for="(pair, index) in pairItems(block)" :key="index"
-                      class="group/row grid items-start gap-3 border-b border-gray-100 py-2 md:grid-cols-[1fr_1.5fr_auto] dark:border-gray-700/60">
+                      class="group/row grid items-start gap-3 border-b border-gray-100 py-2 md:grid-cols-[1fr_1.5fr] dark:border-gray-700/60">
                       <CardRichText :ref="el => setPairTermRef(`${block.id}:${index}`, el)" :model-value="pair.term"
                         @update:model-value="updatePairItem(block, index, { term: $event })" single-line
                         placeholder="Term" content-class="text-base font-semibold text-gray-900 dark:text-white"
@@ -180,12 +181,7 @@
                       <CardRichText :model-value="pair.description"
                         @update:model-value="updatePairItem(block, index, { description: $event })" single-line
                         placeholder="Meaning" content-class="text-base text-gray-700 dark:text-gray-200"
-                        @enter="addPairAfter(block, index)" />
-                      <button type="button" @click="removePairItem(block, index)"
-                        class="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
-                        aria-label="Remove pair">
-                        <i class="fas fa-times text-xs"></i>
-                      </button>
+                        @enter="addPairAfter(block, index)" @backspace-empty="onPairBackspace(block, index)" />
                     </div>
                   </div>
                   <dl v-else class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -237,34 +233,10 @@
           </TransitionGroup>
 
           <div v-if="activeSubsection.media.length" class="grid gap-4 sm:grid-cols-2">
-              <article v-for="(media, index) in activeSubsection.media" :key="index"
-                class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div class="relative">
-                  <img v-if="media.url" :src="media.url" :alt="media.alt || 'Subsection image'"
-                    class="h-48 w-full object-cover" />
-                  <div v-else
-                    class="flex h-48 w-full items-center justify-center bg-gray-100 text-gray-400 dark:bg-gray-900">
-                    <i class="fas fa-image text-2xl"></i>
-                  </div>
-                  <button v-if="mode === 'edit'" type="button" @click="removeMedia(index)"
-                    class="absolute right-2 top-2 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-white/90 text-rose-500 shadow hover:bg-white dark:bg-gray-800/90"
-                    aria-label="Remove image">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-                <div v-if="mode === 'edit'" class="space-y-2 p-3">
-                  <input :value="media.url"
-                    @input="updateMedia(index, { url: ($event.target as HTMLInputElement).value })"
-                    placeholder="Image URL (upload coming soon)"
-                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
-                  <input :value="media.alt"
-                    @input="updateMedia(index, { alt: ($event.target as HTMLInputElement).value })"
-                    placeholder="Alt text"
-                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
-                </div>
-                <div v-else-if="media.alt" class="p-3 text-sm text-gray-500 dark:text-gray-400">{{ media.alt }}</div>
-              </article>
-            </div>
+            <CardImage v-for="(media, index) in activeSubsection.media" :key="index" :url="media.url" :alt="media.alt"
+              :editable="mode === 'edit'" @update:url="updateMedia(index, { url: $event })"
+              @update:alt="updateMedia(index, { alt: $event })" @remove="removeMedia(index)" />
+          </div>
 
             <div v-if="mode === 'edit' && !activeSubsection.cards.length" class="flex justify-center pb-10">
               <button type="button" @click="openBlockPalette"
@@ -505,6 +477,7 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CardRichText from '@/components/CardRichText.vue'
+import CardImage from '@/components/CardImage.vue'
 import { useTopicContentEditor, type StudyBlock, type StudyBlockType } from '@/composables/useTopicContentEditor'
 
 const route = useRoute()
@@ -625,7 +598,8 @@ const recastBlock = (blockId: number, preset: ReturnType<typeof recastOptionsFor
 const listHtml = (block: StudyBlock) => {
   const items = Array.isArray(block.items) ? (block.items as string[]) : []
   const rows = (items.length ? items : ['']).map(item => `<li>${item || '<p></p>'}</li>`).join('')
-  return `<ul>${rows}</ul>`
+  const tag = block.ordered ? 'ol' : 'ul'
+  return `<${tag}>${rows}</${tag}>`
 }
 
 const setListItems = (block: StudyBlock, html: string) => {

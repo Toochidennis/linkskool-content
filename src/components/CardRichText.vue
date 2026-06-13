@@ -77,6 +77,7 @@ const props = withDefaults(
     placeholder?: string
     singleLine?: boolean
     list?: boolean
+    ordered?: boolean
     contentClass?: string
   }>(),
   {
@@ -84,14 +85,17 @@ const props = withDefaults(
     placeholder: '',
     singleLine: false,
     list: false,
+    ordered: false,
     contentClass: '',
   },
 )
 
-// In list mode the document is locked to a single bullet list, so the whole
-// field behaves as one free-flowing list: Enter adds a bullet, Backspace
-// removes the line, and bullets are always present.
-const ListDocument = Document.extend({ content: 'bulletList+' })
+// In list mode the document is locked to a single list (bullet or numbered), so
+// the whole field behaves as one free-flowing list: Enter adds an item,
+// Backspace removes the line, and the markers are always present.
+const ListDocument = Document.extend({
+  content: props.ordered ? 'orderedList+' : 'bulletList+',
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
