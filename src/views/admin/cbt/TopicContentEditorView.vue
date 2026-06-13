@@ -158,37 +158,40 @@
 
                 <input v-if="mode === 'edit'" :value="block.title"
                   @input="updateBlock(block.id, { title: ($event.target as HTMLInputElement).value })"
-                  placeholder="Heading (optional)"
-                  class="mb-3 w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-2xl font-bold text-gray-900 hover:border-gray-200 focus:border-blue-500 focus:bg-white dark:text-white dark:focus:bg-gray-900" />
-                <h3 v-else-if="block.title" class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">{{ block.title
+                  placeholder="Heading"
+                  class="flow-field mb-2 text-3xl font-bold text-gray-900 dark:text-white" />
+                <h3 v-else-if="block.title" class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">{{ block.title
                   }}</h3>
 
-                <textarea v-if="mode === 'edit' && hasBody(block.type)" :value="block.body"
-                  @input="updateBlock(block.id, { body: ($event.target as HTMLTextAreaElement).value })" rows="4"
-                  placeholder="Supports math: $x^2$ inline, $$…$$ block"
-                  class="w-full resize-y rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                <textarea v-if="mode === 'edit' && hasBody(block.type)" v-autogrow :value="block.body"
+                  @input="updateBlock(block.id, { body: ($event.target as HTMLTextAreaElement).value })" rows="1"
+                  placeholder="Start typing… supports math: $x^2$ inline, $$…$$ block"
+                  class="flow-field resize-none overflow-hidden text-base leading-relaxed text-gray-700 dark:text-gray-200" />
                 <MathContent v-else-if="hasBody(block.type)" :text="block.body"
-                  class="text-gray-700 dark:text-gray-200" />
+                  class="text-base leading-relaxed text-gray-700 dark:text-gray-200" />
 
                 <div v-if="block.type === 'list'">
-                  <div v-if="mode === 'edit'" class="space-y-2">
-                    <div v-for="(_, index) in (block.items as string[])" :key="index" class="flex items-center gap-2">
+                  <div v-if="mode === 'edit'" class="space-y-1">
+                    <div v-for="(_, index) in (block.items as string[])" :key="index"
+                      class="group/row flex items-center gap-2">
+                      <span class="select-none text-gray-400">•</span>
                       <input :value="(block.items as string[])[index]"
                         @input="updateListItem(block, index, ($event.target as HTMLInputElement).value)"
-                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                        placeholder="List item"
+                        class="flow-field text-base text-gray-800 dark:text-gray-100" />
                       <button type="button" @click="removeListItem(block, index)"
-                        class="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                        class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
                         aria-label="Remove item">
-                        <i class="fas fa-times"></i>
+                        <i class="fas fa-times text-xs"></i>
                       </button>
                     </div>
                     <button type="button" @click="addListItem(block)"
-                      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
-                      <i class="fas fa-plus"></i>
+                      class="ml-5 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-400 hover:text-blue-600">
+                      <i class="fas fa-plus text-xs"></i>
                       Add item
                     </button>
                   </div>
-                  <ul v-else class="list-disc space-y-1 pl-5 text-gray-700 dark:text-gray-200">
+                  <ul v-else class="list-disc space-y-1 pl-5 text-base text-gray-700 dark:text-gray-200">
                     <li v-for="(item, index) in (block.items as string[])" :key="index">
                       <MathContent :text="item" as="span" />
                     </li>
@@ -196,26 +199,26 @@
                 </div>
 
                 <div v-if="block.type === 'pairs'">
-                  <div v-if="mode === 'edit'" class="space-y-2">
+                  <div v-if="mode === 'edit'" class="space-y-1">
                     <div v-for="(pair, index) in pairItems(block)" :key="index"
-                      class="grid gap-2 rounded-xl border border-gray-200 p-2 md:grid-cols-[1fr_1.5fr_auto] dark:border-gray-700">
+                      class="group/row grid items-start gap-3 border-b border-gray-100 py-2 md:grid-cols-[1fr_1.5fr_auto] dark:border-gray-700/60">
                       <input :value="pair.term"
                         @input="updatePairItem(block, index, { term: ($event.target as HTMLInputElement).value })"
                         placeholder="Term"
-                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                        class="flow-field text-base font-semibold text-gray-900 dark:text-white" />
                       <input :value="pair.description"
                         @input="updatePairItem(block, index, { description: ($event.target as HTMLInputElement).value })"
                         placeholder="Meaning"
-                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                        class="flow-field text-base text-gray-700 dark:text-gray-200" />
                       <button type="button" @click="removePairItem(block, index)"
-                        class="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                        class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
                         aria-label="Remove pair">
-                        <i class="fas fa-times"></i>
+                        <i class="fas fa-times text-xs"></i>
                       </button>
                     </div>
                     <button type="button" @click="addPairItem(block)"
-                      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
-                      <i class="fas fa-plus"></i>
+                      class="inline-flex cursor-pointer items-center gap-2 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
+                      <i class="fas fa-plus text-xs"></i>
                       Add pair
                     </button>
                   </div>
@@ -234,12 +237,24 @@
 
                 <div v-if="block.type === 'commonMistake'">
                   <div v-if="mode === 'edit'" class="grid gap-3 md:grid-cols-2">
-                    <textarea :value="block.wrong"
-                      @input="updateBlock(block.id, { wrong: ($event.target as HTMLTextAreaElement).value })"
-                      class="rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-gray-900 dark:text-rose-200" />
-                    <textarea :value="block.correct"
-                      @input="updateBlock(block.id, { correct: ($event.target as HTMLTextAreaElement).value })"
-                      class="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-gray-900 dark:text-emerald-200" />
+                    <div class="rounded-lg bg-rose-50 p-3 dark:bg-rose-900/20">
+                      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-300">
+                        <i class="fas fa-xmark mr-1"></i>Wrong
+                      </p>
+                      <textarea v-autogrow :value="block.wrong"
+                        @input="updateBlock(block.id, { wrong: ($event.target as HTMLTextAreaElement).value })" rows="1"
+                        placeholder="The misconception…"
+                        class="flow-field resize-none overflow-hidden text-sm text-rose-700 dark:text-rose-200" />
+                    </div>
+                    <div class="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/20">
+                      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                        <i class="fas fa-check mr-1"></i>Correct
+                      </p>
+                      <textarea v-autogrow :value="block.correct"
+                        @input="updateBlock(block.id, { correct: ($event.target as HTMLTextAreaElement).value })"
+                        rows="1" placeholder="The correct idea…"
+                        class="flow-field resize-none overflow-hidden text-sm text-emerald-700 dark:text-emerald-200" />
+                    </div>
                   </div>
                   <div v-else class="space-y-2">
                     <p class="flex gap-2 text-rose-700 dark:text-rose-300"><i class="fas fa-xmark mt-1"></i>
@@ -307,7 +322,7 @@
         <div v-else-if="activeSurface === 'sectionQuiz' || activeSurface === 'finalQuiz'"
           class="grid w-full gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside
-            class="min-h-[70vh] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            class="min-h-[70vh] overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div class="border-b border-gray-200 p-4 dark:border-gray-700">
               <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ activeQuizTitle }}</h2>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ activeQuiz.length }} questions</p>
@@ -333,7 +348,7 @@
           </aside>
 
           <section
-            class="min-h-[70vh] rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            class="min-h-[70vh] rounded-md border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div v-if="selectedQuizQuestion" class="space-y-5">
               <div class="flex items-start justify-between gap-4">
                 <div>
@@ -625,6 +640,17 @@ const openBlockPaletteAfter = (blockId: number) => {
   pendingInsertIndex.value = index >= 0 ? index + 1 : null
   blockFilter.value = ''
   addBlockMenuOpen.value = true
+}
+
+// Grow a textarea to fit its content so it reads as free-flowing card text.
+const resizeTextarea = (el: HTMLTextAreaElement) => {
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+
+const vAutogrow = {
+  mounted: (el: HTMLTextAreaElement) => resizeTextarea(el),
+  updated: (el: HTMLTextAreaElement) => resizeTextarea(el),
 }
 
 const toggleRecastMenu = (blockId: number) => {
