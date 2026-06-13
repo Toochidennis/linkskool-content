@@ -112,7 +112,7 @@
                   draggedBlockId === block.id ? 'opacity-40' : '',
                   isChanged(block.id) ? 'ring-2 ring-emerald-400/70' : '',
                 ]"
-                class="group rounded-md border-[0.5px] border-gray-500/50 bg-white p-4 transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 dark:border-gray-600/60 dark:bg-gray-800 dark:focus-within:border-blue-400">
+                class="group rounded-md border-[0.5px] border-gray-500/50 bg-white p-8 transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 dark:border-gray-600/60 dark:bg-gray-800 dark:focus-within:border-blue-400">
                 <div v-if="mode === 'edit'"
                   class="mb-2 flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:transition lg:group-hover:opacity-100">
                   <div class="group/tip relative">
