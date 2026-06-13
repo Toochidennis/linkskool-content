@@ -67,7 +67,7 @@
                 :class="activeSurface === 'content' && activeSubsectionId === subsection.id ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50'"
                 class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm">
                 <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
-                <span class="truncate">{{ subsection.title }}</span>
+                <span class="truncate">{{ plainText(subsection.title) }}</span>
               </button>
 
               <button type="button" @click="openSectionQuiz(section.id)"
@@ -97,10 +97,9 @@
 
       <main class="min-h-0 overflow-y-auto bg-gray-100 px-6 py-5 dark:bg-gray-950/40 lg:px-8">
         <div v-if="activeSurface === 'content' && activeSubsection" class="w-full space-y-14">
-          <input v-if="mode === 'edit'" :value="activeSubsection.title"
-            @input="updateSubsectionTitle(($event.target as HTMLInputElement).value)"
-            class="w-full rounded-md border-[0.5px] border-gray-500/50 bg-white px-4 py-3 text-2xl font-bold text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600/60 dark:bg-gray-800 dark:text-white" />
-          <h2 v-else class="px-1 text-4xl font-bold text-gray-900 dark:text-white">{{ activeSubsection.title }}</h2>
+          <CardRichText :editable="mode === 'edit'" :model-value="activeSubsection.title"
+            @update:model-value="updateSubsectionTitle($event)" single-line placeholder="Subsection title"
+            content-class="text-4xl font-bold text-gray-900 dark:text-white" class="px-1" />
 
           <TransitionGroup tag="div" name="card" class="space-y-14">
             <div v-for="block in activeSubsection.cards" :key="block.id" class="group/card relative">
@@ -113,7 +112,7 @@
                   draggedBlockId === block.id ? 'opacity-40' : '',
                   isChanged(block.id) ? 'ring-2 ring-emerald-400/70' : '',
                 ]"
-                class="group rounded-md border-[0.5px] border-gray-500/50 bg-white p-4 transition dark:border-gray-600/60 dark:bg-gray-800">
+                class="group rounded-md border-[0.5px] border-gray-500/50 bg-white p-4 transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 dark:border-gray-600/60 dark:bg-gray-800 dark:focus-within:border-blue-400">
                 <div v-if="mode === 'edit'"
                   class="mb-2 flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:transition lg:group-hover:opacity-100">
                   <div class="group/tip relative">
@@ -156,31 +155,25 @@
                   </div>
                 </div>
 
-                <input v-if="mode === 'edit'" :value="block.title"
-                  @input="updateBlock(block.id, { title: ($event.target as HTMLInputElement).value })"
-                  placeholder="Heading"
-                  class="flow-field mb-2 text-3xl font-bold text-gray-900 dark:text-white" />
-                <h3 v-else-if="block.title" class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">{{ block.title
-                  }}</h3>
+                <CardRichText :editable="mode === 'edit'" :model-value="block.title || ''"
+                  @update:model-value="updateBlock(block.id, { title: $event })" single-line placeholder="Heading"
+                  content-class="text-3xl font-bold text-gray-900 dark:text-white" class="mb-2" />
 
-                <textarea v-if="mode === 'edit' && hasBody(block.type)" v-autogrow :value="block.body"
-                  @input="updateBlock(block.id, { body: ($event.target as HTMLTextAreaElement).value })" rows="1"
-                  placeholder="Start typing… supports math: $x^2$ inline, $$…$$ block"
-                  class="flow-field resize-none overflow-hidden text-base leading-relaxed text-gray-700 dark:text-gray-200" />
-                <MathContent v-else-if="hasBody(block.type)" :text="block.body"
-                  class="text-base leading-relaxed text-gray-700 dark:text-gray-200" />
+                <CardRichText v-if="hasBody(block.type)" :editable="mode === 'edit'" :model-value="block.body || ''"
+                  @update:model-value="updateBlock(block.id, { body: $event })"
+                  placeholder="Start typing… use $latex$ for math"
+                  content-class="text-base leading-relaxed text-gray-700 dark:text-gray-200" />
 
                 <div v-if="block.type === 'list'">
                   <div v-if="mode === 'edit'" class="space-y-1">
                     <div v-for="(_, index) in (block.items as string[])" :key="index"
-                      class="group/row flex items-center gap-2">
-                      <span class="select-none text-gray-400">•</span>
-                      <input :value="(block.items as string[])[index]"
-                        @input="updateListItem(block, index, ($event.target as HTMLInputElement).value)"
-                        placeholder="List item"
-                        class="flow-field text-base text-gray-800 dark:text-gray-100" />
+                      class="group/row flex items-start gap-2">
+                      <span class="mt-1 select-none text-gray-400">•</span>
+                      <CardRichText class="flex-1" :model-value="(block.items as string[])[index] || ''"
+                        @update:model-value="updateListItem(block, index, $event)" single-line placeholder="List item"
+                        content-class="text-base text-gray-800 dark:text-gray-100" />
                       <button type="button" @click="removeListItem(block, index)"
-                        class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
+                        class="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
                         aria-label="Remove item">
                         <i class="fas fa-times text-xs"></i>
                       </button>
@@ -193,7 +186,7 @@
                   </div>
                   <ul v-else class="list-disc space-y-1 pl-5 text-base text-gray-700 dark:text-gray-200">
                     <li v-for="(item, index) in (block.items as string[])" :key="index">
-                      <MathContent :text="item" as="span" />
+                      <CardRichText :editable="false" :model-value="item" single-line content-class="text-base" />
                     </li>
                   </ul>
                 </div>
@@ -202,16 +195,14 @@
                   <div v-if="mode === 'edit'" class="space-y-1">
                     <div v-for="(pair, index) in pairItems(block)" :key="index"
                       class="group/row grid items-start gap-3 border-b border-gray-100 py-2 md:grid-cols-[1fr_1.5fr_auto] dark:border-gray-700/60">
-                      <input :value="pair.term"
-                        @input="updatePairItem(block, index, { term: ($event.target as HTMLInputElement).value })"
-                        placeholder="Term"
-                        class="flow-field text-base font-semibold text-gray-900 dark:text-white" />
-                      <input :value="pair.description"
-                        @input="updatePairItem(block, index, { description: ($event.target as HTMLInputElement).value })"
-                        placeholder="Meaning"
-                        class="flow-field text-base text-gray-700 dark:text-gray-200" />
+                      <CardRichText :model-value="pair.term"
+                        @update:model-value="updatePairItem(block, index, { term: $event })" single-line
+                        placeholder="Term" content-class="text-base font-semibold text-gray-900 dark:text-white" />
+                      <CardRichText :model-value="pair.description"
+                        @update:model-value="updatePairItem(block, index, { description: $event })" single-line
+                        placeholder="Meaning" content-class="text-base text-gray-700 dark:text-gray-200" />
                       <button type="button" @click="removePairItem(block, index)"
-                        class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
+                        class="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
                         aria-label="Remove pair">
                         <i class="fas fa-times text-xs"></i>
                       </button>
@@ -225,44 +216,34 @@
                   <dl v-else class="divide-y divide-gray-100 dark:divide-gray-700">
                     <div v-for="(pair, index) in pairItems(block)" :key="index"
                       class="grid gap-2 py-2 md:grid-cols-[1fr_1.5fr]">
-                      <dt class="font-semibold text-gray-900 dark:text-white">
-                        <MathContent :text="pair.term" as="span" />
+                      <dt>
+                        <CardRichText :editable="false" :model-value="pair.term" single-line
+                          content-class="font-semibold text-gray-900 dark:text-white" />
                       </dt>
-                      <dd class="text-gray-700 dark:text-gray-200">
-                        <MathContent :text="pair.description" as="span" />
+                      <dd>
+                        <CardRichText :editable="false" :model-value="pair.description" single-line
+                          content-class="text-gray-700 dark:text-gray-200" />
                       </dd>
                     </div>
                   </dl>
                 </div>
 
-                <div v-if="block.type === 'commonMistake'">
-                  <div v-if="mode === 'edit'" class="grid gap-3 md:grid-cols-2">
-                    <div class="rounded-lg bg-rose-50 p-3 dark:bg-rose-900/20">
-                      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-300">
-                        <i class="fas fa-xmark mr-1"></i>Wrong
-                      </p>
-                      <textarea v-autogrow :value="block.wrong"
-                        @input="updateBlock(block.id, { wrong: ($event.target as HTMLTextAreaElement).value })" rows="1"
-                        placeholder="The misconception…"
-                        class="flow-field resize-none overflow-hidden text-sm text-rose-700 dark:text-rose-200" />
-                    </div>
-                    <div class="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/20">
-                      <p class="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
-                        <i class="fas fa-check mr-1"></i>Correct
-                      </p>
-                      <textarea v-autogrow :value="block.correct"
-                        @input="updateBlock(block.id, { correct: ($event.target as HTMLTextAreaElement).value })"
-                        rows="1" placeholder="The correct idea…"
-                        class="flow-field resize-none overflow-hidden text-sm text-emerald-700 dark:text-emerald-200" />
-                    </div>
+                <div v-if="block.type === 'commonMistake'" class="grid gap-3 md:grid-cols-2">
+                  <div class="rounded-lg bg-rose-50 p-3 dark:bg-rose-900/20">
+                    <p class="mb-1 text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-300">
+                      <i class="fas fa-xmark mr-1"></i>Wrong
+                    </p>
+                    <CardRichText :editable="mode === 'edit'" :model-value="block.wrong || ''"
+                      @update:model-value="updateBlock(block.id, { wrong: $event })" placeholder="The misconception…"
+                      content-class="text-sm text-rose-700 dark:text-rose-200" />
                   </div>
-                  <div v-else class="space-y-2">
-                    <p class="flex gap-2 text-rose-700 dark:text-rose-300"><i class="fas fa-xmark mt-1"></i>
-                      <MathContent :text="block.wrong" as="span" />
+                  <div class="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/20">
+                    <p class="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                      <i class="fas fa-check mr-1"></i>Correct
                     </p>
-                    <p class="flex gap-2 text-emerald-700 dark:text-emerald-300"><i class="fas fa-check mt-1"></i>
-                      <MathContent :text="block.correct" as="span" />
-                    </p>
+                    <CardRichText :editable="mode === 'edit'" :model-value="block.correct || ''"
+                      @update:model-value="updateBlock(block.id, { correct: $event })" placeholder="The correct idea…"
+                      content-class="text-sm text-emerald-700 dark:text-emerald-200" />
                   </div>
                 </div>
               </article>
@@ -548,7 +529,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import MathContent from '@/components/MathContent.vue'
+import CardRichText from '@/components/CardRichText.vue'
 import { useTopicContentEditor, type StudyBlock, type StudyBlockType } from '@/composables/useTopicContentEditor'
 
 const route = useRoute()
@@ -608,8 +589,22 @@ const {
   saveContent,
 } = useTopicContentEditor()
 
+// Block types that carry a single rich-text body (rendered by CardRichText).
 const hasBody = (type: StudyBlockType) =>
   ['text', 'highlight', 'examTip', 'equation', 'workedExample'].includes(type)
+
+// Strip rich-text HTML down to readable text (math nodes → their LaTeX) for
+// places that show titles as plain text, e.g. the outline sidebar.
+const plainText = (html: string) => {
+  if (!html) {
+    return ''
+  }
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  doc.querySelectorAll('[data-latex]').forEach(el => {
+    el.textContent = el.getAttribute('data-latex') || ''
+  })
+  return (doc.body.textContent || '').trim()
+}
 
 // Filtered add-block palette — matches heading labels or group names (§6).
 const filteredPresetGroups = computed(() => {
@@ -640,17 +635,6 @@ const openBlockPaletteAfter = (blockId: number) => {
   pendingInsertIndex.value = index >= 0 ? index + 1 : null
   blockFilter.value = ''
   addBlockMenuOpen.value = true
-}
-
-// Grow a textarea to fit its content so it reads as free-flowing card text.
-const resizeTextarea = (el: HTMLTextAreaElement) => {
-  el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
-}
-
-const vAutogrow = {
-  mounted: (el: HTMLTextAreaElement) => resizeTextarea(el),
-  updated: (el: HTMLTextAreaElement) => resizeTextarea(el),
 }
 
 const toggleRecastMenu = (blockId: number) => {
