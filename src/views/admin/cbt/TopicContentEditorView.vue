@@ -157,61 +157,36 @@
 
                 <CardRichText :editable="mode === 'edit'" :model-value="block.title || ''"
                   @update:model-value="updateBlock(block.id, { title: $event })" single-line placeholder="Heading"
-                  content-class="text-3xl font-bold text-gray-900 dark:text-white" class="mb-2" />
+                  content-class="text-4xl font-bold text-gray-900 dark:text-white" class="mb-2" />
 
                 <CardRichText v-if="hasBody(block.type)" :editable="mode === 'edit'" :model-value="block.body || ''"
                   @update:model-value="updateBlock(block.id, { body: $event })"
                   placeholder="Start typing… use $latex$ for math"
                   content-class="text-base leading-relaxed text-gray-700 dark:text-gray-200" />
 
-                <div v-if="block.type === 'list'">
-                  <div v-if="mode === 'edit'" class="space-y-1">
-                    <div v-for="(_, index) in (block.items as string[])" :key="index"
-                      class="group/row flex items-start gap-2">
-                      <span class="mt-1 select-none text-gray-400">•</span>
-                      <CardRichText class="flex-1" :model-value="(block.items as string[])[index] || ''"
-                        @update:model-value="updateListItem(block, index, $event)" single-line placeholder="List item"
-                        content-class="text-base text-gray-800 dark:text-gray-100" />
-                      <button type="button" @click="removeListItem(block, index)"
-                        class="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
-                        aria-label="Remove item">
-                        <i class="fas fa-times text-xs"></i>
-                      </button>
-                    </div>
-                    <button type="button" @click="addListItem(block)"
-                      class="ml-5 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-400 hover:text-blue-600">
-                      <i class="fas fa-plus text-xs"></i>
-                      Add item
-                    </button>
-                  </div>
-                  <ul v-else class="list-disc space-y-1 pl-5 text-base text-gray-700 dark:text-gray-200">
-                    <li v-for="(item, index) in (block.items as string[])" :key="index">
-                      <CardRichText :editable="false" :model-value="item" single-line content-class="text-base" />
-                    </li>
-                  </ul>
-                </div>
+                <CardRichText v-if="block.type === 'list'" :editable="mode === 'edit'" list
+                  :model-value="listHtml(block)" @update:model-value="setListItems(block, $event)"
+                  placeholder="List item — press Enter for a new bullet"
+                  content-class="text-base text-gray-800 dark:text-gray-100" />
 
                 <div v-if="block.type === 'pairs'">
                   <div v-if="mode === 'edit'" class="space-y-1">
                     <div v-for="(pair, index) in pairItems(block)" :key="index"
                       class="group/row grid items-start gap-3 border-b border-gray-100 py-2 md:grid-cols-[1fr_1.5fr_auto] dark:border-gray-700/60">
-                      <CardRichText :model-value="pair.term"
+                      <CardRichText :ref="el => setPairTermRef(`${block.id}:${index}`, el)" :model-value="pair.term"
                         @update:model-value="updatePairItem(block, index, { term: $event })" single-line
-                        placeholder="Term" content-class="text-base font-semibold text-gray-900 dark:text-white" />
+                        placeholder="Term" content-class="text-base font-semibold text-gray-900 dark:text-white"
+                        @enter="addPairAfter(block, index)" @backspace-empty="onPairBackspace(block, index)" />
                       <CardRichText :model-value="pair.description"
                         @update:model-value="updatePairItem(block, index, { description: $event })" single-line
-                        placeholder="Meaning" content-class="text-base text-gray-700 dark:text-gray-200" />
+                        placeholder="Meaning" content-class="text-base text-gray-700 dark:text-gray-200"
+                        @enter="addPairAfter(block, index)" />
                       <button type="button" @click="removePairItem(block, index)"
                         class="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/row:opacity-100 dark:hover:bg-rose-900/20"
                         aria-label="Remove pair">
                         <i class="fas fa-times text-xs"></i>
                       </button>
                     </div>
-                    <button type="button" @click="addPairItem(block)"
-                      class="inline-flex cursor-pointer items-center gap-2 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
-                      <i class="fas fa-plus text-xs"></i>
-                      Add pair
-                    </button>
                   </div>
                   <dl v-else class="divide-y divide-gray-100 dark:divide-gray-700">
                     <div v-for="(pair, index) in pairItems(block)" :key="index"
@@ -527,7 +502,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CardRichText from '@/components/CardRichText.vue'
 import { useTopicContentEditor, type StudyBlock, type StudyBlockType } from '@/composables/useTopicContentEditor'
@@ -646,14 +621,17 @@ const recastBlock = (blockId: number, preset: ReturnType<typeof recastOptionsFor
   recastMenuBlockId.value = null
 }
 
-const updateListItem = (block: StudyBlock, index: number, value: string) => {
-  if (!Array.isArray(block.items)) {
-    return
-  }
+// A list block is edited as one bullet-list editor: items[] <-> <ul><li> HTML.
+const listHtml = (block: StudyBlock) => {
+  const items = Array.isArray(block.items) ? (block.items as string[]) : []
+  const rows = (items.length ? items : ['']).map(item => `<li>${item || '<p></p>'}</li>`).join('')
+  return `<ul>${rows}</ul>`
+}
 
-  const nextItems = [...(block.items as string[])]
-  nextItems[index] = value
-  updateBlock(block.id, { items: nextItems })
+const setListItems = (block: StudyBlock, html: string) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const items = Array.from(doc.querySelectorAll('li')).map(li => li.innerHTML)
+  updateBlock(block.id, { items })
 }
 
 const pairItems = (block: StudyBlock) =>
@@ -664,22 +642,36 @@ const updatePairItem = (block: StudyBlock, index: number, patch: { term?: string
   updateBlock(block.id, { items })
 }
 
-const addPairItem = (block: StudyBlock) => {
-  updateBlock(block.id, { items: [...pairItems(block), { term: '', description: '' }] })
+// Focus registry for the term cell of each pair row, so Enter/Backspace can move
+// focus to the right row.
+const pairTermRefs = ref<Record<string, { focus: () => void } | null>>({})
+const setPairTermRef = (key: string, el: unknown) => {
+  pairTermRefs.value[key] = el as { focus: () => void } | null
+}
+
+const addPairAfter = (block: StudyBlock, index: number) => {
+  const items = pairItems(block)
+  const next = [...items.slice(0, index + 1), { term: '', description: '' }, ...items.slice(index + 1)]
+  updateBlock(block.id, { items: next })
+  nextTick(() => pairTermRefs.value[`${block.id}:${index + 1}`]?.focus())
 }
 
 const removePairItem = (block: StudyBlock, index: number) => {
-  updateBlock(block.id, { items: pairItems(block).filter((_, i) => i !== index) })
-}
-
-const addListItem = (block: StudyBlock) => {
-  const items = Array.isArray(block.items) ? (block.items as string[]) : []
-  updateBlock(block.id, { items: [...items, ''] })
-}
-
-const removeListItem = (block: StudyBlock, index: number) => {
-  const items = Array.isArray(block.items) ? (block.items as string[]) : []
+  const items = pairItems(block)
+  if (items.length <= 1) {
+    return
+  }
   updateBlock(block.id, { items: items.filter((_, i) => i !== index) })
+  nextTick(() => pairTermRefs.value[`${block.id}:${Math.max(0, index - 1)}`]?.focus())
+}
+
+// Backspace on an empty term cell deletes the row (only when the row is empty).
+const onPairBackspace = (block: StudyBlock, index: number) => {
+  const pair = pairItems(block)[index]
+  if (!pair || plainText(pair.term) || plainText(pair.description)) {
+    return
+  }
+  removePairItem(block, index)
 }
 
 const isChanged = (blockId: number) => changedBlockIds.value.includes(blockId)

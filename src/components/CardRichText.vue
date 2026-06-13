@@ -10,7 +10,7 @@
         @click="editor.chain().focus().toggleUnderline().run()" title="Underline"><u>U</u></button>
       <button type="button" class="rt-btn" :class="{ active: editor.isActive('strike') }"
         @click="editor.chain().focus().toggleStrike().run()" title="Strikethrough"><s>S</s></button>
-      <template v-if="!singleLine">
+      <template v-if="!singleLine && !list">
         <span class="rt-sep"></span>
         <button type="button" class="rt-btn" :class="{ active: editor.isActive('bulletList') }"
           @click="editor.chain().focus().toggleBulletList().run()" title="Bullet list"><i class="fas fa-list-ul"></i></button>
@@ -23,7 +23,7 @@
         <i class="fas fa-square-root-variable"></i><span class="rt-more-label">More</span>
       </button>
     </div>
-    <editor-content :editor="editor" />
+    <editor-content :editor="editor" :class="contentClass" />
 
     <Teleport to="body">
       <div v-if="morePanelOpen" class="rt-overlay" @click.self="morePanelOpen = false">
@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
+import Document from '@tiptap/extension-document'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Mathematics, migrateMathStrings } from '@tiptap/extension-mathematics'
@@ -75,18 +76,28 @@ const props = withDefaults(
     editable?: boolean
     placeholder?: string
     singleLine?: boolean
+    list?: boolean
     contentClass?: string
   }>(),
   {
     editable: true,
     placeholder: '',
     singleLine: false,
+    list: false,
     contentClass: '',
   },
 )
 
+// In list mode the document is locked to a single bullet list, so the whole
+// field behaves as one free-flowing list: Enter adds a bullet, Backspace
+// removes the line, and bullets are always present.
+const ListDocument = Document.extend({ content: 'bulletList+' })
+
 const emit = defineEmits<{
   'update:modelValue': [value: string]
+  // Single-line fields use these so a parent list/pairs can add/remove rows.
+  enter: []
+  backspaceEmpty: []
 }>()
 
 const placeBelow = ref(false)
@@ -109,21 +120,27 @@ const editor = useEditor({
       code: false,
       codeBlock: false,
       horizontalRule: false,
-      // Single-line fields (titles, list items, pair cells) carry no block lists.
+      // List mode swaps in a bullet-list-only document; single-line fields drop lists.
+      document: props.list ? false : undefined,
       bulletList: props.singleLine ? false : undefined,
       orderedList: props.singleLine ? false : undefined,
     }),
+    ...(props.list ? [ListDocument] : []),
     Underline,
     Placeholder.configure({ placeholder: props.placeholder }),
     Mathematics.configure({ katexOptions: { throwOnError: false } }),
   ],
   editorProps: {
     attributes: {
-      class: `rich-content focus:outline-none ${props.contentClass}`.trim(),
+      class: 'rich-content focus:outline-none',
     },
-    handleKeyDown: (_view, event) => {
-      // Keep single-line fields on one line.
+    handleKeyDown: (view, event) => {
       if (props.singleLine && event.key === 'Enter') {
+        emit('enter')
+        return true
+      }
+      if (props.singleLine && event.key === 'Backspace' && !view.state.doc.textContent) {
+        emit('backspaceEmpty')
         return true
       }
       return false
@@ -136,6 +153,12 @@ const editor = useEditor({
     emit('update:modelValue', editor.getHTML())
   },
 })
+
+const focus = () => {
+  editor.value?.commands.focus('end')
+}
+
+defineExpose({ focus })
 
 // Symbol / math palette behind the "More" button. Items either insert a unicode
 // character (text) or a rendered KaTeX inline-math node (latex).
@@ -215,7 +238,8 @@ const insertMatrix = () => {
 watch(
   () => props.modelValue,
   value => {
-    if (editor.value && editor.value.getHTML() !== value) {
+    // Don't reset content mid-edit — it would fight the cursor on every keystroke.
+    if (editor.value && !editor.value.isFocused && editor.value.getHTML() !== value) {
       editor.value.commands.setContent(value, { emitUpdate: false })
       migrateMathStrings(editor.value)
     }
