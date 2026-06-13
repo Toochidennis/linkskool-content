@@ -24,6 +24,7 @@
     "@xmldom/xmldom": "^0.8.11",
     "axios": "^1.13.2",
     "jszip": "^3.10.1",
+    "katex": "^0.17.0",
     "papaparse": "^5.5.3",
     "pinia": "^3.0.3",
     "tailwindcss": "^4.1.17",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
+    "@types/katex": "^0.16.8",
     "@types/node": "^22.18.11",
     "@types/papaparse": "^5.5.1",
     "@vitejs/plugin-vue": "^6.0.1",
