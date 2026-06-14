@@ -1,310 +1,21 @@
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useToast } from 'vue-toast-notification'
+import type {
+  AiMessage,
+  AiSummaryItem,
+  BlockPreset,
+  FormattedStudyContent,
+  StudyBlock,
+  StudyMedia,
+  StudyQuizItem,
+} from './types'
+import { blockPresetGroups, recastOptionsFor, scaffoldFor } from './blockPresets'
+import { createDummyContent } from './dummyContent'
 
-export type StudyBlockType =
-  | 'text'
-  | 'highlight'
-  | 'list'
-  | 'pairs'
-  | 'examTip'
-  | 'commonMistake'
-  | 'equation'
-  | 'workedExample'
-
-export interface StudyBlock {
-  id: number
-  type: StudyBlockType
-  title: string
-  body?: string
-  items?: string[] | Array<{ term: string; description: string }>
-  /** For list blocks: render as a numbered (ordered) list instead of bullets. */
-  ordered?: boolean
-  wrong?: string
-  correct?: string
-}
-
-export interface StudyQuizOption {
-  text: string
-}
-
-export interface StudyQuizItem {
-  id: number
-  questionText: string
-  options: StudyQuizOption[]
-  correctAnswer: number
-  explanation: string
-  bloomLevel: string
-}
-
-export interface StudyMedia {
-  type: 'image'
-  url: string
-  alt?: string
-}
-
-export interface StudySubsection {
-  id: number
-  title: string
-  cards: StudyBlock[]
-  media: StudyMedia[]
-  diagramNeeded: boolean
-}
-
-export interface StudySection {
-  id: number
-  title: string
-  subsections: StudySubsection[]
-  quiz: StudyQuizItem[]
-}
-
-export interface FormattedStudyContent {
-  media: {
-    video?: {
-      type: 'video'
-      title: string
-      url: string
-      provider: string
-      duration: string
-      placement: string | null
-    }
-  }
-  contents: StudySection[]
-  finalQuiz: StudyQuizItem[]
-}
-
-export interface AiSummaryItem {
-  op: 'add' | 'edit' | 'remove'
-  target?: string
-  label: string
-  detail?: string
-}
-
-export interface AiMessage {
-  id: number
-  role: 'user' | 'assistant'
-  body: string
-  summary?: AiSummaryItem[]
-  proposalId?: number
-  status?: 'pending' | 'applied' | 'discarded'
-}
-
-/** A semantic authoring heading. `type` is the underlying card primitive (never shown to authors). */
-export interface BlockPreset {
-  label: string
-  type: StudyBlockType | 'image'
-  icon: string
-  description: string
-  /** Generic escape hatch — creates a card with an empty title. */
-  noHeading?: boolean
-  /** For list presets: scaffold a numbered list instead of bullets. */
-  ordered?: boolean
-}
-
-export interface BlockPresetGroup {
-  group: string
-  presets: BlockPreset[]
-}
-
-// §6 — the heading → type catalog. Authors pick a heading; it scaffolds a card
-// of the underlying `type`. The raw type is an internal detail, never surfaced.
-export const blockPresetGroups: BlockPresetGroup[] = [
-  {
-    group: 'Explain',
-    presets: [
-      { label: 'Definition', type: 'text', icon: 'fas fa-align-left', description: 'Plain definition paragraph' },
-      { label: 'Explanation', type: 'text', icon: 'fas fa-align-left', description: 'Explanatory paragraph' },
-      { label: 'Key Idea', type: 'highlight', icon: 'fas fa-star', description: 'Emphasised key idea' },
-      { label: 'Why It Matters', type: 'highlight', icon: 'fas fa-star', description: 'Relevance callout' },
-      { label: 'Background / Terminology', type: 'text', icon: 'fas fa-book', description: 'Context or vocabulary' },
-      { label: 'Memory Tip', type: 'text', icon: 'fas fa-brain', description: 'Mnemonic or memory aid' },
-    ],
-  },
-  {
-    group: 'Facts & lists',
-    presets: [
-      { label: 'Key Points', type: 'list', icon: 'fas fa-list', description: 'Bulleted key points' },
-      { label: 'Applications / Uses', type: 'list', icon: 'fas fa-list', description: 'Where it is used' },
-      { label: 'Steps / Procedure', type: 'list', icon: 'fas fa-list-ol', description: 'Ordered procedure', ordered: true },
-      { label: 'Parts / Components', type: 'list', icon: 'fas fa-list', description: 'Constituent parts' },
-    ],
-  },
-  {
-    group: 'Relationships',
-    presets: [
-      { label: 'Types / Classification', type: 'pairs', icon: 'fas fa-table-columns', description: 'Term ↔ meaning pairs' },
-      { label: 'Comparison / Differences', type: 'pairs', icon: 'fas fa-table-columns', description: 'Compare two things' },
-      { label: 'Advantages & Disadvantages', type: 'pairs', icon: 'fas fa-table-columns', description: 'Pros and cons' },
-      { label: 'Cause & Effect', type: 'pairs', icon: 'fas fa-table-columns', description: 'Cause ↔ effect pairs' },
-    ],
-  },
-  {
-    group: 'Callouts',
-    presets: [
-      { label: 'Exam Tip', type: 'examTip', icon: 'fas fa-lightbulb', description: 'Exam-focused guidance' },
-      { label: 'Common Mistake', type: 'commonMistake', icon: 'fas fa-triangle-exclamation', description: 'Wrong vs correct' },
-      { label: 'Misconception Alert', type: 'text', icon: 'fas fa-circle-exclamation', description: 'Clear up a misconception' },
-    ],
-  },
-  {
-    group: 'Examples & math',
-    presets: [
-      { label: 'Worked Example', type: 'workedExample', icon: 'fas fa-pen-nib', description: 'Step-by-step example' },
-      { label: 'Equation / Formula', type: 'equation', icon: 'fas fa-square-root-variable', description: 'Math or formula' },
-    ],
-  },
-  {
-    group: 'Media',
-    presets: [
-      { label: 'Image', type: 'image', icon: 'fas fa-image', description: 'Image block' },
-    ],
-  },
-  {
-    group: '',
-    presets: [
-      { label: 'Text block (no heading)', type: 'text', icon: 'fas fa-paragraph', description: 'Generic paragraph, no title', noHeading: true },
-    ],
-  },
-]
-
-// Card types that share a title+body shape and can be recast into one another (§5).
-const bodyFamily: StudyBlockType[] = ['text', 'highlight', 'examTip', 'workedExample', 'equation']
-
-const familyOf = (type: StudyBlockType): StudyBlockType[] => {
-  if (bodyFamily.includes(type)) {
-    return bodyFamily
-  }
-  return [type]
-}
-
-const scaffoldFor = (type: StudyBlockType): Omit<StudyBlock, 'id' | 'type' | 'title'> => {
-  switch (type) {
-    case 'list':
-      return { items: [''] }
-    case 'pairs':
-      return { items: [{ term: '', description: '' }] }
-    case 'commonMistake':
-      return { wrong: '', correct: '' }
-    default:
-      return { body: '' }
-  }
-}
+export * from './types'
+export { blockPresetGroups, recastOptionsFor, scaffoldFor, familyOf } from './blockPresets'
 
 const nextId = () => Date.now() + Math.floor(Math.random() * 1000)
-
-const createDummyContent = (): FormattedStudyContent => ({
-  media: {
-    video: {
-      type: 'video',
-      title: 'Photosynthesis overview',
-      url: 'https://example.com/photosynthesis-video',
-      provider: 'youtube',
-      duration: '6:42',
-      placement: null,
-    },
-  },
-  contents: [
-    {
-      id: 1,
-      title: 'Introduction',
-      subsections: [
-        {
-          id: 11,
-          title: 'What Photosynthesis Is',
-          diagramNeeded: false,
-          media: [{ type: 'image', url: 'https://placehold.co/900x520?text=Leaf+diagram', alt: 'Leaf diagram' }],
-          cards: [
-            {
-              id: 111,
-              type: 'text',
-              title: 'Definition',
-              body: 'Photosynthesis is the process plants use to convert light energy into chemical energy stored as glucose.',
-            },
-            {
-              id: 112,
-              type: 'highlight',
-              title: 'Key idea',
-              body: 'Light energy is transformed into food energy.',
-            },
-            {
-              id: 113,
-              type: 'list',
-              title: 'What plants need',
-              items: ['Sunlight', 'Carbon dioxide', 'Water', 'Chlorophyll'],
-            },
-          ],
-        },
-        {
-          id: 12,
-          title: 'Why It Matters',
-          diagramNeeded: true,
-          media: [],
-          cards: [
-            {
-              id: 121,
-              type: 'examTip',
-              title: 'Exam tip',
-              body: 'Always mention glucose and oxygen when explaining the products of photosynthesis.',
-            },
-            {
-              id: 122,
-              type: 'commonMistake',
-              title: 'Common mistake',
-              wrong: 'Plants breathe in carbon dioxide and breathe out oxygen only at night.',
-              correct: 'Plants take in carbon dioxide during photosynthesis and release oxygen as a product.',
-            },
-          ],
-        },
-      ],
-      quiz: [
-        {
-          id: 701,
-          questionText: 'What gas is released during photosynthesis?',
-          options: [{ text: 'Nitrogen' }, { text: 'Oxygen' }, { text: 'Hydrogen' }, { text: 'Methane' }],
-          correctAnswer: 1,
-          explanation: 'Oxygen is released as water molecules are split during the light-dependent reactions.',
-          bloomLevel: 'understand',
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: 'The Process',
-      subsections: [
-        {
-          id: 21,
-          title: 'Light Dependent Stage',
-          diagramNeeded: false,
-          media: [],
-          cards: [
-            {
-              id: 211,
-              type: 'workedExample',
-              title: 'Tracing the energy flow',
-              body: 'Sunlight is absorbed by chlorophyll, water is split, oxygen is released, and energy carriers are formed.',
-            },
-            {
-              id: 212,
-              type: 'equation',
-              title: 'Balanced equation',
-              body: '$$6CO_2 + 6H_2O \\rightarrow C_6H_{12}O_6 + 6O_2$$',
-            },
-          ],
-        },
-      ],
-      quiz: [],
-    },
-  ],
-  finalQuiz: [
-    {
-      id: 801,
-      questionText: 'Which pigment traps light energy for photosynthesis?',
-      options: [{ text: 'Haemoglobin' }, { text: 'Chlorophyll' }, { text: 'Melanin' }, { text: 'Keratin' }],
-      correctAnswer: 1,
-      explanation: 'Chlorophyll absorbs light energy in green plants.',
-      bloomLevel: 'remember',
-    },
-  ],
-})
 
 export function useTopicContentEditor() {
   const toast = useToast()
@@ -445,14 +156,6 @@ export function useTopicContentEditor() {
 
     addBlockMenuOpen.value = false
     pendingInsertIndex.value = null
-  }
-
-  // Recast a card to a compatible heading; title+body family preserves its body (§5).
-  const recastOptionsFor = (type: StudyBlockType): BlockPreset[] => {
-    const family = familyOf(type)
-    return blockPresetGroups
-      .flatMap(group => group.presets)
-      .filter(preset => preset.type !== 'image' && !preset.noHeading && family.includes(preset.type as StudyBlockType))
   }
 
   const changeBlockType = (blockId: number, preset: BlockPreset) => {
@@ -658,14 +361,13 @@ export function useTopicContentEditor() {
   }
 
   // Block-scoped AI edit triggered from a card's "Edit with agent" modal.
-  // Mock for now — highlights the card; swap for the block-scoped endpoint later.
+  // Mock for now — swap for the block-scoped endpoint later.
   const requestBlockAiEdit = (blockId: number, instruction: string) => {
     const trimmed = instruction.trim()
     if (!trimmed) {
       return
     }
     console.log('Mock block AI edit:', { blockId, instruction: trimmed })
-    changedBlockIds.value = [blockId]
     toast.success('Agent updated this card')
   }
 
