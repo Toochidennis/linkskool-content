@@ -33,11 +33,6 @@
           <i class="fas fa-wand-magic-sparkles"></i>
           Agent
         </button>
-        <span
-          class="hidden items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 sm:inline-flex">
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-          {{ savedStatus }}
-        </span>
         <button type="button" @click="saveContent"
           class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
           <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-save'"></i>
@@ -175,6 +170,10 @@
       </div>
     </Teleport>
 
+    <Teleport to="body">
+      <PresentationMode v-if="mode === 'preview'" :content="content" @exit="mode = 'edit'" />
+    </Teleport>
+
   </div>
 </template>
 
@@ -187,6 +186,7 @@ import StudyCard from '@/components/StudyCard.vue'
 import QuizEditor from '@/components/QuizEditor.vue'
 import AgentPanel from '@/components/AgentPanel.vue'
 import TopicOutline from '@/components/TopicOutline.vue'
+import PresentationMode from '@/components/PresentationMode.vue'
 import { plainText } from '@/utils/html'
 import { useTopicContentEditor } from '@/composables/useTopicContentEditor'
 
@@ -210,7 +210,6 @@ const {
   activeQuizQuestionIndex,
   mode,
   isSaving,
-  savedStatus,
   addBlockMenuOpen,
   pendingInsertIndex,
   aiInstruction,
