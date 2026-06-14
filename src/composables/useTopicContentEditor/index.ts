@@ -6,25 +6,58 @@ import type {
   BlockPreset,
   FormattedStudyContent,
   StudyBlock,
+  StudyBlockType,
   StudyMedia,
   StudyQuizItem,
 } from './types'
 import { blockPresetGroups, recastOptionsFor, scaffoldFor } from './blockPresets'
-import { createDummyContent } from './dummyContent'
+import { studyService } from '@/api/services/serviceFactory'
 
 export * from './types'
 export { blockPresetGroups, recastOptionsFor, scaffoldFor, familyOf } from './blockPresets'
 
 const nextId = () => Date.now() + Math.floor(Math.random() * 1000)
 
+const emptyContent = (): FormattedStudyContent => ({ media: {}, contents: [], finalQuiz: [] })
+
+// The key converter in client.ts handles snake↔camel for object keys, but card
+// `type` is a string *value* (`common_mistake`), so map those at the boundary.
+const TYPE_FROM_API: Record<string, StudyBlockType> = {
+  common_mistake: 'commonMistake',
+  exam_tip: 'examTip',
+  worked_example: 'workedExample',
+}
+const TYPE_TO_API: Record<string, string> = {
+  commonMistake: 'common_mistake',
+  examTip: 'exam_tip',
+  workedExample: 'worked_example',
+}
+
+const remapCardTypes = (content: FormattedStudyContent, map: Record<string, string>): FormattedStudyContent => {
+  const clone = JSON.parse(JSON.stringify(content)) as FormattedStudyContent
+  for (const section of clone.contents ?? []) {
+    for (const subsection of section.subsections ?? []) {
+      for (const card of subsection.cards ?? []) {
+        const mapped = map[card.type as string]
+        if (mapped) {
+          card.type = mapped as StudyBlockType
+        }
+      }
+    }
+  }
+  return clone
+}
+
 export function useTopicContentEditor() {
   const toast = useToast()
+  const topicId = ref<number | null>(null)
   const topicName = ref('Topic content')
-  const content = ref<FormattedStudyContent>(createDummyContent())
-  const activeSectionId = ref(content.value.contents[0]?.id ?? null)
-  const activeSubsectionId = ref(content.value.contents[0]?.subsections[0]?.id ?? null)
-  const expandedSectionIds = ref<number[]>(content.value.contents.map(section => section.id))
+  const content = ref<FormattedStudyContent>(emptyContent())
+  const activeSectionId = ref<number | null>(null)
+  const activeSubsectionId = ref<number | null>(null)
+  const expandedSectionIds = ref<number[]>([])
   const mode = ref<'edit' | 'preview'>('edit')
+  const isLoadingContent = ref(false)
   const isSaving = ref(false)
   const lastSavedAt = ref<number | null>(null)
   const now = ref(Date.now())
@@ -402,25 +435,54 @@ export function useTopicContentEditor() {
 
   let autosaveTimer: ReturnType<typeof setTimeout> | null = null
   let suppressAutosave = false
+  let saveInFlight = false
+  let pendingSave = false
+  let dirty = false
 
   const saveContent = async () => {
-    isSaving.value = true
-    console.log('Mock save topic content payload:', { content: content.value })
+    if (topicId.value === null) {
+      return
+    }
+    // Never run two saves at once; remember if an edit landed mid-flight so the
+    // latest content still gets persisted (without firing parallel requests).
+    if (saveInFlight) {
+      pendingSave = true
+      return
+    }
 
-    window.setTimeout(() => {
-      isSaving.value = false
+    saveInFlight = true
+    dirty = false
+    isSaving.value = true
+    const payload = { content: remapCardTypes(content.value, TYPE_TO_API) as unknown as Record<string, unknown> }
+    console.log('[study] saving topic content', topicId.value, payload)
+
+    try {
+      const response = await studyService.saveTopicContent(topicId.value, payload)
+      console.log('[study] save response', response)
       lastSavedAt.value = Date.now()
       now.value = Date.now()
-    }, 400)
+    } catch (error) {
+      console.error('[study] failed to save topic content', error)
+      toast.error('Could not save content')
+    } finally {
+      isSaving.value = false
+      saveInFlight = false
+      if (pendingSave) {
+        pendingSave = false
+        void saveContent()
+      }
+    }
   }
 
-  // Debounced autosave (§10). Real PUT is deferred — this drives the indicator + flow.
+  // Debounced background autosave. The save only pushes — it never refetches or
+  // replaces `content`, so it can't disrupt the editor.
   watch(
     content,
     () => {
       if (suppressAutosave) {
         return
       }
+      dirty = true
       if (autosaveTimer) {
         clearTimeout(autosaveTimer)
       }
@@ -431,10 +493,27 @@ export function useTopicContentEditor() {
     { deep: true },
   )
 
-  const loadDummyContent = (name?: string) => {
+  // Persist any pending edit immediately (leaving the page / closing the tab),
+  // so the debounce window can't drop the last change.
+  const flushSave = () => {
+    if (autosaveTimer) {
+      clearTimeout(autosaveTimer)
+      autosaveTimer = null
+    }
+    if (dirty) {
+      void saveContent()
+    }
+  }
+
+  const onBeforeUnload = () => {
+    flushSave()
+  }
+  window.addEventListener('beforeunload', onBeforeUnload)
+
+  const applyLoadedContent = (loaded: FormattedStudyContent, name?: string) => {
     suppressAutosave = true
-    topicName.value = name || 'Topic content'
-    content.value = createDummyContent()
+    topicName.value = name || topicName.value || 'Topic content'
+    content.value = remapCardTypes(loaded, TYPE_FROM_API)
     activeSectionId.value = content.value.contents[0]?.id ?? null
     activeSubsectionId.value = content.value.contents[0]?.subsections[0]?.id ?? null
     expandedSectionIds.value = content.value.contents.map(section => section.id)
@@ -443,10 +522,32 @@ export function useTopicContentEditor() {
     activeQuizQuestionIndex.value = 0
     changedBlockIds.value = []
     aiProposal.value = null
-    // Release the autosave guard after the load-triggered reactivity settles.
+    // Release the autosave guard once the load-triggered reactivity settles.
     setTimeout(() => {
       suppressAutosave = false
     }, 0)
+  }
+
+  const loadContent = async (id: number, fallbackName?: string) => {
+    topicId.value = id
+    isLoadingContent.value = true
+    try {
+      const response = await studyService.getTopicContent(id)
+      console.log('[study] topic content response', response)
+      const data = (response?.data ?? {}) as {
+        topicName?: string
+        topicContent?: FormattedStudyContent
+        content?: FormattedStudyContent
+      } & Partial<FormattedStudyContent>
+      const loaded = data.topicContent ?? data.content ?? (data as FormattedStudyContent)
+      applyLoadedContent(loaded?.contents ? loaded : emptyContent(), data.topicName ?? fallbackName)
+    } catch (error) {
+      console.error('[study] failed to load topic content', error)
+      applyLoadedContent(emptyContent(), fallbackName)
+      toast.error('Could not load topic content')
+    } finally {
+      isLoadingContent.value = false
+    }
   }
 
   const clockTimer = window.setInterval(() => {
@@ -454,6 +555,9 @@ export function useTopicContentEditor() {
   }, 30000)
 
   onScopeDispose(() => {
+    // Leaving the editor (route change/unmount): flush the last edit, then clean up.
+    flushSave()
+    window.removeEventListener('beforeunload', onBeforeUnload)
     window.clearInterval(clockTimer)
     if (autosaveTimer) {
       clearTimeout(autosaveTimer)
@@ -461,8 +565,10 @@ export function useTopicContentEditor() {
   })
 
   return {
+    topicId,
     topicName,
     content,
+    isLoadingContent,
     activeSectionId,
     activeSubsectionId,
     expandedSectionIds,
@@ -485,7 +591,7 @@ export function useTopicContentEditor() {
     aiProposal,
     changedBlockIds,
     blockPresetGroups,
-    loadDummyContent,
+    loadContent,
     selectSubsection,
     toggleSection,
     updateSubsectionTitle,

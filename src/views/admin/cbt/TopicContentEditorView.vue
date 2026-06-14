@@ -219,7 +219,7 @@ const {
   aiProposal,
   changedBlockIds,
   blockPresetGroups,
-  loadDummyContent,
+  loadContent,
   selectSubsection,
   toggleSection,
   updateSubsectionTitle,
@@ -344,7 +344,10 @@ const goBack = () => {
 
 onMounted(() => {
   const topicNameQuery = typeof route.query.topicName === 'string' ? route.query.topicName : undefined
-  loadDummyContent(topicNameQuery)
+  const topicId = Number(route.params.topicId)
+  if (Number.isFinite(topicId)) {
+    void loadContent(topicId, topicNameQuery)
+  }
   window.addEventListener('keydown', handleSaveShortcut)
   window.addEventListener('mouseup', disarmDragHandle)
 })
