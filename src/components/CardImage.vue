@@ -5,7 +5,7 @@
     <template v-if="url">
       <div class="relative">
         <img :src="url" :alt="alt || 'Image'"
-          class="max-h-96 w-full bg-gray-50 object-contain dark:bg-gray-900" />
+          class="max-h-64 w-full bg-gray-50 object-contain dark:bg-gray-900" />
         <div v-if="editable" class="absolute right-2 top-2 flex gap-2">
           <button type="button" @click="triggerPick" title="Replace image"
             class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-white/90 text-gray-600 shadow hover:bg-white dark:bg-gray-800/90 dark:text-gray-200">
@@ -18,13 +18,13 @@
           </button>
         </div>
       </div>
-      <div v-if="editable" class="space-y-2 p-3">
-        <input :value="url" @input="$emit('update:url', ($event.target as HTMLInputElement).value)" type="url"
-          placeholder="Image link (URL)"
-          class="w-full rounded-lg border-[0.5px] border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" />
+      <div v-if="editable" class="space-y-2 p-2.5">
+        <input v-if="!isLocal" :value="url" @input="$emit('update:url', ($event.target as HTMLInputElement).value)"
+          type="url" placeholder="Image link (URL)"
+          class="w-full rounded-lg border-[0.5px] border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" />
         <input :value="alt" @input="$emit('update:alt', ($event.target as HTMLInputElement).value)"
           placeholder="Alt text (describe the image)"
-          class="w-full rounded-lg border-[0.5px] border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" />
+          class="w-full rounded-lg border-[0.5px] border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" />
       </div>
       <p v-else-if="alt" class="p-3 text-sm text-gray-500 dark:text-gray-400">{{ alt }}</p>
     </template>
@@ -43,7 +43,7 @@
         :class="dragging
           ? 'border-blue-400 bg-blue-50 text-blue-600 dark:border-blue-500 dark:bg-blue-900/20'
           : 'border-gray-300 text-gray-400 hover:border-blue-300 hover:text-blue-500 dark:border-gray-600'"
-        class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-10 text-center transition">
+        class="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-7 text-center transition">
         <i :class="dragging ? 'fa-hand-pointer' : 'fa-cloud-arrow-up'" class="fas text-2xl"></i>
         <p class="text-sm font-semibold">{{ dragging ? 'Drop the image' : 'Click or drag an image here' }}</p>
         <p class="text-xs text-gray-400">PNG, JPG, GIF, SVG · up to {{ maxMb }}MB</p>
@@ -74,9 +74,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     url: string
     alt?: string
@@ -87,6 +87,9 @@ withDefaults(
     editable: true,
   },
 )
+
+// A locally-uploaded image is a data URL — there's no meaningful link to edit.
+const isLocal = computed(() => props.url.startsWith('data:'))
 
 const emit = defineEmits<{
   'update:url': [value: string]

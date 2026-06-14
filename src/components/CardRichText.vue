@@ -79,6 +79,10 @@ const props = withDefaults(
     list?: boolean
     ordered?: boolean
     contentClass?: string
+    // Intercept paste: given the plain-text clipboard, return a replacement
+    // string to set as this field's content, `false` to swallow the paste
+    // without changing content, or null to paste normally.
+    onPaste?: (text: string) => string | false | null
   }>(),
   {
     editable: true,
@@ -87,6 +91,7 @@ const props = withDefaults(
     list: false,
     ordered: false,
     contentClass: '',
+    onPaste: undefined,
   },
 )
 
@@ -148,6 +153,30 @@ const editor = useEditor({
         return true
       }
       return false
+    },
+    handlePaste: (_view, event) => {
+      if (!props.onPaste) {
+        return false
+      }
+      const text = event.clipboardData?.getData('text/plain') ?? ''
+      if (!text) {
+        return false
+      }
+      const replacement = props.onPaste(text)
+      if (replacement == null) {
+        return false
+      }
+      // `false` → swallow the paste but leave this field's content unchanged.
+      if (replacement === false) {
+        return true
+      }
+      const instance = editor.value
+      if (instance) {
+        instance.commands.setContent(replacement, { emitUpdate: false })
+        migrateMathStrings(instance)
+        emit('update:modelValue', instance.getHTML())
+      }
+      return true
     },
   },
   onCreate: ({ editor }) => {

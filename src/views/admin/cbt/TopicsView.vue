@@ -28,123 +28,43 @@
     </section>
 
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div class="border-b border-gray-200 p-5 dark:border-gray-700">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Subjects</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Select a subject to view sample topics.</p>
-          </div>
-
-          <span
-            v-if="isLoadingTopicsOverview"
-            class="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-            <i class="fas fa-spinner fa-spin"></i>
-            Loading
-          </span>
-          <span
-            v-else-if="selectedCourse"
-            class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700 dark:bg-gray-900/60 dark:text-gray-200">
-            {{ formatNumber(selectedCourse.topicCount) }} topics
-          </span>
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-700">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Subjects</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Select a subject to view its topics.</p>
         </div>
+
+        <span
+          v-if="isLoadingTopicsOverview"
+          class="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading
+        </span>
       </div>
 
-      <div class="border-b border-gray-200 px-5 dark:border-gray-700">
-        <div v-if="courses.length" class="flex gap-2 overflow-x-auto py-4">
+      <div class="p-5">
+        <div v-if="courses.length" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <button
             v-for="course in courses"
             :key="course.courseId"
             type="button"
-            @click="selectCourse(course.courseId)"
-            :class="[
-              selectedCourseId === course.courseId
-                ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
-            ]"
-            class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition">
-            <span>{{ course.courseName }}</span>
-            <span
-              :class="selectedCourseId === course.courseId ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-900/60 dark:text-gray-300'"
-              class="rounded-full px-2 py-0.5 text-xs">
-              {{ formatCompactNumber(course.topicCount) }}
-            </span>
-          </button>
-        </div>
-        <div v-else class="py-4 text-sm text-gray-500 dark:text-gray-400">
-          {{ isLoadingTopicsOverview ? 'Loading subjects...' : 'No subjects found.' }}
-        </div>
-      </div>
-
-      <div v-if="selectedCourse" class="p-5">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ selectedCourse.courseName }} Topics</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-              {{ formatNumber(selectedCourseTopicsCount) }} topics grouped by category.
-            </p>
-          </div>
-
-          <span
-            v-if="isLoadingCourseTopics"
-            class="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-            <i class="fas fa-spinner fa-spin"></i>
-            Loading topics
-          </span>
-        </div>
-
-        <div v-if="selectedCourseTopicCategories.length" class="space-y-5">
-          <section
-            v-for="category in selectedCourseTopicCategories"
-            :key="category.categoryId"
-            class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/30">
-            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h4 class="font-semibold text-gray-900 dark:text-white">{{ category.categoryName }}</h4>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ formatNumber(category.topics.length) }} topics</p>
+            @click="openSubject(course)"
+            class="group flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:border-blue-300 hover:shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700">
+            <div class="flex min-w-0 items-center gap-3">
+              <span
+                class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+                <i class="fas fa-book"></i>
+              </span>
+              <div class="min-w-0">
+                <h3 class="truncate font-semibold text-gray-900 dark:text-white">{{ course.courseName }}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ formatNumber(course.topicCount) }} topics</p>
               </div>
             </div>
-
-            <div class="divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 bg-white dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800">
-              <article
-                v-for="topic in category.topics"
-                :key="topic.id"
-                class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <div class="min-w-0">
-                  <h5 class="truncate font-semibold text-gray-900 dark:text-white">{{ topic.name }}</h5>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ formatNumber(topic.questionsCount) }} linked questions
-                  </p>
-                </div>
-                <div class="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    @click="openSubtopics(topic)"
-                    title="View subtopics"
-                    aria-label="View subtopics"
-                    class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-200 dark:hover:bg-blue-900/20">
-                    <i class="fas fa-list-ul"></i>
-                    Subtopics
-                  </button>
-                  <button
-                    type="button"
-                    @click="openTopicContent(topic)"
-                    title="Edit content"
-                    aria-label="Edit content"
-                    class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-200 dark:hover:bg-emerald-900/20">
-                    <i class="fas fa-edit"></i>
-                    Edit content
-                  </button>
-                </div>
-              </article>
-            </div>
-          </section>
+            <i class="fas fa-chevron-right text-gray-300 transition group-hover:text-blue-500 dark:text-gray-600"></i>
+          </button>
         </div>
-
-        <div v-else class="rounded-xl border border-dashed border-gray-300 px-6 py-10 text-center dark:border-gray-600">
-          <h4 class="text-base font-semibold text-gray-900 dark:text-white">No topics found</h4>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ isLoadingCourseTopics ? 'Loading topics for this subject...' : 'This subject has no topics yet.' }}
-          </p>
+        <div v-else class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          {{ isLoadingTopicsOverview ? 'Loading subjects...' : 'No subjects found.' }}
         </div>
       </div>
     </section>
@@ -155,47 +75,20 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTopicsOverview } from '@/composables/useTopicsOverview'
-import type { CourseTopic } from '@/composables/useTopicsOverview'
+import type { TopicCourse } from '@/composables/useTopicsOverview'
 
 const router = useRouter()
-const {
-  courses,
-  summary,
-  selectedCourseId,
-  selectedCourse,
-  selectedCourseTopicCategories,
-  selectedCourseTopicsCount,
-  isLoadingTopicsOverview,
-  isLoadingCourseTopics,
-  loadTopicsOverview,
-  selectCourse,
-} = useTopicsOverview()
+const { courses, summary, isLoadingTopicsOverview, loadTopicsOverview } = useTopicsOverview()
 
 const numberFormatter = new Intl.NumberFormat('en-NG')
-const compactNumberFormatter = new Intl.NumberFormat('en-NG', {
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
 
 const formatNumber = (value: number) => numberFormatter.format(value || 0)
 
-const formatCompactNumber = (value: number) => compactNumberFormatter.format(value || 0)
-
-const openSubtopics = (topic: CourseTopic) => {
+const openSubject = (course: TopicCourse) => {
   router.push({
-    name: 'Topic Subtopics',
-    params: { topicId: topic.id },
-    query: { topicName: topic.name },
-  })
-}
-
-const openTopicContent = (topic: CourseTopic) => {
-  router.push({
-    name: 'Topic Content Editor',
-    params: { topicId: topic.id },
-    query: {
-      topicName: topic.name,
-    },
+    name: 'Subject Topics',
+    params: { courseId: course.courseId },
+    query: { courseName: course.courseName },
   })
 }
 

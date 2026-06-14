@@ -144,7 +144,7 @@
                     </div>
                   </div>
                   <div class="group/tip relative">
-                    <button type="button" class="icon-btn" @click="showAgentPanel = true"><i
+                    <button type="button" class="icon-btn" @click="openAgentModal(block.id)"><i
                         class="fas fa-wand-magic-sparkles"></i></button>
                     <span class="action-tip">Edit with agent</span>
                   </div>
@@ -250,7 +250,7 @@
         <div v-else-if="activeSurface === 'sectionQuiz' || activeSurface === 'finalQuiz'"
           class="grid w-full gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside
-            class="min-h-[70vh] overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            class="min-h-[70vh] overflow-hidden rounded-md border-[0.5px] border-gray-500/50 bg-white dark:border-gray-600/60 dark:bg-gray-800">
             <div class="border-b border-gray-200 p-4 dark:border-gray-700">
               <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ activeQuizTitle }}</h2>
               <p class="text-sm text-gray-500 dark:text-gray-400">{{ activeQuiz.length }} questions</p>
@@ -259,12 +259,12 @@
               <button v-for="(question, index) in activeQuiz" :key="question.id" type="button"
                 @click="selectQuizQuestion(index)"
                 :class="activeQuizQuestionIndex === index ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-900/20 dark:text-blue-200' : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700/50'"
-                class="mb-2 flex w-full cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-left text-sm">
+                class="mb-2 flex w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm">
                 <span
                   class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 dark:bg-gray-900 dark:text-gray-300">
                   {{ index + 1 }}
                 </span>
-                <span class="min-w-0 flex-1 truncate">{{ question.questionText }}</span>
+                <span class="min-w-0 flex-1 truncate">{{ plainText(question.questionText) || 'Untitled question' }}</span>
               </button>
 
               <button type="button" @click="addQuizQuestion"
@@ -276,7 +276,7 @@
           </aside>
 
           <section
-            class="min-h-[70vh] rounded-md border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            class="min-h-[70vh] rounded-md border-[0.5px] border-gray-500/50 bg-white p-5 dark:border-gray-600/60 dark:bg-gray-800">
             <div v-if="selectedQuizQuestion" class="space-y-5">
               <div class="flex items-start justify-between gap-4">
                 <div>
@@ -294,22 +294,29 @@
 
               <div>
                 <label class="text-sm font-semibold text-gray-700 dark:text-gray-200">Question</label>
-                <textarea v-model="selectedQuizQuestion.questionText" rows="4"
-                  class="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white"></textarea>
+                <div
+                  class="mt-2 rounded-xl border border-transparent px-4 py-3 transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-1 focus-within:ring-blue-500/20 dark:focus-within:border-blue-500 dark:focus-within:bg-gray-900">
+                  <CardRichText :model-value="selectedQuizQuestion.questionText"
+                    @update:model-value="selectedQuizQuestion.questionText = $event" :on-paste="questionPasteHandler"
+                    placeholder="Type or paste the question (with options) — supports $latex$"
+                    content-class="text-sm text-gray-900 dark:text-white" />
+                </div>
               </div>
 
-              <div class="space-y-3">
+              <div class="space-y-2">
                 <div v-for="(option, index) in selectedQuizQuestion.options" :key="index"
-                  class="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2 dark:border-gray-700">
+                  class="group/opt flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 transition-colors focus-within:border-blue-400 focus-within:bg-white dark:focus-within:bg-gray-900">
                   <input v-model="selectedQuizQuestion.correctAnswer" :value="index" type="radio"
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500" />
-                  <span class="w-6 text-sm font-bold text-gray-500">{{ String.fromCharCode(65 + index) }}</span>
-                  <input v-model="option.text"
-                    class="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm text-gray-900 focus:border-blue-500 focus:bg-white dark:text-white dark:focus:bg-gray-900" />
+                    title="Mark as correct answer"
+                    class="h-4 w-4 shrink-0 text-blue-600 focus:ring-blue-500" />
+                  <CardRichText :ref="el => setOptionRef(index, el)" class="min-w-0 flex-1" :model-value="option.text"
+                    @update:model-value="updateOptionText(index, $event)" single-line :on-paste="mathPasteHandler"
+                    placeholder="Option" content-class="text-sm text-gray-900 dark:text-white"
+                    @enter="addOptionAfter(index)" @backspace-empty="onOptionBackspace(index)" />
                   <button type="button" @click="deleteQuizOption(index)"
-                    class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                    class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-rose-400 opacity-0 transition hover:bg-rose-50 group-hover/opt:opacity-100 dark:hover:bg-rose-900/20"
                     aria-label="Delete option">
-                    <i class="fas fa-times"></i>
+                    <i class="fas fa-times text-xs"></i>
                   </button>
                 </div>
                 <button type="button" @click="addQuizOption"
@@ -321,8 +328,13 @@
 
               <div>
                 <label class="text-sm font-semibold text-gray-700 dark:text-gray-200">Explanation</label>
-                <textarea v-model="selectedQuizQuestion.explanation" rows="3"
-                  class="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white"></textarea>
+                <div
+                  class="mt-2 rounded-xl border border-transparent px-4 py-3 transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-1 focus-within:ring-blue-500/20 dark:focus-within:border-blue-500 dark:focus-within:bg-gray-900">
+                  <CardRichText :model-value="selectedQuizQuestion.explanation"
+                    @update:model-value="selectedQuizQuestion.explanation = $event" :on-paste="mathPasteHandler"
+                    placeholder="Explain the correct answer — supports $latex$"
+                    content-class="text-sm text-gray-900 dark:text-white" />
+                </div>
               </div>
 
               <div>
@@ -416,13 +428,16 @@
         </div>
 
         <div class="border-t border-gray-200 p-4 dark:border-gray-700">
-          <textarea v-model="aiInstruction" rows="4" placeholder="Ask AI to edit..."
-            class="w-full resize-none rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white"></textarea>
-          <button type="button" @click="sendAiInstruction"
-            class="mt-3 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700 dark:bg-blue-600 dark:hover:bg-blue-700">
-            <i class="fas fa-arrow-up"></i>
-            Send
-          </button>
+          <div
+            class="relative rounded-xl border border-gray-300 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900">
+            <textarea v-model="aiInstruction" rows="3" placeholder="Ask AI to edit…  (Enter to send, Shift+Enter for newline)"
+              class="w-full resize-none rounded-xl bg-transparent py-2.5 pl-3 pr-12 text-sm text-gray-900 focus:outline-none dark:text-white"
+              @keydown.enter.exact.prevent="sendAiInstruction"></textarea>
+            <button type="button" @click="sendAiInstruction" :disabled="!aiInstruction.trim()" aria-label="Send"
+              class="absolute bottom-2 right-2 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-gray-900 text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-700">
+              <i class="fas fa-arrow-up text-xs"></i>
+            </button>
+          </div>
         </div>
       </aside>
     </div>
@@ -470,6 +485,43 @@
       </div>
     </Teleport>
 
+    <Teleport to="body">
+      <div v-if="agentBlock" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        @click.self="closeAgentModal">
+        <div class="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800">
+          <div class="flex items-start justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+            <div class="min-w-0">
+              <h2 class="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
+                <i class="fas fa-wand-magic-sparkles text-blue-600 dark:text-blue-400"></i>
+                Edit with agent
+              </h2>
+              <p class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                {{ plainText(agentBlock.title) || 'Untitled' }}
+              </p>
+            </div>
+            <button type="button" @click="closeAgentModal"
+              class="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+              aria-label="Close">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="p-4">
+            <div
+              class="relative rounded-xl border border-gray-300 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900">
+              <textarea v-model="agentPrompt" rows="4" autofocus
+                placeholder="Describe the change for this card…  (Enter to send, Shift+Enter for newline)"
+                class="w-full resize-none rounded-xl bg-transparent py-2.5 pl-3 pr-12 text-sm text-gray-900 focus:outline-none dark:text-white"
+                @keydown.enter.exact.prevent="submitAgentEdit"></textarea>
+              <button type="button" @click="submitAgentEdit" :disabled="!agentPrompt.trim()" aria-label="Send"
+                class="absolute bottom-2 right-2 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">
+                <i class="fas fa-arrow-up text-xs"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
@@ -478,6 +530,7 @@ import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CardRichText from '@/components/CardRichText.vue'
 import CardImage from '@/components/CardImage.vue'
+import { parseQuestionPaste, smartConvert, canAutoConvert } from '@/utils/quizPaste'
 import { useTopicContentEditor, type StudyBlock, type StudyBlockType } from '@/composables/useTopicContentEditor'
 
 const route = useRoute()
@@ -532,6 +585,7 @@ const {
   addQuizOption,
   deleteQuizOption,
   sendAiInstruction,
+  requestBlockAiEdit,
   applyAiProposal,
   discardAiProposal,
   saveContent,
@@ -648,7 +702,83 @@ const onPairBackspace = (block: StudyBlock, index: number) => {
   removePairItem(block, index)
 }
 
+// ── Quiz field helpers ──────────────────────────────────────────────────────
+const optionRefs = ref<Record<number, { focus: () => void } | null>>({})
+const setOptionRef = (index: number, el: unknown) => {
+  optionRefs.value[index] = el as { focus: () => void } | null
+}
+
+const updateOptionText = (index: number, value: string) => {
+  const option = selectedQuizQuestion.value?.options[index]
+  if (option) {
+    option.text = value
+  }
+}
+
+const addOptionAfter = (index: number) => {
+  const question = selectedQuizQuestion.value
+  if (!question) {
+    return
+  }
+  question.options.splice(index + 1, 0, { text: '' })
+  nextTick(() => optionRefs.value[index + 1]?.focus())
+}
+
+const onOptionBackspace = (index: number) => {
+  const question = selectedQuizQuestion.value
+  const option = question?.options[index]
+  if (!question || !option || plainText(option.text) || question.options.length <= 2) {
+    return
+  }
+  deleteQuizOption(index)
+  nextTick(() => optionRefs.value[Math.max(0, index - 1)]?.focus())
+}
+
+// Smart-convert plain math/chemistry notation on paste (e.g. H2 → $H_{2}$).
+const mathPasteHandler = (text: string): string | null => (canAutoConvert(text) ? smartConvert(text) : null)
+
+// Pasting a whole question block fills the question + options + correct answer.
+const questionPasteHandler = (text: string): string | false | null => {
+  const question = selectedQuizQuestion.value
+  if (!question) {
+    return null
+  }
+  const parsed = parseQuestionPaste(text)
+  if (parsed.options.length >= 2) {
+    question.options = parsed.options.map(option => ({ text: smartConvert(option) }))
+    question.correctAnswer =
+      typeof parsed.correctOptionIndex === 'number'
+        ? parsed.correctOptionIndex
+        : Math.min(question.correctAnswer, question.options.length - 1)
+    return parsed.question ? smartConvert(parsed.question) : false
+  }
+  return mathPasteHandler(text)
+}
+
 const isChanged = (blockId: number) => changedBlockIds.value.includes(blockId)
+
+// Per-card "Edit with agent" prompt modal (scoped to a single block).
+const agentBlockId = ref<number | null>(null)
+const agentPrompt = ref('')
+const agentBlock = computed(() => activeSubsection.value?.cards.find(card => card.id === agentBlockId.value) ?? null)
+
+const openAgentModal = (blockId: number) => {
+  agentBlockId.value = blockId
+  agentPrompt.value = ''
+}
+
+const closeAgentModal = () => {
+  agentBlockId.value = null
+  agentPrompt.value = ''
+}
+
+const submitAgentEdit = () => {
+  if (agentBlockId.value === null || !agentPrompt.value.trim()) {
+    return
+  }
+  requestBlockAiEdit(agentBlockId.value, agentPrompt.value)
+  closeAgentModal()
+}
 
 // Disarm handle-dragging once the pointer is released (covers a click on the
 // handle that never turned into a drag).

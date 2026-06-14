@@ -657,6 +657,18 @@ export function useTopicContentEditor() {
     aiInstruction.value = ''
   }
 
+  // Block-scoped AI edit triggered from a card's "Edit with agent" modal.
+  // Mock for now — highlights the card; swap for the block-scoped endpoint later.
+  const requestBlockAiEdit = (blockId: number, instruction: string) => {
+    const trimmed = instruction.trim()
+    if (!trimmed) {
+      return
+    }
+    console.log('Mock block AI edit:', { blockId, instruction: trimmed })
+    changedBlockIds.value = [blockId]
+    toast.success('Agent updated this card')
+  }
+
   const applyAiProposal = () => {
     if (!aiProposal.value) {
       return
@@ -793,6 +805,7 @@ export function useTopicContentEditor() {
     addQuizOption,
     deleteQuizOption,
     sendAiInstruction,
+    requestBlockAiEdit,
     applyAiProposal,
     discardAiProposal,
     saveContent,
