@@ -6,6 +6,7 @@ import ToastPlugin from 'vue-toast-notification'
 
 import '@fortawesome/fontawesome-free/css/all.css'
 import 'vue-toast-notification/dist/theme-bootstrap.css'
+import 'katex/dist/katex.min.css'
 import '@/assets/styles/index.css'
 import '@/assets/styles/form.css'
 
