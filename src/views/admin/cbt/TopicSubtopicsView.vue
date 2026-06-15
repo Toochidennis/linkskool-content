@@ -1,19 +1,18 @@
 <template>
   <div class="flex h-[calc(100vh-7rem)] min-h-0 flex-col gap-6 overflow-hidden">
-    <header class="flex shrink-0 flex-wrap items-start justify-between gap-4">
+    <header class="flex shrink-0 items-start gap-3">
+      <button
+        type="button"
+        @click="goBack"
+        class="mt-1 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-300 text-gray-600 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+        aria-label="Back">
+        <i class="fas fa-arrow-left"></i>
+      </button>
       <div class="min-w-0">
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600 dark:text-blue-400">Topic Workspace</p>
         <h1 class="mt-2 truncate text-3xl font-bold text-gray-900 dark:text-white">Topic: {{ topicTitle }}</h1>
         <p class="mt-2 text-gray-600 dark:text-gray-400">Manage subtopics and their nested learning points.</p>
       </div>
-
-      <button
-        type="button"
-        @click="goBack"
-        class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
-        <i class="fas fa-arrow-left"></i>
-        Back to topics
-      </button>
     </header>
 
     <section class="grid min-h-0 flex-1 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -249,7 +248,12 @@ const {
 } = useTopicSubtopics()
 
 const goBack = () => {
-  router.push({ name: 'Topics' })
+  // Return to the caller (the subject's topics page); fall back to Topics.
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'Topics' })
+  }
 }
 
 const handleTitleInput = (event: Event) => {

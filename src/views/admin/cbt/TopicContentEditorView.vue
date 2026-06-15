@@ -338,7 +338,12 @@ const clearBlockDrag = () => {
 }
 
 const goBack = () => {
-  router.push({ name: 'Topics' })
+  // Return to the caller (the subject's topics page); fall back to Topics.
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'Topics' })
+  }
 }
 
 onMounted(() => {
@@ -358,46 +363,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.icon-btn {
-  display: inline-flex;
-  height: 1.5rem;
-  width: 1.5rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  color: rgb(107 114 128);
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.icon-btn:hover {
-  background: rgb(243 244 246);
-  color: rgb(17 24 39);
-}
-
-.action-tip {
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  z-index: 30;
-  margin-bottom: 0.25rem;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  border-radius: 0.375rem;
-  background: rgb(17 24 39);
-  padding: 0.2rem 0.45rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: white;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-.group\/tip:hover .action-tip {
-  opacity: 1;
-}
-
 /* Smooth card reordering during drag (TransitionGroup). */
 .card-move {
   transition: transform 0.25s ease;

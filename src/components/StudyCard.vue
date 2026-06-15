@@ -7,8 +7,11 @@
         block.type === 'commonMistake' ? 'border-rose-200 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-900/20' : '',
         dragging ? 'opacity-40' : '',
         changed ? 'ring-2 ring-emerald-400/70' : '',
+        bare
+          ? 'rounded-2xl p-6'
+          : 'rounded-md border-[0.5px] border-gray-500/50 bg-white p-8 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 dark:border-gray-600/60 dark:bg-gray-800 dark:focus-within:border-blue-400',
       ]"
-      class="group rounded-md border-[0.5px] border-gray-500/50 bg-white p-8 transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 dark:border-gray-600/60 dark:bg-gray-800 dark:focus-within:border-blue-400">
+      class="group transition">
       <div v-if="mode === 'edit'"
         class="mb-2 flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:transition lg:group-hover:opacity-100">
         <div class="group/tip relative">
@@ -48,7 +51,7 @@
 
       <CardRichText :editable="mode === 'edit'" :model-value="block.title || ''"
         @update:model-value="emit('update', { title: $event })" single-line placeholder="Heading"
-        content-class="text-4xl font-bold text-gray-900 dark:text-white" class="mb-2" />
+        content-class="text-4xl font-bold text-gray-900 dark:text-white" class="mb-6" />
 
       <CardRichText v-if="hasBody" :editable="mode === 'edit'" :model-value="block.body || ''"
         @update:model-value="emit('update', { body: $event })" placeholder="Start typing… use $latex$ for math"
@@ -132,6 +135,9 @@ const props = defineProps<{
   mode: 'edit' | 'preview'
   changed?: boolean
   dragging?: boolean
+  // Presentation: drop the card chrome (border/background/padding) for an
+  // edge-to-edge slide; the content renders directly on the slide surface.
+  bare?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -202,3 +208,45 @@ const onPairBackspace = (index: number) => {
   nextTick(() => pairTermRefs.value[Math.max(0, index - 1)]?.focus())
 }
 </script>
+
+<style scoped>
+.icon-btn {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  color: rgb(107 114 128);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgb(243 244 246);
+  color: rgb(17 24 39);
+}
+
+.action-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  z-index: 30;
+  margin-bottom: 0.25rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  border-radius: 0.375rem;
+  background: rgb(17 24 39);
+  padding: 0.2rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.group\/tip:hover .action-tip {
+  opacity: 1;
+}
+</style>
